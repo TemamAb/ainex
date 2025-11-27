@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  quantumnex-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: quantumnex/app:local
+    container_name: quantumnex-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    depends_on:
+      - redis
+      - postgres
+
+  redis:
+    image: redis:7-alpine
+    container_name: quantumnex-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: quantumnex-postgres
+    environment:
+      - POSTGRES_DB=quantumnex
+      - POSTGRES_USER=quantumnex
+      - POSTGRES_PASSWORD=quantumnex
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # Note: Python agents run separately and are not included by default here.
+  # Add a `python-agents` service that builds from a Python Dockerfile if you
+  # want agents to run in-container as part of compose.
+
+volumes:
+  postgres-data:
