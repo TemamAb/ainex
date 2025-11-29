@@ -47,6 +47,6 @@ export default defineConfig({
     preview: {
         port: 3000,
         host: true,
-        allowedHosts: ['ainex-0zp.onrender.com', 'onrender.com'],
+        allowedHosts: true,
     }
 });
