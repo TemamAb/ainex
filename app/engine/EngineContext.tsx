@@ -8,6 +8,8 @@ export type EngineState = 'IDLE' | 'BOOTING' | 'READY' | 'SIMULATION' | 'TRANSIT
 export type BootStage = 'INIT' | 'GASLESS' | 'SMART_WALLET' | 'FLASH_LOAN' | 'BOT_SWARM' | 'AI_OPTIMIZATION' | 'COMPLETE';
 export type RiskProfile = 'LOW' | 'MEDIUM' | 'HIGH';
 export type ProfitMode = 'ADAPTIVE' | 'FIXED';
+export type TargetTimeframe = 'EXECUTION' | 'HOUR' | 'DAY';
+export type TargetCurrency = 'ETH' | 'USD';
 
 interface EngineContextType {
   state: EngineState;
@@ -36,8 +38,16 @@ interface EngineContextType {
   setRiskProfile: (p: RiskProfile) => void;
   profitMode: ProfitMode;
   setProfitMode: (m: ProfitMode) => void;
-  fixedTarget: number;
+
+  // Enhanced Target Config
+  fixedTarget: number; // This is the raw input value
   setFixedTarget: (t: number) => void;
+  targetTimeframe: TargetTimeframe;
+  setTargetTimeframe: (t: TargetTimeframe) => void;
+  targetCurrency: TargetCurrency;
+  setTargetCurrency: (c: TargetCurrency) => void;
+  effectiveTargetPerBlock: number; // Calculated value used by engine
+
   profitReinvestment: number;
   setProfitReinvestment: (r: number) => void;
 
@@ -57,7 +67,13 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
   // Admin State
   const [riskProfile, setRiskProfile] = useState<RiskProfile>('MEDIUM');
   const [profitMode, setProfitMode] = useState<ProfitMode>('ADAPTIVE');
+
+  // Enhanced Target State
   const [fixedTarget, setFixedTarget] = useState<number>(0);
+  const [targetTimeframe, setTargetTimeframe] = useState<TargetTimeframe>('EXECUTION');
+  const [targetCurrency, setTargetCurrency] = useState<TargetCurrency>('ETH');
+  const [effectiveTargetPerBlock, setEffectiveTargetPerBlock] = useState<number>(0);
+
   const [profitReinvestment, setProfitReinvestment] = useState<number>(50); // Default 50%
 
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -106,6 +122,36 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
     setAiState(aiOptimizer.current.getState());
   }, []);
 
+  // CALCULATE EFFECTIVE TARGET
+  useEffect(() => {
+    if (profitMode !== 'FIXED' || fixedTarget === 0) {
+      setEffectiveTargetPerBlock(0);
+      return;
+    }
+
+    let targetInEth = fixedTarget;
+
+    // 1. Convert USD to ETH if needed
+    if (targetCurrency === 'USD' && metrics.ethPrice > 0) {
+      targetInEth = fixedTarget / metrics.ethPrice;
+    }
+
+    // 2. Convert Timeframe to Per-Block (Execution)
+    // Block time approx 12 seconds -> 300 blocks per hour
+    const BLOCKS_PER_HOUR = 300;
+    const BLOCKS_PER_DAY = BLOCKS_PER_HOUR * 24;
+
+    let perBlock = targetInEth;
+    if (targetTimeframe === 'HOUR') {
+      perBlock = targetInEth / BLOCKS_PER_HOUR;
+    } else if (targetTimeframe === 'DAY') {
+      perBlock = targetInEth / BLOCKS_PER_DAY;
+    }
+
+    setEffectiveTargetPerBlock(perBlock);
+
+  }, [fixedTarget, targetTimeframe, targetCurrency, metrics.ethPrice, profitMode]);
+
   // REMOVED: startEngine boot sequence (No longer needed, starts READY)
   const startEngine = async () => {
     // No-op or instant reset if needed
@@ -144,7 +190,7 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
           gasPrice: simMetrics.gasPrice,
           ethPrice: simMetrics.ethPrice,
           volatility: simMetrics.volatilityIndex,
-          theoreticalMaxProfit: simMetrics.theoreticalMaxProfit, // Always track the AI's theoretical max
+          theoreticalMaxProfit: profitMode === 'FIXED' ? effectiveTargetPerBlock : simMetrics.theoreticalMaxProfit, // Use Calculated Fixed Target
           aiCapturedProfit: simMetrics.aiCapturedProfit,
           latencyMs: 45, // Standard acceptable RPC latency
           aiEfficiencyDelta: (aiOptimizer.current?.getState().efficiencyScore || 75) - 75,
@@ -206,7 +252,8 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
     <EngineContext.Provider value={{
       state, bootStage, metrics, confidence, aiState,
       startEngine, startSimulation, confirmLive, withdrawFunds, engineAddress,
-      riskProfile, setRiskProfile, profitMode, setProfitMode, fixedTarget, setFixedTarget,
+      riskProfile, setRiskProfile, profitMode, setProfitMode,
+      fixedTarget, setFixedTarget, targetTimeframe, setTargetTimeframe, targetCurrency, setTargetCurrency, effectiveTargetPerBlock,
       profitReinvestment, setProfitReinvestment
     }}>
       {children}

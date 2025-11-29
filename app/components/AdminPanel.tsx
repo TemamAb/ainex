@@ -63,22 +63,69 @@ export const AdminPanel = ({ isOpen, onClose }: AdminPanelProps) => {
 
                         {/* FIXED TARGET INPUT */}
                         {profitMode === 'FIXED' && (
-                            <div className="mt-4 p-4 bg-[#181b1f] rounded border border-[#22252b] animate-in fade-in slide-in-from-top-2">
+                            <div className="mt-4 p-4 bg-[#181b1f] rounded border border-[#22252b] space-y-4 animate-in fade-in slide-in-from-top-2">
+                                {/* Timeframe Selector */}
+                                <div>
+                                    <span className="text-xs text-gray-400 mb-2 block">Timeframe:</span>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {(['EXECUTION', 'HOUR', 'DAY'] as const).map((tf) => (
+                                            <button
+                                                key={tf}
+                                                onClick={() => useEngine().setTargetTimeframe(tf)}
+                                                className={`px-3 py-2 rounded border text-xs font-bold transition-all ${useEngine().targetTimeframe === tf
+                                                        ? 'bg-[#5794F2]/10 border-[#5794F2] text-[#5794F2]'
+                                                        : 'bg-black border-[#22252b] text-gray-400 hover:border-gray-600'
+                                                    }`}
+                                            >
+                                                {tf === 'EXECUTION' ? 'Per Block' : `Per ${tf.toLowerCase()}`}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Currency Selector */}
+                                <div>
+                                    <span className="text-xs text-gray-400 mb-2 block">Currency:</span>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {(['ETH', 'USD'] as const).map((curr) => (
+                                            <button
+                                                key={curr}
+                                                onClick={() => useEngine().setTargetCurrency(curr)}
+                                                className={`px-3 py-2 rounded border text-xs font-bold transition-all ${useEngine().targetCurrency === curr
+                                                        ? 'bg-[#00FF9D]/10 border-[#00FF9D] text-[#00FF9D]'
+                                                        : 'bg-black border-[#22252b] text-gray-400 hover:border-gray-600'
+                                                    }`}
+                                            >
+                                                {curr}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Target Value Input */}
                                 <div className="flex items-center gap-4">
-                                    <span className="text-sm text-gray-400">Target Profit (ETH):</span>
+                                    <span className="text-sm text-gray-400">Target Profit ({useEngine().targetCurrency}):</span>
                                     <input
                                         type="number"
                                         value={fixedTarget}
                                         onChange={(e) => setFixedTarget(parseFloat(e.target.value))}
                                         className="bg-black border border-[#22252b] rounded px-3 py-1 text-white w-32 focus:border-[#5794F2] outline-none"
-                                        step="0.001"
+                                        step={useEngine().targetCurrency === 'USD' ? '10' : '0.001'}
                                     />
                                 </div>
+
                                 {/* AI WHISPER */}
-                                <div className="mt-2 flex items-center gap-2 text-xs text-[#00FF9D]/80">
+                                <div className="flex items-center gap-2 text-xs text-[#00FF9D]/80">
                                     <Activity size={12} />
                                     <span>AI Suggests: <strong>{(useEngine().metrics.theoreticalMaxProfit || 0.05).toFixed(4)} ETH</strong> based on current volatility</span>
                                 </div>
+
+                                {/* Effective Target Display */}
+                                {useEngine().effectiveTargetPerBlock > 0 && (
+                                    <div className="pt-2 border-t border-[#22252b] text-xs text-gray-500">
+                                        Effective Target: <strong className="text-white">{useEngine().effectiveTargetPerBlock.toFixed(6)} ETH per block</strong>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
