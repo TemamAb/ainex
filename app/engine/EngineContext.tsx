@@ -41,11 +41,6 @@ interface EngineContextType {
   profitReinvestment: number;
   setProfitReinvestment: (r: number) => void;
 
-  // Self-Healing
-  isPaused: boolean;
-  missingReq: string | null;
-  resolveIssue: (value: string) => void;
-
   startEngine: () => Promise<void>;
   startSimulation: () => Promise<void>;
   confirmLive: () => void;
@@ -56,8 +51,8 @@ interface EngineContextType {
 const EngineContext = createContext<EngineContextType | null>(null);
 
 export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
-  const [state, setState] = useState<EngineState>('IDLE');
-  const [bootStage, setBootStage] = useState<BootStage>('INIT');
+  const [state, setState] = useState<EngineState>('READY'); // Default to READY
+  const [bootStage, setBootStage] = useState<BootStage>('COMPLETE'); // Default to COMPLETE
 
   // Admin State
   const [riskProfile, setRiskProfile] = useState<RiskProfile>('MEDIUM');
@@ -65,9 +60,6 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
   const [fixedTarget, setFixedTarget] = useState<number>(0.5);
   const [profitReinvestment, setProfitReinvestment] = useState<number>(50); // Default 50%
 
-  // Self-Healing State
-  const [isPaused, setIsPaused] = useState(false);
-  const [missingReq, setMissingReq] = useState<string | null>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
 
   const [metrics, setMetrics] = useState({
@@ -114,87 +106,17 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
     setAiState(aiOptimizer.current.getState());
   }, []);
 
-  // SELF-HEALING RESOLVER
-  const resolveIssue = (value: string) => {
-    if (missingReq === 'WALLET') {
-      if (ethers.isAddress(value)) {
-        setWalletAddress(value);
-        setEngineAddress(value); // Set as engine address
-        setIsPaused(false);
-        setMissingReq(null);
-        pauseRef.current = false; // Unpause logic
-      } else {
-        alert("Invalid Ethereum Address");
-      }
-    } else if (missingReq === 'BLOCKCHAIN_CONNECTION') {
-      // For blockchain connection issues, we can't resolve via input
-      // User needs to refresh and ensure wallet/network connection
-      setIsPaused(false);
-      setMissingReq(null);
-      pauseRef.current = false;
-    }
-  };
-
-  // PREMIUM BOOT SEQUENCE WITH SELF-HEALING
+  // REMOVED: startEngine boot sequence (No longer needed, starts READY)
   const startEngine = async () => {
-    setState('BOOTING');
-    setBootStage('INIT');
-    setIsPaused(false);
-    pauseRef.current = false;
-
-    // Sequence Delays with Pause Check
-    const wait = async (ms: number) => {
-      const start = Date.now();
-      while (Date.now() - start < ms || pauseRef.current) {
-        await new Promise(r => setTimeout(r, 100));
-      }
-    };
-
-    // 1. Gasless Mode
-    await wait(1000);
-    setBootStage('GASLESS');
-
-    // 2. Smart Wallet Generator (SELF-HEALING CHECK)
-    await wait(1500);
-
-    // Simulate a missing wallet scenario randomly or if not set
-    if (!walletAddress && !engineAddress) {
-      pauseRef.current = true;
-      setIsPaused(true);
-      setMissingReq('WALLET');
-      // Wait until resolved
-      while (pauseRef.current) {
-        await new Promise(r => setTimeout(r, 500));
-      }
-    }
-
-    setBootStage('SMART_WALLET');
-
-    // 3. Flash Loan Aggregator
-    await wait(2000);
-    setBootStage('FLASH_LOAN');
-
-    // 4. Bot Swarm
-    await wait(2000);
-    setBootStage('BOT_SWARM');
-
-    // 5. AI Optimization
-    await wait(2000);
-    setBootStage('AI_OPTIMIZATION');
-
-    // 6. Complete & Launch
-    await wait(2000);
-    setBootStage('COMPLETE');
-    await wait(500);
-    setState('READY'); // Wait for user to start simulation
+    // No-op or instant reset if needed
+    setState('READY');
   };
 
   // START SIMULATION (BLOCKCHAIN-CONNECTED ONLY - NO MOCK DATA)
   const startSimulation = async () => {
     // CRITICAL: Check blockchain connection before allowing SIM mode
     if (!provider) {
-      setIsPaused(true);
-      setMissingReq('BLOCKCHAIN_CONNECTION');
+      console.error("Blockchain connection missing");
       return;
     }
 
@@ -202,8 +124,7 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
       // Verify real blockchain connection by attempting to get network
       await provider.getNetwork();
     } catch (error) {
-      setIsPaused(true);
-      setMissingReq('BLOCKCHAIN_CONNECTION');
+      console.error("Blockchain connection failed", error);
       return;
     }
 
@@ -286,8 +207,7 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
       state, bootStage, metrics, confidence, aiState,
       startEngine, startSimulation, confirmLive, withdrawFunds, engineAddress,
       riskProfile, setRiskProfile, profitMode, setProfitMode, fixedTarget, setFixedTarget,
-      profitReinvestment, setProfitReinvestment,
-      isPaused, missingReq, resolveIssue
+      profitReinvestment, setProfitReinvestment
     }}>
       {children}
     </EngineContext.Provider>

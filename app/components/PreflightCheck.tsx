@@ -6,50 +6,54 @@ interface PreflightCheckProps {
   onComplete?: (passed: boolean) => void;
 }
 
-export const PreflightCheck: React.FC<PreflightCheckProps> = ({ onComplete }) => {
+export interface PreflightRef {
+  runChecks: () => Promise<void>;
+}
+
+export const PreflightCheck = React.forwardRef<PreflightRef, PreflightCheckProps>(({ onComplete }, ref) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [checks, setChecks] = useState({
     // CORE INFRASTRUCTURE
     blockchain: { status: 'pending', message: 'Validating blockchain connection...' },
     rpcHealth: { status: 'pending', message: 'Checking RPC health...' },
     network: { status: 'pending', message: 'Testing network latency...' },
-    
+
     // SMART CONTRACTS
     smartContracts: { status: 'pending', message: 'Validating smart contracts...' },
     contractDeployment: { status: 'pending', message: 'Verifying contract deployment...' },
     contractInterface: { status: 'pending', message: 'Checking contract interfaces...' },
-    
+
     // FLASH LOAN SYSTEM
     flashLoanAggregator: { status: 'pending', message: 'Initializing flash loan aggregator...' },
     flashLoanLiquidity: { status: 'pending', message: 'Verifying flash loan liquidity...' },
     flashLoanGas: { status: 'pending', message: 'Calculating flash loan gas costs...' },
-    
+
     // GASLESS MODE
     gaslessSupport: { status: 'pending', message: 'Validating gasless transaction support...' },
     relayerNetwork: { status: 'pending', message: 'Checking relayer network health...' },
-    
+
     // BOT SWARM (TRI-TIER)
     scannerBot: { status: 'pending', message: 'Validating Scanner Bot (Tier 1)...' },
     executorBot: { status: 'pending', message: 'Validating Executor Bot (Tier 2)...' },
     validatorBot: { status: 'pending', message: 'Validating Validator Bot (Tier 3)...' },
     botCoordination: { status: 'pending', message: 'Testing bot coordination...' },
-    
+
     // AI OPTIMIZATION
     aiOptimizer: { status: 'pending', message: 'Initializing AI Optimizer...' },
     aiWeights: { status: 'pending', message: 'Loading AI weights...' },
     aiSimMode: { status: 'pending', message: 'Validating AI simulation mode...' },
     aiLiveMode: { status: 'pending', message: 'Validating AI live mode...' },
-    
+
     // WALLET & SECURITY
     wallet: { status: 'pending', message: 'Validating wallet address...' },
     walletBalance: { status: 'pending', message: 'Checking wallet balance...' },
     securityProtocols: { status: 'pending', message: 'Verifying security protocols...' },
-    
+
     // SYSTEM RESOURCES
     memory: { status: 'pending', message: 'Checking system memory...' },
     diskSpace: { status: 'pending', message: 'Checking disk space...' },
     cpuPerformance: { status: 'pending', message: 'Benchmarking CPU performance...' },
-    
+
     // INTEGRATION HEALTH
     dexIntegration: { status: 'pending', message: 'Validating DEX integrations...' },
     oracleIntegration: { status: 'pending', message: 'Checking price oracle...' },
@@ -61,12 +65,14 @@ export const PreflightCheck: React.FC<PreflightCheckProps> = ({ onComplete }) =>
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState(0);
 
-  React.useEffect(() => {
-    // Auto-run preflight checks on mount
-    runPreflightChecks();
-  }, []);
+  // Expose runChecks to parent
+  React.useImperativeHandle(ref, () => ({
+    runChecks: runPreflightChecks
+  }));
 
   const runPreflightChecks = async () => {
+    if (isRunning) return; // Prevent double run
+    setIsExpanded(true); // Auto-expand when running
     setIsRunning(true);
     setProgress(0);
 
@@ -124,14 +130,14 @@ export const PreflightCheck: React.FC<PreflightCheckProps> = ({ onComplete }) =>
 
     for (let i = 0; i < checkSequence.length; i++) {
       const { key, delay, message } = checkSequence[i];
-      
+
       await new Promise(r => setTimeout(r, delay));
-      
-      newChecks[key as keyof typeof checks] = { 
-        status: 'pass', 
-        message 
+
+      newChecks[key as keyof typeof checks] = {
+        status: 'pass',
+        message
       };
-      
+
       setChecks({ ...newChecks });
       setProgress(Math.round(((i + 1) / checkSequence.length) * 100));
     }
@@ -205,7 +211,7 @@ export const PreflightCheck: React.FC<PreflightCheckProps> = ({ onComplete }) =>
     ],
   };
 
-  const passedCount = Object.values(checks).filter(c => c.status === 'pass').length;
+  const passedCount = Object.values(checks).filter((c: any) => c.status === 'pass').length;
   const totalCount = Object.keys(checks).length;
 
   return (
@@ -239,11 +245,11 @@ export const PreflightCheck: React.FC<PreflightCheckProps> = ({ onComplete }) =>
             {allPassed ? '✓ ENTERPRISE PREFLIGHT OK' : isRunning ? '⚡ VALIDATING CORE SYSTEMS' : '🔴 PREFLIGHT CHECK'}
           </div>
           <div className="text-[10px] text-gray-400 mt-1">
-            {isRunning 
+            {isRunning
               ? `Validating ${totalCount} critical checks (Phase ${Math.ceil((passedCount / totalCount) * 3)})`
-              : allPassed 
-              ? 'All systems validated and operational'
-              : 'System validation required'}
+              : allPassed
+                ? 'All systems validated and operational'
+                : 'System validation required'}
           </div>
         </div>
 
@@ -260,6 +266,19 @@ export const PreflightCheck: React.FC<PreflightCheckProps> = ({ onComplete }) =>
           {passedCount}/{totalCount}
         </div>
       </button>
+
+      {/* MANUAL TRIGGER BUTTON (If not running and not passed) */}
+      {!isRunning && !allPassed && (
+        <div className="mt-2 flex justify-center">
+          <button
+            onClick={runPreflightChecks}
+            className="w-full py-3 bg-[#5794F2]/20 hover:bg-[#5794F2]/40 border border-[#5794F2]/50 text-[#5794F2] font-bold rounded-lg transition-all flex items-center justify-center gap-2 animate-pulse"
+          >
+            <Zap size={18} />
+            RUN PREFLIGHT DIAGNOSTICS
+          </button>
+        </div>
+      )}
 
       {/* EXPANDED DETAILS */}
       {isExpanded && (
@@ -303,13 +322,12 @@ export const PreflightCheck: React.FC<PreflightCheckProps> = ({ onComplete }) =>
                         {/* Progress */}
                         <div className="w-12 h-1 bg-gray-800 rounded overflow-hidden flex-shrink-0">
                           <div
-                            className={`h-full transition-all duration-500 ${
-                              check.status === 'pass'
-                                ? 'bg-[#00FF9D] w-full'
-                                : check.status === 'pending'
+                            className={`h-full transition-all duration-500 ${check.status === 'pass'
+                              ? 'bg-[#00FF9D] w-full'
+                              : check.status === 'pending'
                                 ? 'bg-yellow-500 w-2/3'
                                 : 'bg-red-500 w-1/3'
-                            }`}
+                              }`}
                           />
                         </div>
                       </div>
@@ -347,4 +365,6 @@ export const PreflightCheck: React.FC<PreflightCheckProps> = ({ onComplete }) =>
       )}
     </div>
   );
-};
+});
+
+PreflightCheck.displayName = 'PreflightCheck';
