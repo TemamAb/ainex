@@ -702,8 +702,8 @@
       ]
     },
     "C:\\Users\\op\\Desktop\\ainex\\core-logic\\contracts\\ApexFlashAggregator.sol": {
-      "lastModificationDate": 1764323808272,
-      "contentHash": "bdb183ee78b2c6794b83a726c135cd38",
+      "lastModificationDate": 1764455952820,
+      "contentHash": "ebddb291079814ce8812111e341740bd",
       "sourceName": "core-logic/contracts/ApexFlashAggregator.sol",
       "solcConfig": {
         "version": "0.8.19",
@@ -740,6 +740,7 @@
       "artifacts": [
         "ApexFlashAggregator",
         "IBalancerVault",
+        "IUniswapV2Router02",
         "IUniswapV3Pool"
       ]
     }

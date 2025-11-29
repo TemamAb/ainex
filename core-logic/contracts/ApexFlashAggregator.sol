@@ -26,6 +26,17 @@ interface IUniswapV3Pool {
     ) external;
 }
 
+// Uniswap V2 Router Interface
+interface IUniswapV2Router02 {
+    function swapExactTokensForTokens(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external returns (uint[] memory amounts);
+}
+
 /**
  * @title ApexFlashAggregator
  * @dev Multi-Provider Flash Loan Aggregator
@@ -359,17 +370,6 @@ contract ApexFlashAggregator is FlashLoanSimpleReceiverBase {
         require(finalAmount > data.amountIn, "Trade not profitable");
         
         return finalAmount;
-    }
-    
-    // Uniswap V2 Router Interface
-    interface IUniswapV2Router02 {
-        function swapExactTokensForTokens(
-            uint amountIn,
-            uint amountOutMin,
-            address[] calldata path,
-            address to,
-            uint deadline
-        ) external returns (uint[] memory amounts);
     }
     
     /**

@@ -11,6 +11,10 @@ module.exports = {
         blockNumber: 19000000
       }
     },
+    mainnet: {
+      url: process.env.ETH_RPC_URL || "https://eth.llamarpc.com",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
+    },
     arbitrum: {
       url: process.env.ARBITRUM_RPC_URL || "https://arb1.arbitrum.io/rpc",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
