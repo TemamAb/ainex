@@ -37,7 +37,14 @@ export const Sidebar = ({
       </div>
 
       {/* NAV ITEMS */}
-      <div className="flex-1 py-4 space-y-2">
+      <div className="flex-1 py-4 px-2 space-y-2 overflow-y-auto">
+        {/* PREFLIGHT CHECK - TOP PRIORITY */}
+        <div className="mb-4">
+          <div className="text-[10px] uppercase text-gray-600 px-2 mb-2 tracking-widest font-bold">
+            Deployment Phase
+          </div>
+        </div>
+
         <NavItem icon={LayoutDashboard} label="Mission Control" active />
         <NavItem icon={Bot} label="Bot Swarm" />
         <NavItem icon={Zap} label="Flash Loans" />

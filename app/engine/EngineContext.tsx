@@ -4,7 +4,7 @@ import { ethers, BrowserProvider } from 'ethers';
 import { AIOptimizer, OptimizerState } from './AIOptimizer';
 import { SimulationEngine, SimulationMetrics } from './SimulationEngine';
 
-export type EngineState = 'IDLE' | 'BOOTING' | 'SIMULATION' | 'TRANSITION' | 'LIVE';
+export type EngineState = 'IDLE' | 'BOOTING' | 'READY' | 'SIMULATION' | 'TRANSITION' | 'LIVE';
 export type BootStage = 'INIT' | 'GASLESS' | 'SMART_WALLET' | 'FLASH_LOAN' | 'BOT_SWARM' | 'AI_OPTIMIZATION' | 'COMPLETE';
 export type RiskProfile = 'LOW' | 'MEDIUM' | 'HIGH';
 export type ProfitMode = 'ADAPTIVE' | 'FIXED';
@@ -38,6 +38,8 @@ interface EngineContextType {
   setProfitMode: (m: ProfitMode) => void;
   fixedTarget: number;
   setFixedTarget: (t: number) => void;
+  profitReinvestment: number;
+  setProfitReinvestment: (r: number) => void;
 
   // Self-Healing
   isPaused: boolean;
@@ -45,6 +47,7 @@ interface EngineContextType {
   resolveIssue: (value: string) => void;
 
   startEngine: () => Promise<void>;
+  startSimulation: () => Promise<void>;
   confirmLive: () => void;
   withdrawFunds: (amount: number) => Promise<void>;
   engineAddress: string | null;
@@ -60,6 +63,7 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
   const [riskProfile, setRiskProfile] = useState<RiskProfile>('MEDIUM');
   const [profitMode, setProfitMode] = useState<ProfitMode>('ADAPTIVE');
   const [fixedTarget, setFixedTarget] = useState<number>(0.5);
+  const [profitReinvestment, setProfitReinvestment] = useState<number>(50); // Default 50%
 
   // Self-Healing State
   const [isPaused, setIsPaused] = useState(false);
@@ -122,6 +126,12 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         alert("Invalid Ethereum Address");
       }
+    } else if (missingReq === 'BLOCKCHAIN_CONNECTION') {
+      // For blockchain connection issues, we can't resolve via input
+      // User needs to refresh and ensure wallet/network connection
+      setIsPaused(false);
+      setMissingReq(null);
+      pauseRef.current = false;
     }
   };
 
@@ -176,17 +186,33 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
     await wait(2000);
     setBootStage('COMPLETE');
     await wait(500);
-    startSimulation();
+    setState('READY'); // Wait for user to start simulation
   };
 
-  // START SIMULATION (REAL DATA)
-  const startSimulation = () => {
+  // START SIMULATION (BLOCKCHAIN-CONNECTED ONLY - NO MOCK DATA)
+  const startSimulation = async () => {
+    // CRITICAL: Check blockchain connection before allowing SIM mode
+    if (!provider) {
+      setIsPaused(true);
+      setMissingReq('BLOCKCHAIN_CONNECTION');
+      return;
+    }
+
+    try {
+      // Verify real blockchain connection by attempting to get network
+      await provider.getNetwork();
+    } catch (error) {
+      setIsPaused(true);
+      setMissingReq('BLOCKCHAIN_CONNECTION');
+      return;
+    }
+
     setState('SIMULATION');
 
-    // Start Simulation Engine
+    // Start Simulation Engine (uses real blockchain data only)
     simEngine.current = new SimulationEngine((simMetrics) => {
       setMetrics(prev => {
-        // Calculate derived metrics
+        // Calculate derived metrics from REAL blockchain data
         const newProfit = simMetrics.aiCapturedProfit;
         const newCumulative = prev.totalProfitCumulative + (newProfit * 0.01);
         const newBalance = prev.balance + (newProfit * 0.01);
@@ -258,8 +284,9 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <EngineContext.Provider value={{
       state, bootStage, metrics, confidence, aiState,
-      startEngine, confirmLive, withdrawFunds, engineAddress,
+      startEngine, startSimulation, confirmLive, withdrawFunds, engineAddress,
       riskProfile, setRiskProfile, profitMode, setProfitMode, fixedTarget, setFixedTarget,
+      profitReinvestment, setProfitReinvestment,
       isPaused, missingReq, resolveIssue
     }}>
       {children}

@@ -1,9 +1,7 @@
 services:
   - type: web
     name: quantumnex-dashboard
-    env: node
-    buildCommand: npm run build
-    startCommand: npm start
+    env: docker
     envVars:
       - key: NODE_ENV
         value: production

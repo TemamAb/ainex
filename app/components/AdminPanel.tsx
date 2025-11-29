@@ -11,7 +11,8 @@ export const AdminPanel = ({ isOpen, onClose }: AdminPanelProps) => {
     const {
         riskProfile, setRiskProfile,
         profitMode, setProfitMode,
-        fixedTarget, setFixedTarget
+        fixedTarget, setFixedTarget,
+        profitReinvestment, setProfitReinvestment
     } = useEngine();
 
     if (!isOpen) return null;
@@ -97,7 +98,33 @@ export const AdminPanel = ({ isOpen, onClose }: AdminPanelProps) => {
                         </p>
                     </div>
 
-                    {/* 3. SECURITY STATUS */}
+                    {/* 3. PROFIT REINVESTMENT */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 text-[#5794F2]">
+                            <Activity size={20} />
+                            <h3 className="font-bold text-sm tracking-widest">PROFIT REINVESTMENT</h3>
+                        </div>
+                        <div className="bg-[#181b1f] border border-[#22252b] rounded p-4">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm text-gray-400">Reinvest Ratio</span>
+                                <span className="text-xl font-bold text-[#5794F2]">{profitReinvestment}%</span>
+                            </div>
+                            <input
+                                type="range"
+                                min="1"
+                                max="100"
+                                value={profitReinvestment}
+                                onChange={(e) => setProfitReinvestment(parseInt(e.target.value))}
+                                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-[#5794F2]"
+                            />
+                            <div className="flex justify-between text-[10px] text-gray-500 mt-1">
+                                <span>1% (Safety)</span>
+                                <span>100% (Compound Growth)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 4. SECURITY STATUS */}
                     <div className="pt-6 border-t border-[#22252b]">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2 text-gray-400">

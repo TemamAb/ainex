@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { EngineProvider, useEngine } from './engine/EngineContext';
 import { ActivationOverlay } from './components/ActivationOverlay';
+import { PreflightCheck } from './components/PreflightCheck';
 import ErrorBoundary from './components/ErrorBoundary';
 import { Zap, Activity, Sun, Moon, AlertTriangle, CheckCircle } from 'lucide-react';
 import { GrafanaCard } from './components/GrafanaCard';
@@ -13,7 +14,7 @@ import { AdminPanel } from './components/AdminPanel';
 const DashboardContent = () => {
   const {
     state, metrics, confidence, aiState,
-    startEngine, confirmLive, withdrawFunds,
+    startEngine, startSimulation, confirmLive, withdrawFunds,
     isPaused, missingReq, resolveIssue
   } = useEngine();
 
@@ -21,6 +22,8 @@ const DashboardContent = () => {
   const [showProjection, setShowProjection] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [fixValue, setFixValue] = useState('');
+
+  const metricColor = state === 'SIMULATION' ? 'text-white' : 'text-green-500';
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
@@ -85,10 +88,17 @@ const DashboardContent = () => {
 
       {/* MAIN CONTENT AREA */}
       <div className="flex-1 p-4 overflow-y-auto">
+        {/* PHASE 1: PREFLIGHT CHECK */}
+        <div className="mb-6">
+          <PreflightCheck onComplete={(passed) => {
+            console.log('Preflight:', passed ? 'PASSED ✅' : 'FAILED ❌');
+          }} />
+        </div>
+
         <header className={`flex justify-between items-center mb-6 border-b pb-4 ${theme === 'dark' ? 'border-[#22252b]' : 'border-gray-300'}`}>
           <div className="flex items-center gap-2">
             <Activity className={state === 'LIVE' ? "text-[#00FF9D] animate-pulse" : "text-[#5794F2]"} />
-            <h1 className="font-bold text-xl">QUANTUMNEX <span className="text-xs text-gray-500 ml-2">v2.1.0</span></h1>
+            <h1 className="font-bold text-xl">AINEX <span className="text-xs text-gray-500 ml-2">v2.1.0</span></h1>
           </div>
           <div className="flex items-center gap-4">
             <button onClick={toggleTheme} className="p-2 rounded hover:bg-gray-800 hover:text-white transition-colors">
@@ -107,27 +117,27 @@ const DashboardContent = () => {
           {/* 1. PROFIT VELOCITY */}
           <GrafanaCard title="Profit Velocity" accent="amber">
             <div className="flex flex-col gap-1">
-              <div className="flex justify-between text-xs"><span className="text-gray-500">HOURLY</span> <span className="text-amber-500">{metrics.profitPerHour.toFixed(4)} ETH</span></div>
-              <div className="flex justify-between text-xs"><span className="text-gray-500">PER TRADE</span> <span className="text-white">{metrics.profitPerTrade.toFixed(5)}</span></div>
-              <div className="flex justify-between text-xs"><span className="text-gray-500">FREQ</span> <span className="text-purple-500">{metrics.tradesPerHour} T/H</span></div>
+              <div className="flex justify-between text-xs"><span className="text-gray-500">HOURLY</span> <span className={metricColor}>{metrics.profitPerHour.toFixed(4)} ETH</span></div>
+              <div className="flex justify-between text-xs"><span className="text-gray-500">PER TRADE</span> <span className={metricColor}>{metrics.profitPerTrade.toFixed(5)}</span></div>
+              <div className="flex justify-between text-xs"><span className="text-gray-500">FREQ</span> <span className={metricColor}>{metrics.tradesPerHour} T/H</span></div>
             </div>
           </GrafanaCard>
 
           {/* 2. THEORETICAL MAX */}
           <GrafanaCard title="Theoretical Max" accent="blue">
-            <div className="text-2xl text-[#5794F2] font-bold">{metrics.theoreticalMaxProfit.toFixed(4)}</div>
+            <div className={`text-2xl font-bold ${metricColor}`}>{metrics.theoreticalMaxProfit.toFixed(4)}</div>
             <div className="text-[10px] text-gray-500">ETH / BLOCK</div>
           </GrafanaCard>
 
           {/* 3. AI CAPTURED */}
           <GrafanaCard title="Total Profit" accent="green">
-            <div className="text-2xl text-white font-bold">{metrics.totalProfitCumulative.toFixed(4)}</div>
+            <div className={`text-2xl font-bold ${metricColor}`}>{metrics.totalProfitCumulative.toFixed(4)}</div>
             <div className="text-[10px] text-gray-500">LIFETIME ETH</div>
           </GrafanaCard>
 
           {/* 4. EFFICIENCY DELTA */}
           <GrafanaCard title="AI Optimization" accent="purple">
-            <div className="text-2xl text-purple-400 font-bold">+{metrics.aiEfficiencyDelta.toFixed(1)}%</div>
+            <div className={`text-2xl font-bold ${metricColor}`}>+{metrics.aiEfficiencyDelta.toFixed(1)}%</div>
             <div className="text-[10px] text-gray-500">VS BASELINE</div>
           </GrafanaCard>
 
@@ -143,6 +153,22 @@ const DashboardContent = () => {
             </div>
           </GrafanaCard>
         </div>
+
+        {/* START SIMULATION BUTTON */}
+        {state === 'READY' && (
+          <div className="fixed bottom-8 left-0 right-0 flex justify-center z-50">
+            <button
+              onClick={async () => {
+                await startSimulation();
+              }}
+              className="font-bold text-xl px-12 py-4 rounded-full shadow-[0_0_50px_rgba(87,148,242,0.5)] bg-[#5794F2] text-white animate-bounce hover:scale-105 cursor-pointer flex items-center gap-3 transition-all"
+            >
+              <Zap size={24} fill="white" />
+              START SIMULATION MODE
+              <Zap size={24} fill="white" />
+            </button>
+          </div>
+        )}
 
         {/* FLASHING LIVE BUTTON TRIGGER (SAFETY INTERLOCK) */}
         {state === 'SIMULATION' && (

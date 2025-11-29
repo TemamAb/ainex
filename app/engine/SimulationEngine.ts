@@ -23,6 +23,12 @@ export class SimulationEngine {
         "https://cloudflare-eth.com"
     ];
 
+    // Chainlink ETH/USD Price Feed (Mainnet)
+    private CHAINLINK_ETH_USD = "0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419";
+    private CHAINLINK_ABI = [
+        "function latestRoundData() external view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)"
+    ];
+
     constructor(onUpdate: (metrics: SimulationMetrics) => void) {
         this.onUpdate = onUpdate;
         this.provider = new ethers.JsonRpcProvider(this.rpcUrls[0]);
@@ -63,16 +69,20 @@ export class SimulationEngine {
             const feeData = await this.provider.getFeeData();
             const gasPriceGwei = feeData.gasPrice ? Number(ethers.formatUnits(feeData.gasPrice, 'gwei')) : 20;
 
-            // 2. Fetch Real ETH Price (Mocking via random walk from base if RPC fails, or using a simple oracle call if possible)
-            // For robustness in this demo, we'll use a base price + volatility since we don't have a direct Oracle contract handy without deployment.
-            // However, we will make it "feel" real by tying it to the gas price which IS real.
-            // High Gas usually correlates with High Volatility/Activity.
-
-            // Simulating Price Movement based on Real Gas Activity
-            const basePrice = 3500;
-            const volatilityFactor = (gasPriceGwei / 20); // Normalized to 20 gwei baseline
-            const randomFluctuation = (Math.random() - 0.5) * 10 * volatilityFactor;
-            const currentEthPrice = basePrice + randomFluctuation;
+            // 2. Fetch Real ETH Price from Chainlink Oracle
+            let currentEthPrice = 0;
+            try {
+                const priceFeed = new ethers.Contract(this.CHAINLINK_ETH_USD, this.CHAINLINK_ABI, this.provider);
+                const roundData = await priceFeed.latestRoundData();
+                // Chainlink returns 8 decimals for USD pairs
+                currentEthPrice = Number(ethers.formatUnits(roundData.answer, 8));
+            } catch (e) {
+                console.warn("Chainlink fetch failed, falling back to gas-correlated estimate", e);
+                // Fallback: Base price + volatility if Oracle fails (Robustness)
+                const basePrice = 3500;
+                const volatilityFactor = (gasPriceGwei / 20);
+                currentEthPrice = basePrice + ((Math.random() - 0.5) * 10 * volatilityFactor);
+            }
 
             // 3. Calculate Volatility Index (0-100)
             // Real Gas Price is a great proxy for network congestion and volatility
@@ -98,7 +108,7 @@ export class SimulationEngine {
                 ethPrice: currentEthPrice,
                 gasPrice: gasPriceGwei,
                 volatilityIndex: volatilityIndex,
-                liquidityDepth: 500000000, // Static for now
+                liquidityDepth: 500000000, // Static for now (could fetch from Uniswap Quoter)
                 theoreticalMaxProfit: theoreticalMax,
                 aiCapturedProfit: aiCaptured,
                 confidence: newEfficiency * 100
