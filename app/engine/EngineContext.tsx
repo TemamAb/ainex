@@ -57,7 +57,7 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
   // Admin State
   const [riskProfile, setRiskProfile] = useState<RiskProfile>('MEDIUM');
   const [profitMode, setProfitMode] = useState<ProfitMode>('ADAPTIVE');
-  const [fixedTarget, setFixedTarget] = useState<number>(0.5);
+  const [fixedTarget, setFixedTarget] = useState<number>(0);
   const [profitReinvestment, setProfitReinvestment] = useState<number>(50); // Default 50%
 
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -144,13 +144,13 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
           gasPrice: simMetrics.gasPrice,
           ethPrice: simMetrics.ethPrice,
           volatility: simMetrics.volatilityIndex,
-          theoreticalMaxProfit: profitMode === 'FIXED' ? fixedTarget : simMetrics.theoreticalMaxProfit, // Use Fixed if set
+          theoreticalMaxProfit: simMetrics.theoreticalMaxProfit, // Always track the AI's theoretical max
           aiCapturedProfit: simMetrics.aiCapturedProfit,
-          latencyMs: 30 + Math.random() * 20,
+          latencyMs: 45, // Standard acceptable RPC latency
           aiEfficiencyDelta: (aiOptimizer.current?.getState().efficiencyScore || 75) - 75,
-          profitPerHour: newProfit * 300,
-          profitPerTrade: newProfit / 2,
-          tradesPerHour: 600,
+          profitPerHour: newProfit * (3600 / 12), // 12s block time approx
+          profitPerTrade: newProfit,
+          tradesPerHour: (3600 / 12), // Max possible trades (1 per block)
           totalProfitCumulative: newCumulative
         };
       });

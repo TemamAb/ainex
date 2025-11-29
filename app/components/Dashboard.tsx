@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useEngine } from '../engine/EngineContext';
 import { ActivationOverlay } from './ActivationOverlay';
-import { Zap, Activity, Sun, Moon, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Zap, Activity, Sun, Moon, AlertTriangle, CheckCircle, User } from 'lucide-react';
 import { GrafanaCard } from './GrafanaCard';
 import { WalletManager } from './WalletManager';
 import { Sidebar } from './Sidebar';
@@ -81,6 +81,14 @@ export const Dashboard = () => {
                 <div className="flex flex-col gap-1">
                   <div className="flex justify-between text-xs"><span className="text-gray-500">PER TRADE</span> <span className={metricColor}>{metrics.profitPerTrade.toFixed(5)}</span></div>
                   <div className="flex justify-between text-xs"><span className="text-gray-500">FREQ</span> <span className={metricColor}>{metrics.tradesPerHour} T/H</span></div>
+                  <div className="flex justify-between text-xs mt-1 border-t border-gray-800 pt-1">
+                    <span className="text-gray-500">PROJ. HOURLY</span>
+                    <span className="text-[#00FF9D]">${(metrics.profitPerHour * metrics.ethPrice).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">PROJ. DAILY</span>
+                    <span className="text-[#00FF9D]">${(metrics.profitPerHour * 24 * metrics.ethPrice).toFixed(2)}</span>
+                  </div>
                 </div>
               </GrafanaCard>
 
@@ -115,40 +123,37 @@ export const Dashboard = () => {
               </GrafanaCard>
             </div>
 
-            {/* START SIMULATION BUTTON */}
+            {/* START SIMULATION BUTTON - STRICT DEPENDENCY: PREFLIGHT MUST BE COMPLETE */}
             {state === 'READY' && (
               <div className="fixed bottom-8 left-0 right-0 flex justify-center z-50">
                 <button
                   onClick={async () => {
-                    if (!preflightComplete) {
-                      // TRIGGER PREFLIGHT IF NOT COMPLETE
-                      preflightRef.current?.runChecks();
-                    } else {
+                    if (preflightComplete) {
                       const { startSimulation } = useEngine(); // eslint-disable-line
                       await startSimulation();
                     }
                   }}
-                  className={`font-bold text-xl px-12 py-4 rounded-full shadow-[0_0_50px_rgba(87,148,242,0.5)] text-white animate-bounce hover:scale-105 cursor-pointer flex items-center gap-3 transition-all
-                    ${preflightComplete ? 'bg-[#5794F2]' : 'bg-gray-700 hover:bg-gray-600'}
+                  disabled={!preflightComplete}
+                  className={`font-bold text-xl px-12 py-4 rounded-full shadow-[0_0_50px_rgba(87,148,242,0.5)] text-white flex items-center gap-3 transition-all
+                    ${preflightComplete
+                      ? 'bg-[#5794F2] animate-bounce hover:scale-105 cursor-pointer'
+                      : 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-50 shadow-none'
+                    }
                   `}
                 >
-                  <Zap size={24} fill="white" />
-                  {preflightComplete ? 'START SIMULATION MODE' : 'RUN PREFLIGHT TO START'}
-                  <Zap size={24} fill="white" />
+                  <Zap size={24} fill={preflightComplete ? "white" : "gray"} />
+                  {preflightComplete ? 'START SIMULATION MODE' : 'COMPLETE PREFLIGHT TO START'}
+                  <Zap size={24} fill={preflightComplete ? "white" : "gray"} />
                 </button>
               </div>
             )}
 
-            {/* FLASHING LIVE BUTTON TRIGGER (SAFETY INTERLOCK) */}
+            {/* LIVE MODE BUTTON - STRICT DEPENDENCY: SIMULATION MUST BE RUNNING */}
             {state === 'SIMULATION' && (
               <div className="fixed bottom-8 left-0 right-0 flex justify-center z-50">
                 <button
                   onClick={() => {
-                    if (!preflightComplete) {
-                      preflightRef.current?.runChecks();
-                    } else {
-                      confirmLive();
-                    }
+                    confirmLive();
                   }}
                   disabled={confidence < 85}
                   className={`

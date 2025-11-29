@@ -63,15 +63,22 @@ export const AdminPanel = ({ isOpen, onClose }: AdminPanelProps) => {
 
                         {/* FIXED TARGET INPUT */}
                         {profitMode === 'FIXED' && (
-                            <div className="mt-4 p-4 bg-[#181b1f] rounded border border-[#22252b] flex items-center gap-4 animate-in fade-in slide-in-from-top-2">
-                                <span className="text-sm text-gray-400">Target Profit (ETH):</span>
-                                <input
-                                    type="number"
-                                    value={fixedTarget}
-                                    onChange={(e) => setFixedTarget(parseFloat(e.target.value))}
-                                    className="bg-black border border-[#22252b] rounded px-3 py-1 text-white w-32 focus:border-[#5794F2] outline-none"
-                                    step="0.01"
-                                />
+                            <div className="mt-4 p-4 bg-[#181b1f] rounded border border-[#22252b] animate-in fade-in slide-in-from-top-2">
+                                <div className="flex items-center gap-4">
+                                    <span className="text-sm text-gray-400">Target Profit (ETH):</span>
+                                    <input
+                                        type="number"
+                                        value={fixedTarget}
+                                        onChange={(e) => setFixedTarget(parseFloat(e.target.value))}
+                                        className="bg-black border border-[#22252b] rounded px-3 py-1 text-white w-32 focus:border-[#5794F2] outline-none"
+                                        step="0.001"
+                                    />
+                                </div>
+                                {/* AI WHISPER */}
+                                <div className="mt-2 flex items-center gap-2 text-xs text-[#00FF9D]/80">
+                                    <Activity size={12} />
+                                    <span>AI Suggests: <strong>{(useEngine().metrics.theoreticalMaxProfit || 0.05).toFixed(4)} ETH</strong> based on current volatility</span>
+                                </div>
                             </div>
                         )}
                     </div>

@@ -67,7 +67,9 @@ export class SimulationEngine {
         try {
             // 1. Fetch Real Gas Price
             const feeData = await this.provider.getFeeData();
-            const gasPriceGwei = feeData.gasPrice ? Number(ethers.formatUnits(feeData.gasPrice, 'gwei')) : 20;
+            const gasPriceGwei = feeData.gasPrice ? Number(ethers.formatUnits(feeData.gasPrice, 'gwei')) : 0;
+
+            if (gasPriceGwei === 0) throw new Error("Failed to fetch gas price");
 
             // 2. Fetch Real ETH Price from Chainlink Oracle
             let currentEthPrice = 0;
@@ -77,11 +79,10 @@ export class SimulationEngine {
                 // Chainlink returns 8 decimals for USD pairs
                 currentEthPrice = Number(ethers.formatUnits(roundData.answer, 8));
             } catch (e) {
-                console.warn("Chainlink fetch failed, falling back to gas-correlated estimate", e);
-                // Fallback: Base price + volatility if Oracle fails (Robustness)
-                const basePrice = 3500;
-                const volatilityFactor = (gasPriceGwei / 20);
-                currentEthPrice = basePrice + ((Math.random() - 0.5) * 10 * volatilityFactor);
+                console.error("Chainlink fetch failed", e);
+                // NO MOCK FALLBACK - Return 0 or last known
+                // For now, we set to 0 to indicate failure if no live data
+                currentEthPrice = 0;
             }
 
             // 3. Calculate Volatility Index (0-100)
@@ -89,9 +90,12 @@ export class SimulationEngine {
             const volatilityIndex = Math.min(100, Math.max(0, gasPriceGwei * 2));
 
             // 4. Calculate "Theoretical Max Profit" (The Adoptive Target)
-            // This is the money on the table.
-            // Formula: Base * Volatility * LiquidityFactor
-            const theoreticalMax = (volatilityIndex / 10) * 0.05; // e.g., 50 vol -> 0.25 ETH max profit available
+            // DYNAMIC FORMULA: Based on Gas Price (Volatility) and ETH Price
+            // Higher Gas = Higher Volatility = Higher Arb Opportunity
+            // We assume a base opportunity of 0.01 ETH at low volatility, scaling up.
+            const baseArbOpportunity = 0.01;
+            const volatilityMultiplier = 1 + (volatilityIndex / 20); // 1x to 6x
+            const theoreticalMax = baseArbOpportunity * volatilityMultiplier;
 
             // 5. Calculate AI Performance (Simulation)
             // The AI "runs" and tries to capture this. 
@@ -108,7 +112,7 @@ export class SimulationEngine {
                 ethPrice: currentEthPrice,
                 gasPrice: gasPriceGwei,
                 volatilityIndex: volatilityIndex,
-                liquidityDepth: 500000000, // Static for now (could fetch from Uniswap Quoter)
+                liquidityDepth: 0, // Removed static mock. TODO: Implement Uniswap Quoter for real depth.
                 theoreticalMaxProfit: theoreticalMax,
                 aiCapturedProfit: aiCaptured,
                 confidence: newEfficiency * 100
