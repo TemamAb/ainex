@@ -1,367 +1,405 @@
-import React, { useState } from 'react';
-import Sidebar from './Sidebar';
+'use client';
+import React, { useState, useEffect } from 'react';
+import { useEngine } from '../engine/EngineContext';
+import { ActivationOverlay } from './ActivationOverlay';
+import { Zap, Activity, Sun, Moon, AlertTriangle, CheckCircle, RefreshCw, Terminal as TerminalIcon, TrendingUp, TrendingDown } from 'lucide-react';
+import { GrafanaCard } from './GrafanaCard';
+import { WalletManager } from './WalletManager';
+import { Sidebar } from './Sidebar';
+import { ProfitChart } from './ProfitChart';
+import { AdminPanel } from './AdminPanel';
 import Terminal from './Terminal';
-import StatsCard from './StatsCard';
-import ControlPanel from './ControlPanel';
-import Header from './Header';
-import WalletModal from './WalletModal';
-import { View, BotStatus, TradeLog, Currency, ExecutionMode, RefreshRate, WalletState } from '../types';
-import { MOCK_BOTS, MOCK_TRADES } from '../constants';
-import { generateCopilotResponse } from '../services/geminiService';
-import { 
-  Activity, 
-  TrendingUp, 
-  Zap, 
-  Server, 
-  CheckCircle, 
-  XCircle,
-  Cpu,
-  RefreshCw,
-  Search,
-  ShieldAlert
-} from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer
-} from 'recharts';
+import { performanceConfidence } from '../engine/PerformanceConfidence';
+import { CONFIDENCE_THRESHOLDS, PERFORMANCE_MODES, TOOLTIPS } from '../../constants';
+import { Tooltip } from './Tooltip';
 
-const ETH_PRICE = 3500;
+export const Dashboard = () => {
+    const {
+        state, metrics, confidence, aiState,
+        startEngine, confirmLive, withdrawFunds,
+        isPaused, missingReq, resolveIssue
+    } = useEngine();
 
-const Dashboard: React.FC = () => {
-  const [view, setView] = useState<View>('OVERVIEW');
-  const [aiInput, setAiInput] = useState('');
-  const [aiResponse, setAiResponse] = useState<string | null>(null);
-  const [isAiLoading, setIsAiLoading] = useState(false);
+    const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+    const [showProjection, setShowProjection] = useState(false);
+    const [showAdmin, setShowAdmin] = useState(false);
+    const [fixValue, setFixValue] = useState('');
 
-  // Institutional Features State
-  const [currency, setCurrency] = useState<Currency>('USD');
-  const [mode, setMode] = useState<ExecutionMode>('SIMULATION');
-  const [refreshRate, setRefreshRate] = useState<RefreshRate>(1000);
-  const [isWalletOpen, setIsWalletOpen] = useState(false);
-  const [wallet, setWallet] = useState<WalletState>({
-    isConnected: false,
-    address: null,
-    type: null,
-    balance: 0
-  });
+    // Header Features ported from legacy
+    const [currency, setCurrency] = useState<'ETH' | 'USD'>('ETH');
+    const [refreshRate, setRefreshRate] = useState(1000);
+    const [showTerminal, setShowTerminal] = useState(true);
 
-  // Helpers for currency conversion
-  const formatValue = (usdValue: number, isCurrency = true) => {
-    if (currency === 'USD') {
-      return isCurrency ? `$${usdValue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : usdValue;
-    } else {
-      const ethVal = usdValue / ETH_PRICE;
-      return isCurrency ? `Ξ${ethVal.toFixed(4)}` : Number(ethVal.toFixed(4));
+    // Performance Confidence Tracking
+    const [perfMetrics, setPerfMetrics] = useState(() =>
+        performanceConfidence.calculateConfidence(20, 25, 0.3)
+    );
+    const [showVarianceDetails, setShowVarianceDetails] = useState(false);
+
+    // Update performance metrics periodically
+    useEffect(() => {
+        const interval = setInterval(() => {
+            // Simulate real-time market conditions (would come from actual data)
+            const gasPrice = 20 + Math.random() * 30; // 20-50 gwei
+            const volatility = 25 + Math.random() * 20; // 25-45
+            const mevRisk = 0.2 + Math.random() * 0.3; // 0.2-0.5
+
+            const metrics = performanceConfidence.calculateConfidence(gasPrice, volatility, mevRisk);
+            setPerfMetrics(metrics);
+        }, refreshRate);
+
+        return () => clearInterval(interval);
+    }, [refreshRate]);
+
+    const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+    const toggleCurrency = () => setCurrency(prev => prev === 'ETH' ? 'USD' : 'ETH');
+
+    // Currency Conversion Helper
+    const displayValue = (ethValue: number) => {
+        if (currency === 'ETH') return `${ethValue.toFixed(4)} ETH`;
+        return `$${(ethValue * 3500).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    };
+
+    // SELF-HEALING MODAL
+    if (isPaused && missingReq) {
+        return (
+            <div className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4">
+                <div className="bg-[#181b1f] border border-red-500 w-full max-w-md rounded-lg p-6 shadow-[0_0_50px_rgba(239,68,68,0.3)] animate-in zoom-in-95">
+                    <div className="flex items-center gap-3 mb-4 text-red-500">
+                        <AlertTriangle size={32} />
+                        <h2 className="text-xl font-bold">PREFLIGHT INTERRUPTED</h2>
+                    </div>
+                    <p className="text-gray-300 mb-6">
+                        Critical dependency missing: <span className="font-bold text-white">{missingReq}</span>.
+                        The engine has paused to prevent failure. Please resolve immediately.
+                    </p>
+
+                    {missingReq === 'WALLET' && (
+                        <div className="space-y-4">
+                            <input
+                                type="text"
+                                placeholder="Paste Valid Ethereum Address..."
+                                className="w-full bg-black border border-[#22252b] rounded p-3 text-white focus:border-red-500 outline-none"
+                                value={fixValue}
+                                onChange={(e) => setFixValue(e.target.value)}
+                            />
+                            <button
+                                onClick={() => resolveIssue(fixValue)}
+                                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded transition-colors flex items-center justify-center gap-2"
+                            >
+                                <CheckCircle size={20} />
+                                VALIDATE & RESUME
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
     }
-  };
 
-  const getMockChartData = () => {
-    return Array.from({ length: 24 }, (_, i) => ({
-      time: `${i}:00`,
-      profit: currency === 'USD' ? Math.floor(Math.random() * 5000) + 1000 : (Math.floor(Math.random() * 5000) + 1000) / ETH_PRICE,
-      gas: Math.floor(Math.random() * 50) + 10,
-    }));
-  };
+    if (state === 'BOOTING') return <ActivationOverlay />;
 
-  const handleAiSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!aiInput.trim()) return;
-    
-    setIsAiLoading(true);
-    const res = await generateCopilotResponse(aiInput, mode);
-    setAiResponse(res);
-    setIsAiLoading(false);
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ONLINE': return 'text-emerald-400 bg-emerald-950/30 border-emerald-900';
-      case 'WARNING': return 'text-yellow-400 bg-yellow-950/30 border-yellow-900';
-      case 'OFFLINE': return 'text-red-400 bg-red-950/30 border-red-900';
-      default: return 'text-slate-400';
+    if (state === 'IDLE') {
+        return (
+            <div className="h-screen bg-[#111217] flex items-center justify-center">
+                <button onClick={startEngine} className="group w-64 h-64 bg-[#181b1f] rounded-full border-4 border-[#22252b] hover:border-[#5794F2] transition-all flex flex-col items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.5)] hover:shadow-[0_0_80px_rgba(87,148,242,0.2)]">
+                    <Zap className="text-gray-500 group-hover:text-[#5794F2] mb-4 transition-colors" size={48} />
+                    <span className="text-white font-mono font-bold text-xl tracking-widest group-hover:text-blue-100">INITIATE</span>
+                </button>
+            </div>
+        );
     }
-  };
 
-  return (
-    <div className={`flex min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-cyan-500/30 selection:text-cyan-200 ${mode === 'LIVE' ? 'border-4 border-red-900/20' : ''}`}>
-      <Sidebar activeView={view} setView={setView} />
-      
-      <WalletModal 
-        isOpen={isWalletOpen} 
-        onClose={() => setIsWalletOpen(false)}
-        onConnect={(w) => setWallet(w)}
-      />
+    return (
+        <div className={`min-h-screen font-mono flex transition-colors duration-300 ${theme === 'dark' ? 'bg-[#111217] text-gray-200' : 'bg-gray-100 text-gray-900'}`}>
 
-      <main className="flex-1 ml-20 lg:ml-64 p-4 lg:p-8 overflow-y-auto relative h-screen">
-        {/* Background Grid for tech feel */}
-        <div className="fixed inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none z-0"></div>
-        
-        <div className="relative z-10 pb-20">
-            <Header 
-                view={view}
-                currency={currency}
-                setCurrency={setCurrency}
-                refreshRate={refreshRate}
-                setRefreshRate={setRefreshRate}
-                wallet={wallet}
-                onConnectWallet={() => setIsWalletOpen(true)}
+            {/* SIDEBAR NAVIGATION */}
+            <Sidebar
+                onToggleProjection={() => setShowProjection(true)}
+                onToggleAdmin={() => setShowAdmin(true)}
             />
 
-            {/* Global Control Panel */}
-            <ControlPanel mode={mode} setMode={setMode} />
-
-            {/* Live Mode Warning Banner */}
-            {mode === 'LIVE' && (
-                <div className="mb-6 p-3 bg-red-950/30 border border-red-900/50 rounded-lg flex items-center justify-center gap-2 animate-pulse shadow-[0_0_15px_rgba(220,38,38,0.2)]">
-                    <ShieldAlert className="w-5 h-5 text-red-500" />
-                    <span className="text-red-400 font-bold tracking-widest text-sm">MAINNET LIVE EXECUTION ENABLED - REAL CAPITAL AT RISK</span>
-                </div>
-            )}
-
-            {view === 'OVERVIEW' && (
-                <div className="space-y-6">
-                    {/* KPI Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <StatsCard 
-                            title="Net Profit (24h)" 
-                            value={formatValue(12450.00) as string} 
-                            icon={TrendingUp} 
-                            color="emerald" 
-                            subtext={currency === 'USD' ? "+12.5% vs yesterday" : "+3.2 ETH vs yesterday"} 
-                        />
-                        <StatsCard title="Active Bots" value="3/4" icon={Server} color="purple" subtext="1 Warning state" />
-                        <StatsCard 
-                            title="Flash Volume" 
-                            value={formatValue(4200000) as string} 
-                            icon={Zap} 
-                            color="orange" 
-                            subtext="Across 145 txs" 
-                        />
-                        <StatsCard title="Avg Latency" value="45ms" icon={Activity} color="cyan" subtext="Optimized path" />
+            {/* MAIN CONTENT AREA */}
+            <div className="flex-1 p-4 overflow-y-auto flex flex-col h-screen">
+                <header className={`flex justify-between items-center mb-6 border-b pb-4 shrink-0 ${theme === 'dark' ? 'border-[#22252b]' : 'border-gray-300'}`}>
+                    <div className="flex items-center gap-2">
+                        <Activity className={state === 'LIVE' ? "text-[#00FF9D] animate-pulse" : "text-[#5794F2]"} />
+                        <h1 className="font-bold text-xl">QUANTUMNEX <span className="text-xs text-gray-500 ml-2">v2.1.0</span></h1>
                     </div>
+                    <div className="flex items-center gap-4">
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Main Chart */}
-                        <div className="lg:col-span-2 bg-slate-900/50 border border-slate-800 rounded-xl p-6 shadow-xl backdrop-blur-sm">
-                            <h3 className="text-lg font-semibold text-white mb-6">Profitability Curve ({currency})</h3>
-                            <div className="h-72 w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={getMockChartData()}>
-                                        <defs>
-                                            <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                                                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                                        <XAxis dataKey="time" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                                        <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => currency === 'USD' ? `$${val}` : `Ξ${val}`} />
-                                        <Tooltip 
-                                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#f1f5f9' }}
-                                            itemStyle={{ color: '#10b981' }}
-                                            formatter={(value: number) => [currency === 'USD' ? `$${value}` : `Ξ${value.toFixed(4)}`, 'Profit']}
-                                        />
-                                        <Area type="monotone" dataKey="profit" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorProfit)" />
-                                    </AreaChart>
-                                </ResponsiveContainer>
-                            </div>
+                        {/* REFRESH RATE SELECTOR (Ported) */}
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <RefreshCw size={12} />
+                            <select
+                                value={refreshRate}
+                                onChange={(e) => setRefreshRate(Number(e.target.value))}
+                                className="bg-[#181b1f] border border-[#22252b] rounded px-1 py-0.5 text-white focus:outline-none"
+                            >
+                                <option value={1000}>1s</option>
+                                <option value={5000}>5s</option>
+                                <option value={10000}>10s</option>
+                            </select>
                         </div>
 
-                        {/* Live Terminal */}
-                        <div className="lg:col-span-1 h-96 lg:h-auto">
-                            <Terminal />
-                        </div>
-                    </div>
+                        {/* CURRENCY TOGGLE (Ported) */}
+                        <button
+                            onClick={toggleCurrency}
+                            className="flex items-center gap-2 px-3 py-1 bg-[#181b1f] border border-[#22252b] rounded hover:border-[#5794F2] transition-colors text-xs"
+                        >
+                            <span className={currency === 'ETH' ? 'text-[#5794F2]' : 'text-gray-500'}>ETH</span>
+                            <span className="text-gray-600">|</span>
+                            <span className={currency === 'USD' ? 'text-[#00FF9D]' : 'text-gray-500'}>USD</span>
+                        </button>
 
-                    {/* Recent Trades Table */}
-                    <div className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
-                        <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-                            <h3 className="text-lg font-semibold text-white">Recent Execution</h3>
-                            <button className="text-xs text-cyan-400 hover:text-cyan-300 font-bold uppercase tracking-wider">View All</button>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-slate-950 text-slate-400 uppercase font-medium">
-                                    <tr>
-                                        <th className="px-6 py-3">Timestamp</th>
-                                        <th className="px-6 py-3">Pair</th>
-                                        <th className="px-6 py-3">Route</th>
-                                        <th className="px-6 py-3 text-right">Profit ({currency})</th>
-                                        <th className="px-6 py-3 text-center">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-800">
-                                    {MOCK_TRADES.map((trade) => (
-                                        <tr key={trade.id} className="hover:bg-slate-800/50 transition-colors">
-                                            <td className="px-6 py-4 font-mono text-slate-500">{trade.timestamp}</td>
-                                            <td className="px-6 py-4 font-medium text-white">{trade.pair}</td>
-                                            <td className="px-6 py-4 text-slate-400 text-xs">{trade.dex.join(' → ')}</td>
-                                            <td className="px-6 py-4 text-right font-mono text-emerald-400 font-bold">
-                                                {trade.profit > 0 ? formatValue(trade.profit) : '0.00'}
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${
-                                                    trade.status === 'SUCCESS' ? 'bg-emerald-950/30 text-emerald-400 border-emerald-900' : 
-                                                    'bg-red-950/30 text-red-400 border-red-900'
-                                                }`}>
-                                                    {trade.status === 'SUCCESS' ? <CheckCircle className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                                                    {trade.status}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            )}
+                        <button onClick={toggleTheme} className="p-2 rounded hover:bg-gray-800 hover:text-white transition-colors">
+                            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+                        </button>
+                        <WalletManager balance={metrics.balance} onWithdraw={withdrawFunds} />
 
-            {view === 'BOTS' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {MOCK_BOTS.map((bot) => (
-                        <div key={bot.id} className="bg-slate-900/50 border border-slate-800 rounded-xl p-6 shadow-xl relative overflow-hidden group hover:border-cyan-900/50 transition-all">
-                            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                                <BotStatusIcon type={bot.type} />
-                            </div>
-                            <div className="flex justify-between items-start mb-4">
-                                <div>
-                                    <h3 className="text-xl font-bold text-white">{bot.name}</h3>
-                                    <p className="text-slate-500 text-xs uppercase tracking-wider mt-1">{bot.type} MODULE</p>
+                        {/* MODE INDICATOR WITH VARIANCE */}
+                        <div className="flex items-center gap-2">
+                            <Tooltip
+                                title={state === 'SIMULATION' ? TOOLTIPS.SIM_MODE.title : TOOLTIPS.LIVE_MODE.title}
+                                description={state === 'SIMULATION' ? TOOLTIPS.SIM_MODE.description : TOOLTIPS.LIVE_MODE.description}
+                                example={state === 'SIMULATION' ? TOOLTIPS.SIM_MODE.example : TOOLTIPS.LIVE_MODE.example}
+                            >
+                                <div className={`px-3 py-1 rounded border text-xs ${state === 'SIMULATION' ? 'border-[#5794F2] text-[#5794F2] bg-[#5794F2]/10' : 'border-[#00FF9D] text-[#00FF9D] bg-[#00FF9D]/10'}`}>
+                                    MODE: {state}
                                 </div>
-                                <span className={`px-2 py-1 rounded text-xs font-bold border ${getStatusColor(bot.status)}`}>
-                                    {bot.status}
-                                </span>
-                            </div>
-                            
-                            <div className="space-y-4">
-                                <div>
-                                    <div className="flex justify-between text-xs text-slate-400 mb-1">
-                                        <span>Efficiency</span>
-                                        <span>{bot.efficiency}%</span>
+                            </Tooltip>
+                            {state === 'SIMULATION' && (
+                                <Tooltip {...TOOLTIPS.VARIANCE_VS_LIVE}>
+                                    <div className="px-2 py-1 rounded bg-amber-500/10 border border-amber-500 text-amber-500 text-[10px] font-bold">
+                                        ±{perfMetrics.expectedVariance.toFixed(1)}% vs LIVE
                                     </div>
-                                    <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                                        <div 
-                                            className={`h-full rounded-full ${bot.efficiency > 90 ? 'bg-emerald-500' : 'bg-yellow-500'}`} 
-                                            style={{ width: `${bot.efficiency}%` }}
-                                        ></div>
-                                    </div>
-                                </div>
-                                <div className="flex justify-between text-sm pt-2 border-t border-slate-800">
-                                    <span className="text-slate-400">Uptime</span>
-                                    <span className="font-mono text-white">{bot.uptime}</span>
-                                </div>
-                                <div className="flex gap-2 pt-2">
-                                    <button className="flex-1 py-2 rounded bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white transition-colors">
-                                        LOGS
-                                    </button>
-                                    <button className="flex-1 py-2 rounded bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-white transition-colors">
-                                        CONFIG
-                                    </button>
-                                </div>
-                            </div>
+                                </Tooltip>
+                            )}
                         </div>
-                    ))}
-                </div>
-            )}
+                    </div>
+                </header>
 
-            {view === 'AI_COPILOT' && (
-                <div className="max-w-4xl mx-auto h-[75vh] flex flex-col">
-                    <div className="flex-1 bg-slate-900/50 border border-slate-800 rounded-xl p-6 shadow-xl overflow-y-auto mb-4 space-y-4 scroll-smooth">
-                        <div className="flex gap-4">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shrink-0">
-                                <Cpu className="w-6 h-6 text-white" />
-                            </div>
-                            <div className="bg-slate-800/50 rounded-r-xl rounded-bl-xl p-4 text-slate-200 border border-slate-700/50">
-                                <p className="font-semibold text-cyan-400 mb-2 text-sm uppercase tracking-wider">AiNex Oracle</p>
-                                <p>System Online. Operating Mode: <strong className={mode === 'LIVE' ? 'text-red-400' : 'text-blue-400'}>{mode}</strong>.</p>
-                                <p className="mt-2 text-sm text-slate-400">Accessing institutional strategies from <code className="bg-slate-950 px-1 py-0.5 rounded border border-slate-800">core-logic/ai/ainex-optimizer.py</code>.</p>
-                            </div>
+                {/* 5-COLUMN METRICS GRID */}
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4 shrink-0">
+
+                    {/* 1. PROFIT VELOCITY */}
+                    <GrafanaCard title={
+                        <Tooltip {...TOOLTIPS.PROFIT_VELOCITY}>
+                            <span>Profit Velocity</span>
+                        </Tooltip>
+                    } accent="amber">
+                        <div className="flex flex-col gap-1">
+                            <div className="flex justify-between text-xs"><span className="text-gray-500">HOURLY</span> <span className="text-amber-500">{displayValue(metrics.profitPerHour)}</span></div>
+                            <div className="flex justify-between text-xs"><span className="text-gray-500">PER TRADE</span> <span className="text-white">{displayValue(metrics.profitPerTrade)}</span></div>
+                            <div className="flex justify-between text-xs"><span className="text-gray-500">FREQ</span> <span className="text-purple-500">{metrics.tradesPerHour} T/H</span></div>
                         </div>
+                    </GrafanaCard>
 
-                        {aiResponse && (
-                            <div className="flex gap-4 animate-fadeIn">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shrink-0">
-                                    <Cpu className="w-6 h-6 text-white" />
+                    {/* 2. THEORETICAL MAX */}
+                    <GrafanaCard title={
+                        <Tooltip {...TOOLTIPS.THEORETICAL_MAX}>
+                            <span>Theoretical Max</span>
+                        </Tooltip>
+                    } accent="blue">
+                        <div className="text-2xl text-[#5794F2] font-bold">{metrics.theoreticalMaxProfit.toFixed(4)}</div>
+                        <div className="text-[10px] text-gray-500">ETH / BLOCK</div>
+                    </GrafanaCard>
+
+                    {/* 3. TOTAL PROFIT */}
+                    <GrafanaCard title={
+                        <Tooltip {...TOOLTIPS.TOTAL_PROFIT}>
+                            <span>Total Profit</span>
+                        </Tooltip>
+                    } accent="green">
+                        <div className="text-2xl text-white font-bold">{displayValue(metrics.totalProfitCumulative)}</div>
+                        <div className="text-[10px] text-gray-500">LIFETIME</div>
+                    </GrafanaCard>
+
+                    {/* 4. EFFICIENCY DELTA */}
+                    <GrafanaCard title={
+                        <Tooltip {...TOOLTIPS.AI_OPTIMIZATION}>
+                            <span>AI Optimization</span>
+                        </Tooltip>
+                    } accent="purple">
+                        <div className="text-2xl text-purple-400 font-bold">+{metrics.aiEfficiencyDelta.toFixed(1)}%</div>
+                        <div className="text-[10px] text-gray-500">VS BASELINE</div>
+                    </GrafanaCard>
+
+                    {/* 5. SIM/LIVE PERFORMANCE CONFIDENCE */}
+                    <GrafanaCard
+                        title={
+                            <Tooltip {...TOOLTIPS.CONFIDENCE_SCORE}>
+                                <span>{state === 'SIMULATION' ? "SIM Accuracy" : "Performance"}</span>
+                            </Tooltip>
+                        }
+                        accent={perfMetrics.confidenceScore >= CONFIDENCE_THRESHOLDS.HIGH ? "neon" : perfMetrics.confidenceScore >= CONFIDENCE_THRESHOLDS.MEDIUM ? "blue" : "amber"}
+                    >
+                        <div className="flex flex-col h-full">
+                            <div className="flex items-baseline gap-2 mb-2">
+                                <div className={`text-2xl font-bold ${perfMetrics.confidenceScore >= CONFIDENCE_THRESHOLDS.HIGH ? "text-[#00FF9D]" :
+                                    perfMetrics.confidenceScore >= CONFIDENCE_THRESHOLDS.MEDIUM ? "text-[#5794F2]" :
+                                        "text-amber-500"
+                                    }`}>
+                                    {perfMetrics.confidenceScore}%
                                 </div>
-                                <div className="bg-slate-800/50 rounded-r-xl rounded-bl-xl p-4 text-slate-200 border border-slate-700/50 w-full">
-                                    <p className="font-semibold text-cyan-400 mb-2 text-sm uppercase tracking-wider">Analysis Result</p>
-                                    <div className="prose prose-invert prose-sm max-w-none">
-                                        <ReactMarkdown>{aiResponse}</ReactMarkdown>
+                                <Tooltip {...TOOLTIPS.MARKET_CONDITION}>
+                                    <div className="text-[10px] text-gray-500 uppercase">
+                                        {perfMetrics.marketCondition}
                                     </div>
+                                </Tooltip>
+                            </div>
+
+                            {state === 'SIMULATION' && (
+                                <Tooltip {...TOOLTIPS.EXPECTED_VARIANCE}>
+                                    <div className="text-xs text-gray-400 mb-1">
+                                        Expected variance: <span className="text-amber-400 font-bold">±{perfMetrics.expectedVariance.toFixed(1)}%</span>
+                                    </div>
+                                </Tooltip>
+                            )}
+
+                            <div className="w-full bg-gray-800 h-1 rounded">
+                                <div
+                                    className={`h-1 rounded transition-all duration-500 ${perfMetrics.confidenceScore >= CONFIDENCE_THRESHOLDS.HIGH ? "bg-[#00FF9D]" :
+                                        perfMetrics.confidenceScore >= CONFIDENCE_THRESHOLDS.MEDIUM ? "bg-[#5794F2]" :
+                                            "bg-amber-500"
+                                        }`}
+                                    style={{ width: `${perfMetrics.confidenceScore}%` }}
+                                ></div>
+                            </div>
+
+                            <button
+                                onClick={() => setShowVarianceDetails(!showVarianceDetails)}
+                                className="text-[10px] text-gray-500 hover:text-[#5794F2] mt-2 transition-colors text-left"
+                            >
+                                {showVarianceDetails ? '▼ Hide Details' : '▶ Show Breakdown'}
+                            </button>
+                        </div>
+                    </GrafanaCard>
+                </div>
+
+                {/* VARIANCE BREAKDOWN (Collapsible) */}
+                {showVarianceDetails && state === 'SIMULATION' && (
+                    <div className="mb-4 shrink-0">
+                        <GrafanaCard title="Variance Factor Breakdown" accent="amber">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+                                <div className="flex flex-col">
+                                    <Tooltip {...TOOLTIPS.GAS_COSTS}>
+                                        <span className="text-gray-500 mb-1">Gas Costs</span>
+                                    </Tooltip>
+                                    <span className="text-amber-400 font-bold">±{perfMetrics.varianceFactors.gasCost.toFixed(2)}%</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <Tooltip {...TOOLTIPS.SLIPPAGE}>
+                                        <span className="text-gray-500 mb-1">Slippage</span>
+                                    </Tooltip>
+                                    <span className="text-amber-400 font-bold">±{perfMetrics.varianceFactors.slippage.toFixed(2)}%</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <Tooltip {...TOOLTIPS.MEV_RISK}>
+                                        <span className="text-gray-500 mb-1">MEV Risk</span>
+                                    </Tooltip>
+                                    <span className="text-amber-400 font-bold">±{perfMetrics.varianceFactors.mevRisk.toFixed(2)}%</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <Tooltip {...TOOLTIPS.NETWORK_LATENCY}>
+                                        <span className="text-gray-500 mb-1">Network Latency</span>
+                                    </Tooltip>
+                                    <span className="text-amber-400 font-bold">±{perfMetrics.varianceFactors.networkLatency.toFixed(2)}%</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <Tooltip {...TOOLTIPS.PRICE_MOVEMENT}>
+                                        <span className="text-gray-500 mb-1">Price Movement</span>
+                                    </Tooltip>
+                                    <span className="text-amber-400 font-bold">±{perfMetrics.varianceFactors.priceMovement.toFixed(2)}%</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <Tooltip {...TOOLTIPS.REVERSION_RISK}>
+                                        <span className="text-gray-500 mb-1">Reversion Risk</span>
+                                    </Tooltip>
+                                    <span className="text-amber-400 font-bold">±{perfMetrics.varianceFactors.reversion.toFixed(2)}%</span>
                                 </div>
                             </div>
-                        )}
+                            <div className="mt-3 pt-3 border-t border-gray-800 flex justify-between items-center">
+                                <span className="text-gray-400 text-xs">Total Combined Variance:</span>
+                                <span className="text-amber-400 font-bold text-sm">±{perfMetrics.expectedVariance.toFixed(1)}%</span>
+                            </div>
+                        </GrafanaCard>
+                    </div>
+                )}
+
+                {/* MIDDLE SECTION: STRATEGY & TERMINAL */}
+                <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
+
+                    {/* STRATEGY VISUALIZATION (Left 1/3) */}
+                    <div className="lg:col-span-1 flex flex-col gap-4">
+                        <GrafanaCard title="Active Strategy Weights" accent="purple">
+                            <div className="flex flex-col gap-2">
+                                {Object.entries(aiState?.weights || {}).map(([key, val]) => (
+                                    <div key={key} className="flex items-center gap-4">
+                                        <span className="w-24 text-xs text-gray-400 uppercase">{key}</span>
+                                        <div className="flex-1 bg-gray-800 h-2 rounded overflow-hidden">
+                                            <div className="bg-purple-500 h-full" style={{ width: `${(val as number) * 100}%` }}></div>
+                                        </div>
+                                        <span className="text-xs text-gray-200 w-12 text-right">{((val as number) * 100).toFixed(0)}%</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </GrafanaCard>
+
+                        {/* Terminal Toggle */}
+                        <button
+                            onClick={() => setShowTerminal(!showTerminal)}
+                            className={`flex items-center justify-between p-3 rounded border transition-all ${showTerminal ? 'bg-[#181b1f] border-[#5794F2] text-[#5794F2]' : 'bg-[#111217] border-[#22252b] text-gray-500'}`}
+                        >
+                            <div className="flex items-center gap-2">
+                                <TerminalIcon size={16} />
+                                <span className="text-xs font-bold">LIVE EXECUTION LOG</span>
+                            </div>
+                            <div className={`w-2 h-2 rounded-full ${showTerminal ? 'bg-[#00FF9D] animate-pulse' : 'bg-gray-600'}`}></div>
+                        </button>
                     </div>
 
-                    <form onSubmit={handleAiSubmit} className="relative">
-                        <input
-                            type="text"
-                            value={aiInput}
-                            onChange={(e) => setAiInput(e.target.value)}
-                            placeholder={`Command the Oracle (${mode} context active)...`}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-xl py-4 pl-6 pr-16 text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 shadow-xl transition-all"
-                        />
-                        <button 
-                            type="submit" 
-                            disabled={isAiLoading}
-                            className="absolute right-2 top-2 p-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition-colors disabled:opacity-50"
-                        >
-                            {isAiLoading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
-                        </button>
-                    </form>
-
-                    <div className="mt-4 flex gap-4 justify-center">
-                         <button 
-                            onClick={() => setAiInput("Analyze current gas fees and suggest paymaster optimization.")}
-                            className="text-xs text-slate-500 hover:text-cyan-400 underline decoration-dotted underline-offset-4"
-                        >
-                            Gas Optimization
-                        </button>
-                        <button 
-                            onClick={() => setAiInput("Simulate a multi-hop flash loan across Uniswap and SushiSwap.")}
-                            className="text-xs text-slate-500 hover:text-cyan-400 underline decoration-dotted underline-offset-4"
-                        >
-                            Flash Loan Sim
-                        </button>
-                        <button 
-                            onClick={() => setAiInput("Explain the MEV protection strategy for large trades.")}
-                            className="text-xs text-slate-500 hover:text-cyan-400 underline decoration-dotted underline-offset-4"
-                        >
-                            MEV Strategy
-                        </button>
+                    {/* TERMINAL (Right 2/3) - INTEGRATED */}
+                    <div className={`lg:col-span-2 transition-all duration-300 ${showTerminal ? 'opacity-100' : 'opacity-50 grayscale'}`}>
+                        <Terminal />
                     </div>
                 </div>
+
+                {/* FLASHING LIVE BUTTON TRIGGER (SAFETY INTERLOCK) */}
+                {state === 'SIMULATION' && (
+                    <div className="fixed bottom-8 left-0 right-0 flex justify-center z-50 pointer-events-none">
+                        <button
+                            onClick={confirmLive}
+                            disabled={confidence < 85}
+                            className={`
+                pointer-events-auto font-bold text-xl px-12 py-4 rounded-full shadow-[0_0_50px_rgba(0,255,157,0.5)] flex items-center gap-3 transition-all
+                ${confidence >= 85
+                                    ? 'bg-[#00FF9D] text-black animate-bounce hover:scale-105 cursor-pointer'
+                                    : 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-50'
+                                }
+              `}
+                        >
+                            <Zap size={24} fill={confidence >= 85 ? "black" : "gray"} />
+                            {confidence >= 85 ? "SWITCH TO LIVE MODE" : `AWAITING CONFIDENCE (${confidence.toFixed(0)}%)`}
+                            <Zap size={24} fill={confidence >= 85 ? "black" : "gray"} />
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* MODALS */}
+            {showProjection && (
+                <ProfitChart
+                    currentProfit={metrics.profitPerHour}
+                    theoreticalMax={metrics.theoreticalMaxProfit}
+                    onClose={() => setShowProjection(false)}
+                />
             )}
 
-            {(view === 'FLASH' || view === 'CHAIN' || view === 'RISK' || view === 'TREASURY') && (
-                <div className="flex flex-col items-center justify-center h-[60vh] text-slate-500">
-                    <div className="w-24 h-24 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mb-6 animate-pulse">
-                        <Zap className="w-10 h-10 opacity-20" />
-                    </div>
-                    <h3 className="text-xl font-bold text-slate-300">Module Under Construction</h3>
-                    <p className="max-w-md text-center mt-2">The {view} interface is currently being compiled from the <code className="text-cyan-500">core-logic</code> artifacts.</p>
-                </div>
-            )}
+            <AdminPanel
+                isOpen={showAdmin}
+                onClose={() => setShowAdmin(false)}
+            />
         </div>
-      </main>
-    </div>
-  );
+    );
 };
-
-const BotStatusIcon: React.FC<{ type: string }> = ({ type }) => {
-    switch (type) {
-        case 'SCANNER': return <Search className="w-32 h-32" />;
-        case 'EXECUTOR': return <Zap className="w-32 h-32" />;
-        case 'VALIDATOR': return <ShieldAlert className="w-32 h-32" />;
-        default: return <Server className="w-32 h-32" />;
-    }
-}
-
-export default Dashboard;

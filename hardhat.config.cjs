@@ -6,14 +6,22 @@ module.exports = {
   solidity: "0.8.19", // Matches the pragma in ApexFlashLoan.sol
   networks: {
     hardhat: {
-      // Configures the local network to fork Ethereum Mainnet
       forking: {
-        // CRITICAL: Ensure ALCHEMY_MAINNET_URL is set in your .env file
-        // Fallback to ETH_RPC_URL or a public RPC for build verification
         url: (process.env.ALCHEMY_MAINNET_URL && process.env.ALCHEMY_MAINNET_URL.length > 0) ? process.env.ALCHEMY_MAINNET_URL : ((process.env.ETH_RPC_URL && process.env.ETH_RPC_URL.length > 0) ? process.env.ETH_RPC_URL : "https://eth.llamarpc.com"),
-        // Using a fixed block number ensures repeatable testing results
         blockNumber: 19000000
       }
+    },
+    arbitrum: {
+      url: process.env.ARBITRUM_RPC_URL || "https://arb1.arbitrum.io/rpc",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
+    },
+    optimism: {
+      url: process.env.OPTIMISM_RPC_URL || "https://mainnet.optimism.io",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
+    },
+    base: {
+      url: process.env.BASE_RPC_URL || "https://mainnet.base.org",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
     }
   },
   paths: {

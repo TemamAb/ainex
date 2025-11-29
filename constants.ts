@@ -2,6 +2,173 @@ import { BotStatus, TradeLog } from './types';
 
 export const APP_NAME = "AiNex Engine";
 
+// PERFORMANCE CONFIDENCE CONSTANTS
+export const PERFORMANCE_MODES = {
+  SIM: 'SIM',
+  LIVE: 'LIVE'
+} as const;
+
+export type PerformanceMode = typeof PERFORMANCE_MODES[keyof typeof PERFORMANCE_MODES];
+
+export const CONFIDENCE_THRESHOLDS = {
+  HIGH: 85,      // >85% confidence - excellent SIM accuracy
+  MEDIUM: 70,    // 70-85% confidence - good SIM accuracy
+  LOW: 50        // <70% confidence - caution advised
+} as const;
+
+export const VARIANCE_TARGETS = {
+  NORMAL: 5.0,      // ±5% expected variance in normal conditions
+  VOLATILE: 8.0,    // ±8% expected variance in volatile markets
+  EXTREME: 15.0     // ±15% expected variance in extreme conditions
+} as const;
+
+export const MARKET_CONDITIONS = {
+  NORMAL: { gasThreshold: 50, volatilityThreshold: 40 },
+  VOLATILE: { gasThreshold: 100, volatilityThreshold: 70 },
+  EXTREME: { gasThreshold: Infinity, volatilityThreshold: Infinity }
+} as const;
+
+// EDUCATIONAL TOOLTIPS
+export const TOOLTIPS = {
+  PROFIT_VELOCITY: {
+    title: "Profit Velocity",
+    description: "The rate at which the arbitrage engine generates profit. Shows hourly earnings, per-trade profit, and trade frequency.",
+    example: "2.5 ETH/hour = earning 2.5 ETH every hour from arbitrage trades"
+  },
+  THEORETICAL_MAX: {
+    title: "Theoretical Maximum",
+    description: "The maximum possible profit per block under perfect conditions (zero gas, zero slippage, instant execution). This is the upper limit of what the engine could achieve.",
+    example: "0.05 ETH/block = if every opportunity was captured perfectly"
+  },
+  TOTAL_PROFIT: {
+    title: "Total Profit",
+    description: "Cumulative profit earned since the engine started. This is the lifetime total of all successful arbitrage trades minus gas costs.",
+    example: "15.8 ETH = total profit earned across all trades"
+  },
+  AI_OPTIMIZATION: {
+    title: "AI Optimization",
+    description: "How much better the AI-powered engine performs compared to a basic arbitrage bot. Shows the efficiency gain from machine learning optimizations.",
+    example: "+12.5% = AI strategies earn 12.5% more than baseline"
+  },
+  CONFIDENCE_SCORE: {
+    title: "Confidence Score",
+    description: "Measures how reliable SIM mode predictions are. Higher confidence means SIM mode will more accurately predict LIVE mode performance. Must reach 85% to enable LIVE mode.",
+    example: "85% confidence = SIM predictions within ±5-8% of actual LIVE results"
+  },
+  EXPECTED_VARIANCE: {
+    title: "Expected Variance",
+    description: "The anticipated difference between SIM mode predictions and actual LIVE mode results, even under perfect conditions. This accounts for unavoidable real-world factors.",
+    example: "±6% variance = if SIM predicts 1 ETH profit, expect 0.94-1.06 ETH in LIVE"
+  },
+  MARKET_CONDITION: {
+    title: "Market Condition",
+    description: "Current market state based on gas prices and volatility. Affects expected variance and confidence scores.",
+    example: "NORMAL = stable conditions, VOLATILE = high activity, EXTREME = chaotic markets"
+  },
+  GAS_COSTS: {
+    title: "Gas Cost Variance",
+    description: "Uncertainty in transaction gas costs due to network congestion and gas price fluctuations. Higher gas prices increase variance.",
+    example: "±2.5% = gas costs could vary by 2.5% from estimates"
+  },
+  SLIPPAGE: {
+    title: "Slippage Variance",
+    description: "Price movement that occurs between when you submit a trade and when it executes. Higher in volatile markets or low liquidity pools.",
+    example: "±1.5% = price could move 1.5% during trade execution"
+  },
+  MEV_RISK: {
+    title: "MEV Risk (Maximal Extractable Value)",
+    description: "The probability that bots or validators will front-run your transaction to extract profit, reducing your gains. Protected by Flashbots integration.",
+    example: "±1.2% = MEV bots might reduce profit by up to 1.2%"
+  },
+  NETWORK_LATENCY: {
+    title: "Network Latency",
+    description: "Delays in transaction propagation and block inclusion. Affects timing-sensitive arbitrage opportunities.",
+    example: "±0.75% = timing delays could impact profit by 0.75%"
+  },
+  PRICE_MOVEMENT: {
+    title: "Price Movement",
+    description: "Market price drift during the time between opportunity detection and execution. More significant in volatile markets.",
+    example: "±1.5% = prices could move 1.5% while trade executes"
+  },
+  REVERSION_RISK: {
+    title: "Reversion Risk",
+    description: "Probability that a transaction will fail and revert. With mempool shadowing, failed trades don't cost gas, but opportunities are missed.",
+    example: "±1.5% = some opportunities may fail, reducing overall profit"
+  },
+  SIM_MODE: {
+    title: "SIM Mode (Simulation)",
+    description: "Simulation mode runs on real blockchain data and real-time market prices, but doesn't execute actual trades. Used to validate strategies before going live.",
+    example: "Tests strategies with zero risk using live market data"
+  },
+  LIVE_MODE: {
+    title: "LIVE Mode",
+    description: "Live trading mode executes real transactions on the blockchain with actual capital. Only available when confidence score reaches 85%.",
+    example: "Real trades with real profit (and real risk)"
+  },
+  VARIANCE_VS_LIVE: {
+    title: "Variance vs LIVE",
+    description: "The expected performance difference between SIM mode predictions and actual LIVE mode results. Shown as a percentage range.",
+    example: "±6.2% = LIVE results will be within 6.2% of SIM predictions"
+  },
+  CONFIDENCE_THRESHOLD: {
+    title: "85% Confidence Threshold",
+    description: "The minimum confidence score required to enable LIVE mode. This ensures SIM predictions are reliable enough to trust with real capital.",
+    example: "Below 85% = stay in SIM mode, conditions too uncertain"
+  },
+  STRATEGY_WEIGHTS: {
+    title: "Active Strategy Weights",
+    description: "The AI's current allocation across different arbitrage strategies. Weights adjust dynamically based on market conditions and performance.",
+    example: "DEX Arb: 45% = 45% of capital allocated to DEX arbitrage"
+  }
+} as const;
+
+// AI TERMINAL CONSTANTS
+export const AI_TERMINAL = {
+  QUICK_QUERIES: [
+    "What's the best opportunity now?",
+    "How am I doing today?",
+    "Explain MEV protection",
+    "Should I trade during high gas?",
+    "Predict next hour profit",
+    "Give me a strategy tip"
+  ],
+
+  EXAMPLE_QUERIES: {
+    OPPORTUNITIES: [
+      "Show me profitable WETH trades",
+      "Find arbitrage opportunities",
+      "What's the best trade right now?",
+      "Show me low-risk opportunities"
+    ],
+    PERFORMANCE: [
+      "How am I doing today?",
+      "Analyze my performance this week",
+      "What's my success rate?",
+      "Show me my best trades"
+    ],
+    STRATEGY: [
+      "Should I increase my gas limit?",
+      "What's the optimal strategy now?",
+      "How can I improve my profit?",
+      "Give me trading advice"
+    ],
+    EXPLANATIONS: [
+      "Explain MEV protection",
+      "What is a flash loan?",
+      "How does confidence score work?",
+      "What affects slippage?"
+    ]
+  },
+
+  RESPONSE_TEMPLATES: {
+    GREETING: "👋 Welcome to AI Terminal Assistant!",
+    ERROR: "❌ Sorry, I encountered an error.",
+    UNKNOWN: "I'm not sure how to help with that.",
+    PROCESSING: "🤔 Analyzing..."
+  }
+} as const;
+
+
 export const MOCK_BOTS: BotStatus[] = [
   { id: 'b1', name: 'Alpha-Clone-01', type: 'SCANNER', tier: 'TIER_1', status: 'ONLINE', uptime: '48h 12m', efficiency: 98.5 },
   { id: 'b2', name: 'Mev-Shield-Core', type: 'VALIDATOR', tier: 'TIER_2', status: 'ONLINE', uptime: '120h 05m', efficiency: 99.9 },

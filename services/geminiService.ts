@@ -3,13 +3,15 @@ import { RAW_FILE_LIST } from "../constants";
 
 export const generateCopilotResponse = async (userQuery: string, mode: 'SIMULATION' | 'LIVE' = 'SIMULATION'): Promise<string> => {
   try {
-    const apiKey = process.env.API_KEY;
+    // Use Vite environment variables (must be prefixed with VITE_)
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     if (!apiKey) {
-      throw new Error("API Key not found.");
+      console.error("Gemini API key not configured. Set VITE_GEMINI_API_KEY in .env.local");
+      return "⚠️ AI Copilot is offline. API key not configured. Please set VITE_GEMINI_API_KEY in your .env.local file.";
     }
 
     const ai = new GoogleGenAI({ apiKey });
-    
+
     const systemInstruction = `
     You are the "AiNex Institutional Co-Pilot", a Tier-1 DeFi Strategy Architect.
     

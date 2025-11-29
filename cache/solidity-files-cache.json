@@ -700,6 +700,48 @@
       "artifacts": [
         "Math"
       ]
+    },
+    "C:\\Users\\op\\Desktop\\ainex\\core-logic\\contracts\\ApexFlashAggregator.sol": {
+      "lastModificationDate": 1764323808272,
+      "contentHash": "bdb183ee78b2c6794b83a726c135cd38",
+      "sourceName": "core-logic/contracts/ApexFlashAggregator.sol",
+      "solcConfig": {
+        "version": "0.8.19",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "@aave/core-v3/contracts/flashloan/base/FlashLoanSimpleReceiverBase.sol",
+        "@aave/core-v3/contracts/interfaces/IPoolAddressesProvider.sol",
+        "@openzeppelin/contracts/token/ERC20/IERC20.sol",
+        "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.19"
+      ],
+      "artifacts": [
+        "ApexFlashAggregator",
+        "IBalancerVault",
+        "IUniswapV3Pool"
+      ]
     }
   }
 }

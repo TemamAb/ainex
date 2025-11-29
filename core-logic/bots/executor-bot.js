@@ -14,7 +14,7 @@ class ExecutorBot extends EventEmitter {
         this.executionQueue = [];
         this.activeExecutions = new Map();
         this.workerManager = new WorkerThreadsManager();
-        
+
         this.stats = {
             tradesExecuted: 0,
             tradesSuccessful: 0,
@@ -43,10 +43,10 @@ class ExecutorBot extends EventEmitter {
         }
 
         console.log('âš¡ Starting QuantumNex trade executor...');
-        
+
         // Initialize worker threads
         await this.workerManager.initialize();
-        
+
         // Listen for validated opportunities
         const { validatorBot } = require('./validator-bot');
         validatorBot.on('opportunityValidated', (opportunity) => {
@@ -71,13 +71,13 @@ class ExecutorBot extends EventEmitter {
         };
 
         this.executionQueue.push(executionItem);
-        
+
         // Limit queue size
         if (this.executionQueue.length > 50) {
             this.executionQueue.shift();
         }
 
-        console.log(`í³¥ Queued execution: ${opportunity.pair} | Profit: ${opportunity.expectedProfit.toFixed(4)}`);
+        console.log(`ï¿½ï¿½ï¿½ Queued execution: ${opportunity.pair} | Profit: ${opportunity.expectedProfit.toFixed(4)}`);
     }
 
     /**
@@ -89,7 +89,7 @@ class ExecutorBot extends EventEmitter {
         // Check if we can execute more trades
         if (this.activeExecutions.size < this.executionParams.maxConcurrentTrades) {
             const nextExecution = this.executionQueue.shift();
-            
+
             if (nextExecution) {
                 await this.executeTrade(nextExecution);
             }
@@ -105,19 +105,19 @@ class ExecutorBot extends EventEmitter {
     async executeTrade(executionItem) {
         const { opportunity } = executionItem;
         const executionId = `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
+
         executionItem.status = 'executing';
         executionItem.executionId = executionId;
         executionItem.startTime = Date.now();
-        
+
         this.activeExecutions.set(executionId, executionItem);
 
         try {
-            console.log(`í¾¯ Executing trade: ${opportunity.pair} | ID: ${executionId}`);
+            console.log(`ï¿½ï¿½ï¿½ Executing trade: ${opportunity.pair} | ID: ${executionId}`);
 
             // Multi-stage execution process
             const executionResult = await this.executeTradeStages(opportunity);
-            
+
             if (executionResult.success) {
                 await this.handleSuccessfulExecution(executionId, executionItem, executionResult);
             } else {
@@ -142,14 +142,14 @@ class ExecutorBot extends EventEmitter {
         ];
 
         const results = {};
-        
+
         for (const stage of stages) {
             const stageStart = Date.now();
-            
+
             try {
                 results[stage.name] = await stage.func(opportunity);
                 results[stage.name].duration = Date.now() - stageStart;
-                
+
                 // If any stage fails, stop execution
                 if (!results[stage.name].success) {
                     return {
@@ -208,7 +208,7 @@ class ExecutorBot extends EventEmitter {
         try {
             const gasEstimate = await this.estimateGasCost(opportunity);
             const optimizedGas = await this.calculateOptimalGas(gasEstimate);
-            
+
             return {
                 success: true,
                 gasEstimate: gasEstimate,
@@ -224,7 +224,7 @@ class ExecutorBot extends EventEmitter {
      */
     async executeDEXTrades(opportunity) {
         const { dexA, dexB, pair, expectedProfit } = opportunity;
-        
+
         try {
             // Use worker thread for parallel execution
             const executionResult = await this.workerManager.submitTask({
@@ -256,9 +256,22 @@ class ExecutorBot extends EventEmitter {
         try {
             // Simulate profit verification (would compare actual vs expected in production)
             await new Promise(resolve => setTimeout(resolve, 100));
-            
-            const actualProfit = opportunity.expectedProfit * (0.8 + Math.random() * 0.4); // 80-120% of expected
-            
+
+            // Calculate realistic variance based on market conditions
+            // Base variance: Â±5-8% (normal conditions)
+            // Factors: gas volatility, slippage, MEV, timing
+            const baseVariance = 0.05; // 5%
+            const gasVariance = Math.random() * 0.02; // 0-2% gas uncertainty
+            const slippageVariance = Math.random() * 0.015; // 0-1.5% slippage
+            const mevImpact = Math.random() * 0.015; // 0-1.5% MEV
+            const timingVariance = Math.random() * 0.01; // 0-1% timing
+
+            const totalVariance = baseVariance + gasVariance + slippageVariance + mevImpact + timingVariance;
+
+            // Apply variance (can be positive or negative)
+            const varianceMultiplier = 1 + (Math.random() - 0.5) * 2 * totalVariance;
+            const actualProfit = opportunity.expectedProfit * varianceMultiplier;
+
             if (actualProfit <= 0) {
                 return { success: false, error: 'Negative actual profit' };
             }
@@ -266,7 +279,8 @@ class ExecutorBot extends EventEmitter {
             return {
                 success: true,
                 actualProfit: actualProfit,
-                profitDeviation: (actualProfit - opportunity.expectedProfit) / opportunity.expectedProfit
+                profitDeviation: (actualProfit - opportunity.expectedProfit) / opportunity.expectedProfit,
+                varianceApplied: totalVariance
             };
 
         } catch (error) {
@@ -280,13 +294,13 @@ class ExecutorBot extends EventEmitter {
     async handleSuccessfulExecution(executionId, executionItem, result) {
         const { opportunity } = executionItem;
         const executionTime = Date.now() - executionItem.startTime;
-        
+
         // Update statistics
         this.stats.tradesExecuted++;
         this.stats.tradesSuccessful++;
         this.stats.totalProfit += result.profit;
-        this.stats.avgExecutionTime = 
-            (this.stats.avgExecutionTime * (this.stats.tradesExecuted - 1) + executionTime) / 
+        this.stats.avgExecutionTime =
+            (this.stats.avgExecutionTime * (this.stats.tradesExecuted - 1) + executionTime) /
             this.stats.tradesExecuted;
         this.stats.lastExecutionTime = Date.now();
 
@@ -317,7 +331,7 @@ class ExecutorBot extends EventEmitter {
      */
     async handleFailedExecution(executionId, executionItem, result) {
         const { opportunity, attempts } = executionItem;
-        
+
         this.stats.tradesExecuted++;
         this.stats.tradesFailed++;
 
@@ -326,9 +340,9 @@ class ExecutorBot extends EventEmitter {
             executionItem.attempts++;
             executionItem.status = 'queued';
             executionItem.lastError = result.error;
-            
+
             this.executionQueue.unshift(executionItem);
-            console.log(`í´„ Retrying execution (${executionItem.attempts}/${this.executionParams.retryAttempts}): ${opportunity.pair}`);
+            console.log(`ï¿½ï¿½ï¿½ Retrying execution (${executionItem.attempts}/${this.executionParams.retryAttempts}): ${opportunity.pair}`);
         } else {
             // Final failure
             const executionRecord = {
@@ -363,7 +377,7 @@ class ExecutorBot extends EventEmitter {
      */
     async checkNetworkStatus() {
         await new Promise(resolve => setTimeout(resolve, 2));
-        return { 
+        return {
             healthy: Math.random() > 0.05, // 95% healthy
             gasPrice: 30 + Math.random() * 20 // Random gas price
         };
@@ -374,10 +388,10 @@ class ExecutorBot extends EventEmitter {
      */
     async estimateGasCost(opportunity) {
         await new Promise(resolve => setTimeout(resolve, 3));
-        
+
         const baseCost = 0.0005; // Base ETH cost
         const complexityMultiplier = 1.0 + (opportunity.confidence * 0.5);
-        
+
         return baseCost * complexityMultiplier;
     }
 
@@ -386,7 +400,7 @@ class ExecutorBot extends EventEmitter {
      */
     async calculateOptimalGas(baseEstimate) {
         await new Promise(resolve => setTimeout(resolve, 2));
-        
+
         return {
             gasLimit: Math.ceil(baseEstimate * this.executionParams.gasLimitBuffer),
             maxFeePerGas: 35, // gwei
@@ -398,9 +412,9 @@ class ExecutorBot extends EventEmitter {
      * Get execution statistics
      */
     getStats() {
-        const successRate = this.stats.tradesExecuted > 0 ? 
+        const successRate = this.stats.tradesExecuted > 0 ?
             this.stats.tradesSuccessful / this.stats.tradesExecuted : 0;
-            
+
         return {
             ...this.stats,
             successRate: successRate,
@@ -416,26 +430,26 @@ class ExecutorBot extends EventEmitter {
     async stopExecution() {
         this.isExecuting = false;
         this.executionQueue = [];
-        
+
         await this.workerManager.shutdown();
-        console.log('í»‘ Trade executor stopped');
+        console.log('ï¿½ï¿½ï¿½ Trade executor stopped');
     }
 
     /**
      * Emergency stop - cancel all active executions
      */
     async emergencyStop() {
-        console.log('í»‘ EMERGENCY STOP - Cancelling all executions');
-        
+        console.log('ï¿½ï¿½ï¿½ EMERGENCY STOP - Cancelling all executions');
+
         this.isExecuting = false;
         this.executionQueue = [];
-        
+
         // Cancel active executions (would implement actual cancellation in production)
         for (const [executionId, executionItem] of this.activeExecutions) {
             console.log(`Cancelling execution: ${executionId}`);
             this.activeExecutions.delete(executionId);
         }
-        
+
         await this.workerManager.shutdown();
         console.log('âœ… All executions stopped');
     }
