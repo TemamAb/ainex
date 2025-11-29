@@ -305,15 +305,71 @@ contract ApexFlashAggregator is FlashLoanSimpleReceiverBase {
     }
     
     /**
-     * @dev Dual trade execution (unchanged)
+     * @dev Dual trade execution (PRODUCTION IMPLEMENTATION)
      */
     function _executeDualTrade(ArbitrageData memory data) 
         internal 
         returns (uint256) 
     {
-        // Placeholder for actual swap logic
-        // In production, this would call the DEX routers
-        return data.amountIn + 1000; // Mock profit
+        // Step 1: Approve router1 to spend tokenIn
+        IERC20(data.tokenIn).approve(data.router1, data.amountIn);
+        
+        // Step 2: Execute first swap (Buy on DEX1)
+        // tokenIn → tokenMid
+        address[] memory path1 = new address[](2);
+        path1[0] = data.tokenIn;
+        path1[1] = data.tokenMid;
+        
+        uint256 amountMid;
+        try IUniswapV2Router02(data.router1).swapExactTokensForTokens(
+            data.amountIn,
+            data.minAmountMid,
+            path1,
+            address(this),
+            block.timestamp + 300 // 5 minute deadline
+        ) returns (uint[] memory amounts1) {
+            amountMid = amounts1[amounts1.length - 1];
+        } catch {
+            revert("First swap failed");
+        }
+        
+        // Step 3: Approve router2 to spend tokenMid
+        IERC20(data.tokenMid).approve(data.router2, amountMid);
+        
+        // Step 4: Execute second swap (Sell on DEX2)
+        // tokenMid → tokenIn (back to original token)
+        address[] memory path2 = new address[](2);
+        path2[0] = data.tokenMid;
+        path2[1] = data.tokenIn;
+        
+        uint256 finalAmount;
+        try IUniswapV2Router02(data.router2).swapExactTokensForTokens(
+            amountMid,
+            data.minAmountFinal,
+            path2,
+            address(this),
+            block.timestamp + 300
+        ) returns (uint[] memory amounts2) {
+            finalAmount = amounts2[amounts2.length - 1];
+        } catch {
+            revert("Second swap failed");
+        }
+        
+        // Verify profitability
+        require(finalAmount > data.amountIn, "Trade not profitable");
+        
+        return finalAmount;
+    }
+    
+    // Uniswap V2 Router Interface
+    interface IUniswapV2Router02 {
+        function swapExactTokensForTokens(
+            uint amountIn,
+            uint amountOutMin,
+            address[] calldata path,
+            address to,
+            uint deadline
+        ) external returns (uint[] memory amounts);
     }
     
     /**

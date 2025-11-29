@@ -98,6 +98,13 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
       setProvider(new ethers.BrowserProvider(eth));
     }
 
+    // Load wallet address from environment variable
+    const envWallet = import.meta.env.VITE_WALLET_ADDRESS;
+    if (envWallet && ethers.isAddress(envWallet)) {
+      setWalletAddress(envWallet);
+      setEngineAddress(envWallet);
+    }
+
     // Initialize AI
     aiOptimizer.current = new AIOptimizer();
     setAiState(aiOptimizer.current.getState());
