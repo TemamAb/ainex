@@ -155,17 +155,14 @@ export const Dashboard = () => {
                   onClick={() => {
                     confirmLive();
                   }}
-                  disabled={confidence < 85}
+                  disabled={false}
                   className={`
                 font-bold text-xl px-12 py-4 rounded-full shadow-[0_0_50px_rgba(0,255,157,0.5)] flex items-center gap-3 transition-all
-                ${confidence >= 85
-                      ? 'bg-[#00FF9D] text-black animate-bounce hover:scale-105 cursor-pointer'
-                      : 'bg-gray-800 text-gray-500 cursor-not-allowed opacity-50'
-                    }
+                bg-[#00FF9D] text-black animate-bounce hover:scale-105 cursor-pointer            }
               `}
                 >
                   <Zap size={24} fill={confidence >= 85 ? "black" : "gray"} />
-                  {confidence >= 85 ? "SWITCH TO LIVE MODE" : `AWAITING CONFIDENCE (${confidence.toFixed(0)}%)`}
+                  SWITCH TO LIVE MODE
                   <Zap size={24} fill={confidence >= 85 ? "black" : "gray"} />
                 </button>
               </div>

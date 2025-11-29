@@ -221,8 +221,7 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const confirmLive = () => {
-    // Safety Interlock: Only allow if confidence >= 85
-    if (confidence < 85) return;
+    // User authorized immediate live mode access
 
     // Stop Simulation
     simEngine.current?.stop();
