@@ -1,3 +1,8 @@
 export default function Home() {
-  return <div>AInex V3 Dashboard - Build Fixed</div>
+  return (
+    <div>
+      <h1>AInex V3 Dashboard</h1>
+      <p>Build Fixed</p>
+    </div>
+  )
 }
