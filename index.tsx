@@ -7,9 +7,13 @@ if (!rootElement) {
   throw new Error("Could not find root element to mount to");
 }
 
+import { EngineProvider } from './app/engine/EngineContext';
+
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <App />
+    <EngineProvider>
+      <App />
+    </EngineProvider>
   </React.StrictMode>
 );
