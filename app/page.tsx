@@ -2,7 +2,7 @@ export default function Home() {
   return (
     <div>
       <h1>AInex V3 Dashboard</h1>
-      <p>Working Build</p>
+      <p>Build Successful</p>
     </div>
   )
 }
