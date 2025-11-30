@@ -1,44 +1,45 @@
 version: '3.8'
 
 services:
-  quantumnex-app:
-    build:
+  ainex-app:
+    build: 
       context: .
       dockerfile: Dockerfile
-    image: quantumnex/app:local
-    container_name: quantumnex-app
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     restart: unless-stopped
-    depends_on:
-      - redis
-      - postgres
+    networks:
+      - ainex-network
 
-  redis:
-    image: redis:7-alpine
-    container_name: quantumnex-redis
+  # Simple Python API for agents (if needed)
+  ainex-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
     ports:
-      - "6379:6379"
-    restart: unless-stopped
-
-  postgres:
-    image: postgres:15-alpine
-    container_name: quantumnex-postgres
+      - "5000:5000"
     environment:
-      - POSTGRES_DB=quantumnex
-      - POSTGRES_USER=quantumnex
-      - POSTGRES_PASSWORD=quantumnex
-    ports:
-      - "5432:5432"
+      - PYTHONUNBUFFERED=1
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - ./core-logic:/app/core-logic
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     restart: unless-stopped
+    networks:
+      - ainex-network
 
-  # Note: Python agents run separately and are not included by default here.
-  # Add a `python-agents` service that builds from a Python Dockerfile if you
-  # want agents to run in-container as part of compose.
-
-volumes:
-  postgres-data:
+networks:
+  ainex-network:
+    driver: bridge

@@ -1,0 +1,48 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Copy requirements
+COPY requirements.txt .
+
+# Create basic requirements if missing
+RUN if [ ! -f "requirements.txt" ]; then \
+    echo "flask==2.3.3" > requirements.txt && \
+    echo "aiohttp==3.8.5" >> requirements.txt && \
+    echo "websockets==11.0.3" >> requirements.txt; \
+    fi
+
+RUN pip install -r requirements.txt
+
+# Copy core logic
+COPY core-logic/ ./core-logic/
+
+# Create simple health endpoint
+RUN cat > app.py << 'EOS'
+from flask import Flask, jsonify
+import os
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return jsonify({"status": "AInex API Running", "version": "1.0"})
+
+@app.route('/health')
+def health():
+    return jsonify({"status": "healthy"})
+
+@app.route('/api/agents/status')
+def agents_status():
+    return jsonify({
+        "agents": ["co-pilot-orchestrator", "decision-agent", "execution-agent"],
+        "status": "active"
+    })
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=False)
+EOS
+
+EXPOSE 5000
+
+CMD ["python", "app.py"]
