@@ -1,52 +1,26 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
 import path from 'path';
+import { defineConfig, loadEnv } from 'vite';
+import react from '@vitejs/plugin-react';
 
-// https://vitejs.dev/config/
-export default defineConfig({
-    plugins: [react()],
-
-    resolve: {
-        alias: {
-            '@': path.resolve(__dirname, './app'),
-            '@services': path.resolve(__dirname, './services'),
-            '@utils': path.resolve(__dirname, './utils'),
-        }
-    },
-
-    // Environment variable handling
-    define: {
-        // Make process.env available for compatibility
-        'process.env': {}
-    },
-
-    // Development server configuration
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, '.', '');
+  return {
     server: {
-        port: 3000,
-        host: true,
-        open: false,
+      port: 3000,
+      host: '0.0.0.0',
     },
-
-    // Build configuration
-    build: {
-        outDir: 'dist',
-        sourcemap: true,
-        // Optimize chunks
-        rollupOptions: {
-            output: {
-                manualChunks: {
-                    'react-vendor': ['react', 'react-dom'],
-                    'web3-vendor': ['ethers'],
-                    'charts-vendor': ['recharts'],
-                }
-            }
-        }
+    plugins: [react()],
+    define: {
+      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+      'process.env.SIMULATION_MODE': JSON.stringify(env.SIMULATION_MODE),
+      'process.env.ENABLE_GASLESS': JSON.stringify(env.ENABLE_GASLESS),
+      'process.env.ENGINE_MODE': JSON.stringify(env.ENGINE_MODE)
     },
-
-    // Preview server (for testing production build)
-    preview: {
-        port: 3000,
-        host: true,
-        allowedHosts: true,
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, '.'),
+      }
     }
+  };
 });

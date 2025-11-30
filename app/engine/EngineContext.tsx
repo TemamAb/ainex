@@ -166,6 +166,13 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
+    // @ts-ignore
+    if (process.env.SIMULATION_MODE === 'false') {
+      console.warn("Simulation mode disabled by environment");
+      alert("Simulation mode is disabled in this environment.");
+      return;
+    }
+
     try {
       // Verify real blockchain connection by attempting to get network
       await provider.getNetwork();

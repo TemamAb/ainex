@@ -1,54 +1,62 @@
-export interface BotStatus {
-  id: string;
-  name: string;
-  type: 'EXECUTOR' | 'SCANNER' | 'VALIDATOR';
-  tier: 'TIER_1' | 'TIER_2' | 'TIER_3';
-  status: 'ONLINE' | 'OFFLINE' | 'WARNING';
-  uptime: string;
-  efficiency: number;
+export enum ModuleStatus {
+  ACTIVE = 'ACTIVE',
+  OPTIMIZING = 'OPTIMIZING',
+  EXECUTING = 'EXECUTING',
+  STANDBY = 'STANDBY',
+  ERROR = 'ERROR'
 }
 
-export interface TradeLog {
+export type BotTier = 'TIER_1_ARBITRAGE' | 'TIER_2_LIQUIDATION' | 'TIER_3_MEV';
+
+export interface EngineModule {
   id: string;
-  timestamp: string;
+  name: string;
+  type: 'INFRA' | 'STRATEGY' | 'EXECUTION';
+  status: ModuleStatus;
+  details: string;
+  metrics?: string;
+}
+
+export interface TradeSignal {
+  id: string;
+  blockNumber: number;
   pair: string;
-  dex: string[];
-  profit: number;
-  gas: number;
-  status: 'SUCCESS' | 'FAILED' | 'PENDING';
+  chain: 'Ethereum' | 'Arbitrum' | 'Optimism' | 'Base';
+  action: 'LONG' | 'SHORT' | 'FLASH_LOAN' | 'MEV_BUNDLE';
+  confidence: number;
+  expectedProfit: string;
+  route: string[];
+  timestamp: number;
+  txHash?: string;
+  status: 'DETECTED' | 'EXECUTING' | 'CONFIRMED';
 }
 
-export interface RiskMetric {
-  metric: string;
-  value: number;
-  threshold: number;
-  status: 'SAFE' | 'CAUTION' | 'CRITICAL';
+export interface AIStrategyResponse {
+  sentiment: 'BULLISH' | 'BEARISH' | 'VOLATILE';
+  recommendation: string;
+  activePairs: string[];
+  riskAdjustment: string;
+  efficiencyScore: number;
 }
 
-export type View = 'OVERVIEW' | 'BOTS' | 'AI_COPILOT' | 'FLASH' | 'RISK' | 'TREASURY';
-
-export type Currency = 'USD' | 'ETH';
-export type ExecutionMode = 'SIMULATION' | 'LIVE';
-export type RefreshRate = 1000 | 5000 | 10000;
-
-export interface ProjectStats {
-  totalFiles: number;
-  totalDirectories: number;
-  extensions: Record<string, number>;
-  topDirectories: Record<string, number>;
-}
-
-export interface FileNode {
-  name: string;
-  path: string;
-  type: 'file' | 'directory';
-  children?: FileNode[];
-  extension?: string;
-}
-
-export interface WalletState {
-  isConnected: boolean;
+export interface SmartWalletState {
+  status: 'SEARCHING' | 'DEPLOYING' | 'ACTIVE';
   address: string | null;
-  type: 'EOA' | 'SMART_WALLET' | null;
-  balance: number;
+  balance: string;
+  paymaster: 'LINKED' | 'DISCONNECTED';
+}
+
+export interface AutoDepositConfig {
+  isEnabled: boolean;
+  targetAddress: string;
+  profitThreshold: string; // e.g. "500" USDC
+  checkInterval: string; // e.g. "15" minutes
+  lastTransfer: number | null;
+  totalWithdrawn: number;
+}
+
+export interface FlashLoanMetric {
+  provider: string;
+  utilization: number; // 0-100%
+  liquidityAvailable: string;
 }

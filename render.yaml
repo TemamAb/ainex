@@ -1,8 +1,17 @@
 services:
   - type: web
-    name: quantumnex-dashboard
-    env: docker
+    name: ainex-profit-engine
+    env: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
     envVars:
+      - key: ENGINE_MODE
+        value: LIVE_MAINNET
       - key: NODE_ENV
         value: production
-    healthCheckPath: /
+      - key: ENABLE_GASLESS
+        value: true
+      - key: SIMULATION_MODE
+        value: false
+      - key: REACT_APP_PIMLICO_KEY
+        value: generate_on_deploy
