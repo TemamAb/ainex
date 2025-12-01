@@ -1,0 +1,20 @@
+// Importing your existing dashboard from App.tsx
+import dynamic from 'next/dynamic'
+
+// Dynamically import your App.tsx to avoid SSR issues
+const Dashboard = dynamic(() => import('../App.tsx').then(mod => {
+  // Handle default export
+  const Component = mod.default || mod;
+  return Component;
+}), {
+  ssr: false, // Disable SSR for complex dashboard
+  loading: () => <div style={{ 
+    padding: '100px', 
+    textAlign: 'center',
+    fontSize: '24px' 
+  }}>Loading Ainex Dashboard...</div>
+})
+
+export default function HomePage() {
+  return <Dashboard />;
+}

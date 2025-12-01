@@ -1,5 +1,6 @@
 export enum ModuleStatus {
   ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
   OPTIMIZING = 'OPTIMIZING',
   EXECUTING = 'EXECUTING',
   STANDBY = 'STANDBY',
@@ -8,10 +9,12 @@ export enum ModuleStatus {
 
 export type BotTier = 'TIER_1_ARBITRAGE' | 'TIER_2_LIQUIDATION' | 'TIER_3_MEV';
 
+export type ModuleType = 'INFRA' | 'STRATEGY' | 'EXECUTION' | 'SECURITY' | 'MONITORING' | 'AI' | 'BLOCKCHAIN' | 'SERVICES';
+
 export interface EngineModule {
   id: string;
   name: string;
-  type: 'INFRA' | 'STRATEGY' | 'EXECUTION';
+  type: ModuleType;
   status: ModuleStatus;
   details: string;
   metrics?: string;
@@ -59,4 +62,24 @@ export interface FlashLoanMetric {
   provider: string;
   utilization: number; // 0-100%
   liquidityAvailable: string;
+}
+
+export interface BotStatus {
+  id: string;
+  name: string;
+  type: string;
+  tier: string;
+  status: string;
+  uptime: string;
+  efficiency: number;
+}
+
+export interface TradeLog {
+  id: string;
+  timestamp: string;
+  pair: string;
+  dex: string[];
+  profit: number;
+  gas: number;
+  status: 'SUCCESS' | 'FAILED';
 }

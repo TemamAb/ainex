@@ -1,0 +1,28 @@
+// Quick fix: Add missing closing tags at end of renderDashboard
+// This file documents the JSX structure fix needed
+
+The renderDashboard function needs:
+1. Close the right column div (col-span-12 lg:col-span-8)
+2. Close the main grid div (grid grid-cols-12)
+
+Current structure:
+<div className="grid grid-cols-12...">  // Line 280 - MAIN GRID
+  <div className="col-span-12 lg:col-span-4..."> // Left column - Mode controls
+    ... (closed properly)
+  </div>
+  <div className="col-span-12 lg:col-span-8..."> // Line 332 - Right column
+    <div className="grid grid-cols-2 md:grid-cols-4..."> // Stats grid
+      ... stats cards ...
+    </div>
+    <div className="col-span-12 grid..."> // Analytics section
+      ... analytics cards ...
+    </div>
+    // MISSING: SystemStatus component
+    // MISSING: Close right column div
+  // MISSING: Close main grid div
+);
+
+Need to add before the closing parenthesis:
+    <SystemStatus modules={modules} />
+  </div>  // Close right column
+</div>    // Close main grid

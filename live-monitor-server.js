@@ -26,9 +26,9 @@ app.post('/api/blockchain', async (req, res) => {
     try {
         const rpcUrl = process.env.ETH_RPC_URL || "https://rpc.ankr.com/eth";
         const provider = new ethers.JsonRpcProvider(rpcUrl);
-        
+
         const { method, params } = req.body;
-        
+
         let result;
         switch (method) {
             case 'getBlockNumber':
@@ -46,7 +46,7 @@ app.post('/api/blockchain', async (req, res) => {
             default:
                 result = null;
         }
-        
+
         res.json({ success: true, result });
     } catch (error) {
         res.json({ success: false, error: error.message });
