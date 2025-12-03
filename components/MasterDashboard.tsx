@@ -1,3 +1,4 @@
+"use client"
 import React, { useState, useEffect } from 'react';
 import { Activity, Zap, AlertTriangle, CheckCircle, Clock, TrendingUp, Power, RefreshCw, DollarSign, Calendar, Rocket, Shield, Target, BarChart3, XCircle } from 'lucide-react';
 import PreflightPanel from './PreflightPanel';
