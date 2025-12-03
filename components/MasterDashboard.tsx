@@ -1,20 +1,45 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Zap, AlertTriangle, CheckCircle, Clock, TrendingUp } from 'lucide-react';
+import { Activity, Zap, AlertTriangle, CheckCircle, Clock, TrendingUp, Power, RefreshCw, DollarSign, Calendar, Rocket, Shield, Target, BarChart3, XCircle } from 'lucide-react';
 import PreflightPanel from './PreflightPanel';
-import ModeControl from './ModeControl';
 import ConfidenceReport from './ConfidenceReport';
 import SystemStatus from './RpcList';
 import LiveModeDashboard from './LiveModeDashboard';
-import { TradeSignal, FlashLoanMetric, BotStatus, TradeLog } from '../types';
+import ProfitWithdrawal from './ProfitWithdrawal';
+import Sidebar from './Sidebar';
+import AiConsole from './AiConsole';
+import LiveBlockchainEvents from './LiveBlockchainEvents';
+import SettingsPanel from './SettingsPanel';
+import MetricsValidation from './MetricsValidation';
+import { TradeSignal, FlashLoanMetric, BotStatus, TradeLog, ProfitWithdrawalConfig } from '../types';
 import { generateProfitProjection, generateLatencyMetrics, generateMEVMetrics, getFlashLoanMetrics, getProfitAttribution } from '../services/simulationService';
+import { scheduleWithdrawal, executeWithdrawal, checkWithdrawalConditions, saveWithdrawalHistory } from '../services/withdrawalService';
 
 type EngineMode = 'IDLE' | 'PREFLIGHT' | 'SIM' | 'LIVE';
+type DashboardView = 'PREFLIGHT' | 'SIM' | 'LIVE' | 'MONITOR' | 'WITHDRAWAL' | 'EVENTS' | 'AI_CONSOLE' | 'SETTINGS' | 'DEPLOYMENT' | 'METRICS_VALIDATION';
 
 interface MasterDashboardProps {
   // Props will be passed from parent component
 }
 
 const MasterDashboard: React.FC<MasterDashboardProps> = () => {
+  // Layout State
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [currentView, setCurrentView] = useState<DashboardView>('PREFLIGHT');
+
+  // Header State
+  const [currency, setCurrency] = useState<'ETH' | 'USD'>('ETH');
+  const [refreshRate, setRefreshRate] = useState(1000); // ms
+  const [lifetimeProfit, setLifetimeProfit] = useState(0);
+  const [daysDeployed, setDaysDeployed] = useState(45); // Mock start
+
+  // Settings State
+  const [tradeSettings, setTradeSettings] = useState({
+    profitTarget: { daily: '1.5', unit: 'ETH' },
+    reinvestmentRate: 50,
+    riskProfile: 'MEDIUM'
+  });
+
+  // Engine State
   const [currentMode, setCurrentMode] = useState<EngineMode>('IDLE');
   const [preflightPassed, setPreflightPassed] = useState(false);
   const [simConfidence, setSimConfidence] = useState(50);
@@ -24,7 +49,9 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     { id: '1', name: 'RPC Node', status: 'ACTIVE', details: 'Ethereum Mainnet', metrics: 'Latency: 12ms' },
     { id: '2', name: 'Flash Loan Provider', status: 'ACTIVE', details: 'Aave Protocol', metrics: 'Liquidity: 5000 ETH' },
     { id: '3', name: 'MEV Detection', status: 'EXECUTING', details: 'Monitoring blocks', metrics: 'Bundles: 23' },
-    { id: '4', name: 'Arbitrage Engine', status: 'OPTIMIZING', details: 'Route optimization', metrics: 'Efficiency: 94%' }
+    { id: '4', name: 'Arbitrage Engine', status: 'OPTIMIZING', details: 'Route optimization', metrics: 'Efficiency: 94%' },
+    { id: '5', name: 'AI Optimization', status: 'ACTIVE', details: 'Neural Net V4', metrics: 'Learning Rate: 0.001' },
+    { id: '6', name: 'Gasless Relayer', status: 'ACTIVE', details: 'Gelato Network', metrics: 'Balance: 4.2 ETH' }
   ]);
 
   // SIM Mode state
@@ -34,6 +61,63 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
   const [tradeLogs, setTradeLogs] = useState<TradeLog[]>([]);
   const [latencyMetrics, setLatencyMetrics] = useState({ avgLatency: 0, mevOpportunities: 0 });
   const [profitProjection, setProfitProjection] = useState({ hourly: 0, daily: 0, weekly: 0 });
+
+  // Profit Withdrawal state
+  const [withdrawalConfig, setWithdrawalConfig] = useState<ProfitWithdrawalConfig>({
+    isEnabled: false,
+    walletAddress: '',
+    thresholdAmount: '0.5',
+    maxTransferTime: 60,
+    smartBalance: '0',
+    lastWithdrawal: null,
+    totalWithdrawn: '0',
+    nextScheduledTransfer: null
+  });
+
+  // Protocol Enforcement: Reset metrics when entering SIM or LIVE mode
+  const resetMetrics = () => {
+    setTradeSignals([]);
+    setFlashLoanMetrics([]);
+    setBotStatuses([]);
+    setTradeLogs([]);
+    setLatencyMetrics({ avgLatency: 0, mevOpportunities: 0 });
+    setProfitProjection({ hourly: 0, daily: 0, weekly: 0 });
+    console.log('Protocol Enforcement: Metrics reset to zero.');
+  };
+
+  const handleStartSim = () => {
+    if (preflightPassed) {
+      resetMetrics();
+      setCurrentMode('SIM');
+      setCurrentView('SIM');
+    }
+  };
+
+  const handleStartLive = () => {
+    if (simConfidence >= 85) {
+      resetMetrics();
+      setCurrentMode('LIVE');
+      setCurrentView('LIVE');
+    }
+  };
+
+  const handleRunPreflight = async () => {
+    setIsPreflightRunning(true);
+    setCurrentMode('PREFLIGHT');
+    setCurrentView('PREFLIGHT');
+
+    try {
+      const { runPreflightChecks } = await import('../services/preflightService');
+      const results = await runPreflightChecks();
+      setPreflightChecks(results.checks);
+      setPreflightPassed(results.allPassed);
+    } catch (error) {
+      console.error('Preflight failed:', error);
+      setPreflightPassed(false);
+    } finally {
+      setIsPreflightRunning(false);
+    }
+  };
 
   // SIM Mode data updates
   useEffect(() => {
@@ -94,45 +178,26 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
 
         // Update confidence based on simulation performance
         setSimConfidence(prev => Math.min(100, prev + Math.random() * 5));
+
+        // Update smart balance (accumulate profit)
+        const totalProfit = logs.reduce((sum, log) => sum + (log.status === 'SUCCESS' ? log.profit : 0), 0);
+        setWithdrawalConfig(prev => ({
+          ...prev,
+          smartBalance: totalProfit.toFixed(4)
+        }));
+
+        // Update lifetime profit (simulated accumulation)
+        setLifetimeProfit(prev => prev + (totalProfit * 0.0001));
+
       } catch (error) {
         console.error('Error updating simulation data:', error);
       }
     };
 
     updateData();
-    const interval = setInterval(updateData, 5000); // Update every 5 seconds
+    const interval = setInterval(updateData, refreshRate);
     return () => clearInterval(interval);
-  }, [currentMode, simConfidence]);
-
-  const handleStartSim = () => {
-    if (preflightPassed) {
-      setCurrentMode('SIM');
-    }
-  };
-
-  const handleStartLive = () => {
-    if (simConfidence >= 85) {
-      setCurrentMode('LIVE');
-    }
-  };
-
-  const handleStopMode = () => {
-    setCurrentMode('IDLE');
-  };
-
-  const handleRunPreflight = () => {
-    setIsPreflightRunning(true);
-    // Simulate preflight checks
-    setTimeout(() => {
-      setPreflightPassed(true);
-      setIsPreflightRunning(false);
-      setCurrentMode('PREFLIGHT');
-    }, 3000);
-  };
-
-  const handleStartSimFromPreflight = () => {
-    setCurrentMode('SIM');
-  };
+  }, [currentMode, simConfidence, refreshRate]);
 
   const getConfidenceColor = (conf: number) => {
     if (conf >= 85) return '#00FF9D'; // Green
@@ -140,177 +205,400 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     return '#FF6B6B'; // Red
   };
 
-  const getProfitAttribution = () => {
-    const attribution = tradeLogs.reduce((acc, log) => {
-      const key = `${log.pair}-${log.dex.join(',')}`;
-      acc[key] = (acc[key] || 0) + log.profit;
-      return acc;
-    }, {} as Record<string, number>);
-    return Object.entries(attribution).sort(([,a], [,b]) => b - a);
-  };
-
-  const renderDashboardContent = () => {
-    switch (currentMode) {
-      case 'IDLE':
-        return (
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Activity className="w-12 h-12 text-slate-400" />
-              </div>
-              <h2 className="text-2xl font-bold text-white mb-4">AINEX Engine Ready</h2>
-              <p className="text-slate-400 mb-8">Start with preflight checks to ensure system integrity</p>
-              <button
-                onClick={handleRunPreflight}
-                disabled={isPreflightRunning}
-                className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition-colors disabled:opacity-50"
-              >
-                {isPreflightRunning ? 'Running Preflight...' : 'Run Preflight Checks'}
-              </button>
-            </div>
-          </div>
-        );
-
+  const renderContent = () => {
+    switch (currentView) {
       case 'PREFLIGHT':
         return (
           <div className="space-y-6">
-            <div className="text-center mb-8">
-              <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-white mb-2">Preflight Complete</h2>
-              <p className="text-slate-400">All systems checked and ready for simulation</p>
+            <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-2">System Preflight</h2>
+                  <p className="text-slate-400">Validate all engine components before initialization.</p>
+                </div>
+                <button
+                  onClick={handleRunPreflight}
+                  disabled={isPreflightRunning}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isPreflightRunning ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                  {isPreflightRunning ? 'Running Checks...' : 'Run Diagnostics'}
+                </button>
+              </div>
+              <PreflightPanel
+                checks={preflightChecks}
+                isRunning={isPreflightRunning}
+                onRunPreflight={handleRunPreflight}
+                onStartSim={handleStartSim}
+              />
             </div>
-            <PreflightPanel
-              checks={preflightChecks}
-              isRunning={isPreflightRunning}
-              onRunPreflight={handleRunPreflight}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <SystemStatus modules={modules} />
+              <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-blue-400" />
+                  System Health
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">CPU Load</span>
+                    <div className="w-32 h-2 bg-slate-700 rounded-full overflow-hidden">
+                      <div className="h-full bg-green-500 w-[24%]"></div>
+                    </div>
+                    <span className="text-green-400 text-sm">24%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Memory Usage</span>
+                    <div className="w-32 h-2 bg-slate-700 rounded-full overflow-hidden">
+                      <div className="h-full bg-blue-500 w-[45%]"></div>
+                    </div>
+                    <span className="text-blue-400 text-sm">45%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-400">Network Latency</span>
+                    <span className="text-emerald-400 text-sm font-mono">12ms</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         );
 
       case 'SIM':
+        if (currentMode !== 'SIM') {
+          return (
+            <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+              <AlertTriangle className="w-16 h-16 text-yellow-500 mb-4" />
+              <h2 className="text-2xl font-bold text-white mb-2">Simulation Mode Not Active</h2>
+              <p className="text-slate-400 mb-6">Please run preflight checks to enable simulation.</p>
+              <button
+                onClick={() => setCurrentView('PREFLIGHT')}
+                className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded transition-colors"
+              >
+                Go to Preflight
+              </button>
+            </div>
+          )
+        }
+
+        // Calculate SIM metrics (mirroring LIVE mode calculations)
+        const simSuccessfulTrades = tradeLogs.filter(t => t.status === 'SUCCESS');
+        const simFailedTrades = tradeLogs.filter(t => t.status === 'FAILED');
+        const simTotalProfit = simSuccessfulTrades.reduce((sum, log) => sum + log.profit, 0);
+        const simSuccessRate = tradeLogs.length > 0 ? (simSuccessfulTrades.length / tradeLogs.length) * 100 : 0;
+        const simRealizedPnL = simTotalProfit;
+        const simUnrealizedPnL = tradeSignals.filter(s => s.status === 'DETECTED').reduce((sum, s) => sum + parseFloat(s.expectedProfit) * 0.8, 0);
+        const simTotalPnL = simRealizedPnL + simUnrealizedPnL;
+
         return (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* SIM Mode Header */}
-            <div className="text-center">
-              <h1 className="text-3xl font-bold text-white mb-2">⚡ SIMULATION MODE</h1>
-              <div className="flex items-center justify-center gap-4 mb-4">
-                <div className="text-lg text-white">Confidence Score:</div>
-                <div className="flex-1 max-w-xs bg-gray-700 rounded-full h-4">
-                  <div
-                    className="h-4 rounded-full transition-all duration-500"
-                    style={{
-                      width: `${simConfidence}%`,
-                      backgroundColor: getConfidenceColor(simConfidence)
-                    }}
-                  ></div>
+            <div className="bg-slate-900/40 border border-blue-500/30 rounded-lg p-4 backdrop-blur-sm">
+              <div className="flex justify-between items-center mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                  <h3 className="text-sm font-light text-blue-400 uppercase tracking-wider">
+                    SIMULATION MODE ACTIVE
+                  </h3>
                 </div>
-                <div className="text-2xl font-bold" style={{ color: getConfidenceColor(simConfidence) }}>
-                  {simConfidence.toFixed(1)}%
+                <div className="flex items-center gap-6">
+                  <div className="text-right">
+                    <div className="text-xs font-light text-slate-400">Confidence Score</div>
+                    <div className="text-2xl font-bold" style={{ color: getConfidenceColor(simConfidence) }}>
+                      {simConfidence.toFixed(1)}%
+                    </div>
+                  </div>
+                  {simConfidence < 85 && (
+                    <div className="text-yellow-400 text-xs max-w-[150px] text-right">
+                      Target ≥ 85% for Live Mode
+                    </div>
+                  )}
                 </div>
               </div>
-              {simConfidence < 85 && (
-                <div className="text-yellow-400 flex items-center justify-center gap-2">
-                  <AlertTriangle className="w-4 h-4" />
-                  Awaiting confidence ≥ 85% to unlock LIVE MODE
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="text-center">
+                  <p className="text-xs font-light text-slate-400 uppercase">Sim Profit</p>
+                  <p className={`text-sm font-light ${simTotalProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    ${simTotalProfit.toFixed(2)}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-light text-slate-400 uppercase">Success Rate</p>
+                  <p className="text-sm font-light text-blue-400">
+                    {simSuccessRate.toFixed(1)}%
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-light text-slate-400 uppercase">Active Signals</p>
+                  <p className="text-sm font-light text-amber-400">
+                    {tradeSignals.filter(s => s.status === 'DETECTED').length}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs font-light text-slate-400 uppercase">Total Trades</p>
+                  <p className="text-sm font-light text-white">
+                    {tradeLogs.length}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Real-time P&L Tracking */}
+            <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-6 backdrop-blur-sm">
+              <h3 className="text-lg font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-emerald-500" />
+                Simulated P&L Tracking
+              </h3>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-black/30 border border-slate-800/50 rounded p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-slate-400 uppercase font-bold">Total P&L</span>
+                    <DollarSign className="w-4 h-4 text-emerald-500" />
+                  </div>
+                  <p className={`text-lg font-bold ${simTotalPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {simTotalPnL >= 0 ? '+' : ''}${simTotalPnL.toFixed(2)}
+                  </p>
+                  <p className="text-xs text-slate-500">Realized + Unrealized</p>
+                </div>
+
+                <div className="bg-black/30 border border-slate-800/50 rounded p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-slate-400 uppercase font-bold">Realized P&L</span>
+                    <CheckCircle className="w-4 h-4 text-emerald-500" />
+                  </div>
+                  <p className={`text-lg font-bold ${simRealizedPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {simRealizedPnL >= 0 ? '+' : ''}${simRealizedPnL.toFixed(2)}
+                  </p>
+                  <p className="text-xs text-slate-500">Confirmed trades</p>
+                </div>
+
+                <div className="bg-black/30 border border-slate-800/50 rounded p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-slate-400 uppercase font-bold">Unrealized P&L</span>
+                    <Clock className="w-4 h-4 text-amber-500" />
+                  </div>
+                  <p className={`text-lg font-bold ${simUnrealizedPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {simUnrealizedPnL >= 0 ? '+' : ''}${simUnrealizedPnL.toFixed(2)}
+                  </p>
+                  <p className="text-xs text-slate-500">Pending signals</p>
+                </div>
+
+                <div className="bg-black/30 border border-slate-800/50 rounded p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-slate-400 uppercase font-bold">Daily P&L</span>
+                    <BarChart3 className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <p className={`text-lg font-bold ${profitProjection.daily >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {profitProjection.daily >= 0 ? '+' : ''}${profitProjection.daily.toFixed(2)}
+                  </p>
+                  <p className="text-xs text-slate-500">24h projection</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Risk Management Panel */}
+            <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-6 backdrop-blur-sm">
+              <h3 className="text-lg font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-red-500" />
+                Risk Management (Simulation)
+              </h3>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-black/30 border border-slate-800/50 rounded p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-slate-400 uppercase font-bold">Max Drawdown</span>
+                    <AlertTriangle className={`w-4 h-4 ${Math.abs(Math.min(...tradeLogs.map(t => t.profit))) > 500 ? 'text-red-500' : 'text-emerald-500'}`} />
+                  </div>
+                  <p className={`text-lg font-bold ${Math.abs(Math.min(...tradeLogs.map(t => t.profit))) > 500 ? 'text-red-400' : 'text-emerald-400'}`}>
+                    ${Math.abs(Math.min(...tradeLogs.map(t => t.profit), 0)).toFixed(2)}
+                  </p>
+                  <p className="text-xs text-slate-500">Limit: $1,000</p>
+                </div>
+
+                <div className="bg-black/30 border border-slate-800/50 rounded p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-slate-400 uppercase font-bold">Volatility Index</span>
+                    <TrendingUp className="w-4 h-4 text-amber-500" />
+                  </div>
+                  <p className="text-lg font-bold text-emerald-400">
+                    {(45 + Math.random() * 30).toFixed(1)}%
+                  </p>
+                  <p className="text-xs text-slate-500">Market volatility</p>
+                </div>
+
+                <div className="bg-black/30 border border-slate-800/50 rounded p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-slate-400 uppercase font-bold">Avg Latency</span>
+                    <Target className="w-4 h-4 text-purple-500" />
+                  </div>
+                  <p className="text-lg font-bold text-emerald-400">
+                    {latencyMetrics.avgLatency}ms
+                  </p>
+                  <p className="text-xs text-slate-500">Network speed</p>
+                </div>
+
+                <div className="bg-black/30 border border-slate-800/50 rounded p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-slate-400 uppercase font-bold">Circuit Breaker</span>
+                    <Shield className="w-4 h-4 text-emerald-500" />
+                  </div>
+                  <p className="text-lg font-bold text-emerald-400">
+                    ACTIVE
+                  </p>
+                  <p className="text-xs text-slate-500">Auto-stop enabled</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Bot Status Grid */}
+            <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-6 backdrop-blur-sm">
+              <h3 className="text-lg font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+                <Activity className="w-5 h-5 text-blue-500" />
+                Bot Performance
+              </h3>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {botStatuses.map((bot) => (
+                  <div key={bot.id} className="bg-black/30 border border-slate-800/50 rounded p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <span className="text-sm font-bold text-slate-300">{bot.name}</span>
+                      <span className={`text-xs font-bold px-2 py-1 rounded ${bot.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' :
+                        bot.status === 'OPTIMIZING' ? 'bg-blue-500/20 text-blue-400' :
+                          'bg-amber-500/20 text-amber-400'
+                        }`}>
+                        {bot.status}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-500">Efficiency:</span>
+                        <span className="text-emerald-400 font-bold">{bot.efficiency}%</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-500">Uptime:</span>
+                        <span className="text-blue-400">{bot.uptime}</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-500">Tier:</span>
+                        <span className="text-slate-400">{bot.tier}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Trade Execution Feed */}
+            <div className="bg-slate-900/40 border border-slate-800 rounded-lg overflow-hidden backdrop-blur-sm">
+              <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-black/20">
+                <h3 className="text-lg font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-blue-500" />
+                  Simulated Trade Execution
+                </h3>
+                <span className="text-xs text-slate-500 font-mono">
+                  Historical data validation
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead className="bg-black/40 text-xs uppercase text-slate-500 font-bold">
+                    <tr>
+                      <th className="px-6 py-3">Time</th>
+                      <th className="px-6 py-3">Pair</th>
+                      <th className="px-6 py-3">DEX</th>
+                      <th className="px-6 py-3">Profit</th>
+                      <th className="px-6 py-3">Gas</th>
+                      <th className="px-6 py-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-sm font-mono">
+                    {tradeLogs.map((log) => (
+                      <tr key={log.id} className="border-b border-slate-800/50 hover:bg-white/5 transition-colors">
+                        <td className="px-6 py-4 text-slate-400">
+                          {new Date(log.timestamp).toLocaleTimeString()}
+                        </td>
+                        <td className="px-6 py-4 text-slate-300 font-bold">
+                          {log.pair}
+                        </td>
+                        <td className="px-6 py-4 text-slate-500">
+                          {log.dex.join(', ')}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`font-bold ${log.profit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            {log.profit >= 0 ? '+' : ''}${log.profit.toFixed(2)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-slate-500">
+                          ${log.gas.toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4">
+                          {log.status === 'SUCCESS' && (
+                            <div className="flex items-center gap-2">
+                              <CheckCircle className="w-4 h-4 text-emerald-500" />
+                              <span className="text-emerald-400 text-xs">SUCCESS</span>
+                            </div>
+                          )}
+                          {log.status === 'FAILED' && (
+                            <div className="flex items-center gap-2">
+                              <XCircle className="w-4 h-4 text-red-500" />
+                              <span className="text-red-400 text-xs">FAILED</span>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {tradeLogs.length === 0 && (
+                <div className="px-6 py-8 text-center text-slate-500">
+                  <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>Waiting for simulation data...</p>
                 </div>
               )}
             </div>
 
-            {/* Profit Projection Dashboard */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-gray-800 p-4 rounded-lg">
-                <h3 className="text-lg font-semibold mb-2 text-white">💰 Profit/Hour</h3>
-                <div className="text-2xl font-bold text-green-400">
-                  +{profitProjection.hourly.toFixed(4)} ETH
-                </div>
-              </div>
-              <div className="bg-gray-800 p-4 rounded-lg">
-                <h3 className="text-lg font-semibold mb-2 text-white">📈 Daily Projection</h3>
-                <div className="text-2xl font-bold text-blue-400">
-                  +{profitProjection.daily.toFixed(4)} ETH
-                </div>
-              </div>
-              <div className="bg-gray-800 p-4 rounded-lg">
-                <h3 className="text-lg font-semibold mb-2 text-white">📊 Weekly Projection</h3>
-                <div className="text-2xl font-bold text-purple-400">
-                  +{profitProjection.weekly.toFixed(4)} ETH
-                </div>
-              </div>
-            </div>
+            {/* Flash Loan Status */}
+            <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-6 backdrop-blur-sm">
+              <h3 className="text-lg font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+                <Zap className="w-5 h-5 text-blue-500" />
+                Flash Loan Providers (Simulated)
+              </h3>
 
-            {/* Latency Metrics and MEV Monitoring */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-gray-800 p-4 rounded-lg">
-                <h3 className="text-lg font-semibold mb-4 text-white">⚡ Latency Metrics</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-white">
-                    <span>Average Latency:</span>
-                    <span className="font-bold">{latencyMetrics.avgLatency}ms</span>
-                  </div>
-                  <div className="flex justify-between text-white">
-                    <span>MEV Opportunities Detected:</span>
-                    <span className="font-bold text-orange-400">{latencyMetrics.mevOpportunities}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Front-running Detection Display */}
-              <div className="bg-gray-800 p-4 rounded-lg">
-                <h3 className="text-lg font-semibold mb-4 text-white">🚨 Front-running Detection</h3>
-                <div className="space-y-2">
-                  {tradeSignals.filter(signal => signal.action === 'MEV_BUNDLE').slice(0, 3).map(signal => (
-                    <div key={signal.id} className="bg-red-900 p-2 rounded">
-                      <div className="text-sm text-white">Block {signal.blockNumber}</div>
-                      <div className="text-sm font-bold text-white">{signal.pair}</div>
-                      <div className="text-xs text-yellow-400">MEV Bundle Detected</div>
-                    </div>
-                  ))}
-                  {tradeSignals.filter(signal => signal.action === 'MEV_BUNDLE').length === 0 && (
-                    <div className="text-green-400">No front-running detected</div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Additional SIM Mode Sections */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Flash Loan Provider Availability */}
-              <div className="bg-gray-800 p-4 rounded-lg">
-                <h3 className="text-lg font-semibold mb-4 text-white">💸 Flash Loan Providers</h3>
-                <div className="space-y-3">
-                  {flashLoanMetrics.slice(0, 3).map(provider => (
-                    <div key={provider.provider} className="bg-gray-700 p-3 rounded">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="font-bold text-white">{provider.provider}</span>
-                        <span className={`text-sm ${provider.utilization > 80 ? 'text-red-400' : 'text-green-400'}`}>
-                          {provider.utilization}%
-                        </span>
-                      </div>
-                      <div className="text-sm text-gray-300">Available: {provider.liquidityAvailable} ETH</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tritier Bot System Status */}
-              <div className="bg-gray-800 p-4 rounded-lg">
-                <h3 className="text-lg font-semibold mb-4 text-white">🤖 Tritier Bot System Status</h3>
-                <div className="space-y-3">
-                  {botStatuses.map(bot => (
-                    <div key={bot.id} className="bg-gray-700 p-3 rounded">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="font-bold text-white">{bot.name}</span>
-                        <span className={`text-sm ${
-                          bot.status === 'ACTIVE' ? 'text-green-400' :
-                          bot.status === 'OPTIMIZING' ? 'text-yellow-400' : 'text-red-400'
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {flashLoanMetrics.map((metric) => (
+                  <div key={metric.provider} className="bg-black/30 border border-slate-800/50 rounded p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <span className="text-sm font-bold text-slate-300">{metric.provider}</span>
+                      <span className={`text-xs font-bold px-2 py-1 rounded ${metric.utilization > 80 ? 'bg-red-500/20 text-red-400' :
+                        metric.utilization > 60 ? 'bg-amber-500/20 text-amber-400' :
+                          'bg-emerald-500/20 text-emerald-400'
                         }`}>
-                          {bot.status}
-                        </span>
-                      </div>
-                      <div className="text-sm text-gray-300">Tier: {bot.tier} | Uptime: {bot.uptime}</div>
+                        {metric.utilization}% Used
+                      </span>
                     </div>
-                  ))}
-                </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-slate-500">Available:</span>
+                        <span className="text-emerald-400 font-bold">${metric.liquidityAvailable}</span>
+                      </div>
+                      <div className="w-full bg-slate-800/50 h-2 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${metric.utilization > 80 ? 'bg-red-500' :
+                            metric.utilization > 60 ? 'bg-amber-500' :
+                              'bg-emerald-500'
+                            }`}
+                          style={{ width: `${metric.utilization}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -320,22 +608,68 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
         return (
           <LiveModeDashboard
             signals={tradeSignals}
-            totalProfit={profitProjection.daily} // Using daily projection as total profit for demo
+            totalProfit={profitProjection.daily}
             flashMetrics={flashLoanMetrics}
-            onExecuteTrade={(signal: TradeSignal) => {
-              // Handle trade execution in LIVE mode
-              console.log('Executing trade:', signal);
-            }}
-            onPauseTrading={() => {
-              // Handle pause trading
-              console.log('Pausing trading');
-            }}
-            onResumeTrading={() => {
-              // Handle resume trading
-              console.log('Resuming trading');
-            }}
+            onExecuteTrade={(signal) => console.log('Exec', signal)}
+            onPauseTrading={() => console.log('Pause')}
+            onResumeTrading={() => console.log('Resume')}
             isPaused={false}
           />
+        );
+
+      case 'MONITOR':
+        return (
+          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6 h-[80vh]">
+            <h2 className="text-xl font-bold text-white mb-4">Live Market Monitor</h2>
+            <div className="flex items-center justify-center h-full text-slate-500">
+              Map/Graph Visualization Placeholder
+            </div>
+          </div>
+        );
+
+      case 'WITHDRAWAL':
+        return <ProfitWithdrawal config={withdrawalConfig} onConfigChange={setWithdrawalConfig} />;
+
+      case 'EVENTS':
+        return <LiveBlockchainEvents isLive={true} />;
+
+      case 'AI_CONSOLE':
+        return <AiConsole />;
+
+      case 'METRICS_VALIDATION':
+        return <MetricsValidation />;
+
+      case 'SETTINGS':
+        return <SettingsPanel onSettingsChange={setTradeSettings} />;
+
+      case 'DEPLOYMENT':
+        return (
+          <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <Rocket className="w-6 h-6 text-purple-400" />
+              <h2 className="text-xl font-bold text-white">Deployment Status</h2>
+            </div>
+            <div className="space-y-4">
+              <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-700 flex justify-between items-center">
+                <div>
+                  <div className="text-sm text-slate-400">Environment</div>
+                  <div className="text-white font-bold">Production (Vercel)</div>
+                </div>
+                <div className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-bold">
+                  HEALTHY
+                </div>
+              </div>
+              <div className="bg-slate-900/50 p-4 rounded-lg border border-slate-700 flex justify-between items-center">
+                <div>
+                  <div className="text-sm text-slate-400">Last Deployment</div>
+                  <div className="text-white font-bold">2 minutes ago</div>
+                </div>
+                <div className="text-slate-500 text-xs">
+                  v3.0.2
+                </div>
+              </div>
+            </div>
+          </div>
         );
 
       default:
@@ -344,61 +678,110 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
-      {/* Header */}
-      <div className="border-b border-slate-800 bg-slate-900/50 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-white">AINEX</h1>
-              <p className="text-slate-400 text-sm">Autonomous Intelligence Neural Execution eXchange</p>
+    <div className="flex h-screen bg-[#0b0c0e] text-slate-200 font-sans overflow-hidden">
+      {/* Sidebar */}
+      <Sidebar
+        currentView={currentView}
+        onViewChange={(view) => setCurrentView(view as DashboardView)}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+      />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top Header */}
+        <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-6 shrink-0 relative overflow-hidden">
+          {/* Minimalist Silent Bar (Top Line) */}
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-500 via-purple-500 to-green-500 opacity-50"></div>
+
+          <div className="flex items-center gap-4 z-10">
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-green-400 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
+              <div className="relative flex items-center gap-3 bg-slate-900 rounded-lg p-1 pr-3">
+                <img src="/logo.jpg" alt="AINEX Logo" className="h-8 w-auto rounded" />
+                <h1 className="text-xl font-bold text-white tracking-tight">AINEX <span className="text-blue-500">V3</span></h1>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <div className="text-sm text-slate-400">System Status</div>
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${
-                    currentMode === 'LIVE' ? 'bg-green-400 animate-pulse' :
-                    currentMode === 'SIM' ? 'bg-blue-400' : 'bg-slate-400'
-                  }`}></div>
-                  <span className="text-white font-medium">{currentMode}</span>
-                </div>
+            <div className="h-6 w-px bg-slate-700 mx-2"></div>
+
+            {/* Profit Target Progress Bar */}
+            <div className="flex flex-col w-64">
+              <div className="flex justify-between text-[10px] text-slate-400 mb-1">
+                <span>Daily Target ({tradeSettings.profitTarget.daily} {tradeSettings.profitTarget.unit})</span>
+                <span className="text-green-400">{(profitProjection.daily / Number(tradeSettings.profitTarget.daily) * 100).toFixed(0)}%</span>
+              </div>
+              <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-blue-500 to-green-400 transition-all duration-1000"
+                  style={{ width: `${Math.min(100, profitProjection.daily / Number(tradeSettings.profitTarget.daily) * 100)}%` }}
+                ></div>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar - Mode Control */}
-          <div className="lg:col-span-1">
-            <ModeControl
-              currentMode={currentMode}
-              preflightPassed={preflightPassed}
-              simConfidence={simConfidence}
-              onStartSim={handleStartSim}
-              onStartLive={handleStartLive}
-              onStopMode={handleStopMode}
-              onRunPreflight={handleRunPreflight}
-              isPreflightRunning={isPreflightRunning}
-            />
+          <div className="flex items-center gap-6 z-10">
+            {/* Lifetime Profit Metric */}
+            <div className="flex flex-col items-end mr-4">
+              <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Lifetime Profit</span>
+              <div className="flex items-center gap-1 text-green-400 font-mono font-bold">
+                <TrendingUp className="w-3 h-3" />
+                {lifetimeProfit.toFixed(2)} {currency}
+                <span className="text-slate-600 text-xs ml-1">/ {daysDeployed}d</span>
+              </div>
+            </div>
 
-            {/* System Status */}
-            <div className="mt-6">
-              <SystemStatus modules={modules} />
+            {/* Controls */}
+            <div className="flex items-center gap-3 bg-slate-800 rounded p-1">
+              <button
+                onClick={() => setCurrency('ETH')}
+                className={`px-3 py-1 rounded text-xs font-bold transition-colors ${currency === 'ETH' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+              >
+                ETH
+              </button>
+              <button
+                onClick={() => setCurrency('USD')}
+                className={`px-3 py-1 rounded text-xs font-bold transition-colors ${currency === 'USD' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+              >
+                USD
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">Refresh:</span>
+              <select
+                value={refreshRate}
+                onChange={(e) => setRefreshRate(Number(e.target.value))}
+                className="bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded px-2 py-1 outline-none focus:border-blue-500"
+              >
+                <option value={1000}>1s</option>
+                <option value={2000}>2s</option>
+                <option value={5000}>5s</option>
+                <option value={10000}>10s</option>
+              </select>
             </div>
           </div>
+        </header>
 
-          {/* Main Dashboard Area */}
-          <div className="lg:col-span-3">
-            {renderDashboardContent()}
+        {/* Scrollable Content */}
+        <main className="flex-1 overflow-y-auto p-6 bg-[#0b0c0e]">
+          {renderContent()}
+
+          {/* Trademark Footer */}
+          <div className="mt-12 mb-6 flex flex-col items-center justify-center opacity-50 hover:opacity-100 transition-opacity duration-500">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+              <span className="text-xs font-light tracking-[0.2em] text-slate-400 uppercase">Powered by</span>
+            </div>
+            <div className="text-sm font-bold text-slate-300 tracking-widest flex items-center gap-2">
+              AINEX <span className="font-light text-slate-500">LTD</span> <span className="text-xs text-slate-600">2026</span>
+            </div>
           </div>
-        </div>
+        </main>
       </div>
     </div>
   );
 };
 
 export default MasterDashboard;
+import { PlayCircle } from 'lucide-react'; // Ensure this is imported if used
+

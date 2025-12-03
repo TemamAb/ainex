@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { TradeSignal, FlashLoanMetric } from '../types';
+import LiveBlockchainEvents from './LiveBlockchainEvents';
+import LiveModeValidator from './LiveModeValidator';
+import VerificationBadge from './VerificationBadge';
 import {
     Zap, TrendingUp, TrendingDown, AlertTriangle, Shield,
     Activity, DollarSign, Clock, Target, BarChart3,
-    CheckCircle, XCircle, Loader2, Pause, Play
+    CheckCircle, XCircle, Loader2, Pause, Play, ExternalLink
 } from 'lucide-react';
 
 interface LiveModeDashboardProps {
@@ -106,65 +109,79 @@ const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
     return (
         <div className="space-y-6">
             {/* Live Trading Header */}
-            <div className="bg-slate-900/40 border border-emerald-500/30 rounded-lg p-6 backdrop-blur-sm">
-                <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
-                        <h3 className="text-xl font-bold text-emerald-400 uppercase tracking-wider">
+            <div className="bg-slate-900/40 border border-emerald-500/30 rounded-lg p-4 backdrop-blur-sm">
+                <div className="flex justify-between items-center mb-3">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                        <h3 className="text-sm font-light text-emerald-400 uppercase tracking-wider">
                             LIVE TRADING ACTIVE
                         </h3>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                         <button
                             onClick={isPaused ? onResumeTrading : onPauseTrading}
-                            className={`px-4 py-2 rounded font-bold text-sm uppercase tracking-wider transition-all ${
-                                isPaused
-                                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                                    : 'bg-amber-600 hover:bg-amber-500 text-white'
-                            }`}
+                            className={`px-3 py-1.5 rounded font-light text-xs uppercase tracking-wider transition-all ${isPaused
+                                ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                                : 'bg-amber-600 hover:bg-amber-500 text-white'
+                                }`}
                         >
                             {isPaused ? (
                                 <>
-                                    <Play className="w-4 h-4 inline mr-2" />
-                                    Resume Trading
+                                    <Play className="w-3 h-3 inline mr-1" />
+                                    Resume
                                 </>
                             ) : (
                                 <>
-                                    <Pause className="w-4 h-4 inline mr-2" />
-                                    Pause Trading
+                                    <Pause className="w-3 h-3 inline mr-1" />
+                                    Pause
                                 </>
                             )}
                         </button>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="text-center">
-                        <p className="text-xs text-slate-400 uppercase font-bold">Live Profit</p>
-                        <p className={`text-2xl font-bold font-rajdhani ${liveProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <p className="text-xs font-light text-slate-400 uppercase">Live Profit</p>
+                        <p className={`text-sm font-light ${liveProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                             ${liveProfit.toFixed(2)}
                         </p>
                     </div>
                     <div className="text-center">
-                        <p className="text-xs text-slate-400 uppercase font-bold">Success Rate</p>
-                        <p className="text-2xl font-bold font-rajdhani text-blue-400">
+                        <p className="text-xs font-light text-slate-400 uppercase">Success Rate</p>
+                        <p className="text-sm font-light text-blue-400">
                             {successRate.toFixed(1)}%
                         </p>
                     </div>
                     <div className="text-center">
-                        <p className="text-xs text-slate-400 uppercase font-bold">Active Trades</p>
-                        <p className="text-2xl font-bold font-rajdhani text-amber-400">
+                        <p className="text-xs font-light text-slate-400 uppercase">Active Trades</p>
+                        <p className="text-sm font-light text-amber-400">
                             {executingTrades.length}
                         </p>
                     </div>
                     <div className="text-center">
-                        <p className="text-xs text-slate-400 uppercase font-bold">Total Executed</p>
-                        <p className="text-2xl font-bold font-rajdhani text-white">
+                        <p className="text-xs font-light text-slate-400 uppercase">Total Executed</p>
+                        <p className="text-sm font-light text-white">
                             {liveTrades.length}
                         </p>
                     </div>
                 </div>
             </div>
+
+            {/* Blockchain Verification */}
+            <LiveModeValidator
+                isLive={!isPaused}
+                recentTransactions={liveTrades.map(t => ({
+                    id: t.id,
+                    txHash: t.txHash || '',
+                    profit: t.actualProfit || 0,
+                    status: t.status
+                }))}
+                chain="ethereum"
+            />
+
+            {/* Live Blockchain Events */}
+            <LiveBlockchainEvents isLive={!isPaused} />
 
             {/* Real-time P&L Tracking */}
             <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-6 backdrop-blur-sm">
@@ -370,11 +387,10 @@ const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
                                         {trade.signal.pair}
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className={`px-2 py-1 rounded text-xs font-bold ${
-                                            trade.signal.action === 'FLASH_LOAN' ? 'bg-indigo-500/20 text-indigo-400' :
+                                        <span className={`px-2 py-1 rounded text-xs font-bold ${trade.signal.action === 'FLASH_LOAN' ? 'bg-indigo-500/20 text-indigo-400' :
                                             trade.signal.action === 'MEV_BUNDLE' ? 'bg-amber-500/20 text-amber-400' :
-                                            'bg-emerald-500/20 text-emerald-400'
-                                        }`}>
+                                                'bg-emerald-500/20 text-emerald-400'
+                                            }`}>
                                             {trade.signal.action}
                                         </span>
                                     </td>
@@ -445,11 +461,10 @@ const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
                         <div key={metric.provider} className="bg-black/30 border border-slate-800/50 rounded p-4">
                             <div className="flex justify-between items-start mb-3">
                                 <span className="text-sm font-bold text-slate-300">{metric.provider}</span>
-                                <span className={`text-xs font-bold px-2 py-1 rounded ${
-                                    metric.utilization > 80 ? 'bg-red-500/20 text-red-400' :
+                                <span className={`text-xs font-bold px-2 py-1 rounded ${metric.utilization > 80 ? 'bg-red-500/20 text-red-400' :
                                     metric.utilization > 60 ? 'bg-amber-500/20 text-amber-400' :
-                                    'bg-emerald-500/20 text-emerald-400'
-                                }`}>
+                                        'bg-emerald-500/20 text-emerald-400'
+                                    }`}>
                                     {metric.utilization}% Used
                                 </span>
                             </div>
@@ -461,11 +476,10 @@ const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
                                 </div>
                                 <div className="w-full bg-slate-800/50 h-2 rounded-full overflow-hidden">
                                     <div
-                                        className={`h-full rounded-full transition-all duration-500 ${
-                                            metric.utilization > 80 ? 'bg-red-500' :
+                                        className={`h-full rounded-full transition-all duration-500 ${metric.utilization > 80 ? 'bg-red-500' :
                                             metric.utilization > 60 ? 'bg-amber-500' :
-                                            'bg-emerald-500'
-                                        }`}
+                                                'bg-emerald-500'
+                                            }`}
                                         style={{ width: `${metric.utilization}%` }}
                                     ></div>
                                 </div>

@@ -83,3 +83,23 @@ export interface TradeLog {
   gas: number;
   status: 'SUCCESS' | 'FAILED';
 }
+
+export interface ProfitWithdrawalConfig {
+  isEnabled: boolean;
+  walletAddress: string;
+  thresholdAmount: string; // in ETH or USDC
+  maxTransferTime: number; // in minutes
+  smartBalance: string; // current accumulated profit
+  lastWithdrawal: number | null;
+  totalWithdrawn: string;
+  nextScheduledTransfer: number | null; // timestamp
+}
+
+export interface WithdrawalHistory {
+  id: string;
+  timestamp: number;
+  amount: string;
+  txHash: string;
+  status: 'PENDING' | 'COMPLETED' | 'FAILED';
+  walletAddress: string;
+}

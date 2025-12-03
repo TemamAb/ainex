@@ -43,9 +43,9 @@ const SimModeDashboard: React.FC<SimModeDashboardProps> = ({ confidence, onConfi
 
         // Mock bot statuses
         const bots: BotStatus[] = [
-          { id: '1', name: 'Arbitrage Bot', status: 'ACTIVE', tier: 'Tier 1', uptime: '99.9%', efficiency: 95 },
-          { id: '2', name: 'MEV Bot', status: 'OPTIMIZING', tier: 'Tier 2', uptime: '98.5%', efficiency: 87 },
-          { id: '3', name: 'Liquidation Bot', status: 'ACTIVE', tier: 'Tier 3', uptime: '97.2%', efficiency: 92 }
+          { id: '1', name: 'Arbitrage Bot', type: 'STRATEGY', status: 'ACTIVE', tier: 'Tier 1', uptime: '99.9%', efficiency: 95 },
+          { id: '2', name: 'MEV Bot', type: 'EXECUTION', status: 'OPTIMIZING', tier: 'Tier 2', uptime: '98.5%', efficiency: 87 },
+          { id: '3', name: 'Liquidation Bot', type: 'STRATEGY', status: 'ACTIVE', tier: 'Tier 3', uptime: '97.2%', efficiency: 92 }
         ];
 
         // Mock trade logs
@@ -94,7 +94,7 @@ const SimModeDashboard: React.FC<SimModeDashboardProps> = ({ confidence, onConfi
       acc[key] = (acc[key] || 0) + log.profit;
       return acc;
     }, {} as Record<string, number>);
-    return Object.entries(attribution).sort(([,a], [,b]) => b - a);
+    return Object.entries(attribution).sort(([, a], [, b]) => b - a);
   };
 
   return (
@@ -224,10 +224,9 @@ const SimModeDashboard: React.FC<SimModeDashboardProps> = ({ confidence, onConfi
             <div key={bot.id} className="bg-gray-700 p-3 rounded">
               <div className="flex justify-between items-center mb-2">
                 <span className="font-bold">{bot.name}</span>
-                <span className={`text-sm ${
-                  bot.status === 'ACTIVE' ? 'text-green-400' :
-                  bot.status === 'OPTIMIZING' ? 'text-yellow-400' : 'text-red-400'
-                }`}>
+                <span className={`text-sm ${bot.status === 'ACTIVE' ? 'text-green-400' :
+                    bot.status === 'OPTIMIZING' ? 'text-yellow-400' : 'text-red-400'
+                  }`}>
                   {bot.status}
                 </span>
               </div>
@@ -263,9 +262,8 @@ const SimModeDashboard: React.FC<SimModeDashboardProps> = ({ confidence, onConfi
                   <td className="p-2 text-green-400">+{log.profit.toFixed(4)}</td>
                   <td className="p-2">{log.gas}</td>
                   <td className="p-2">
-                    <span className={`px-2 py-1 rounded text-xs ${
-                      log.status === 'SUCCESS' ? 'bg-green-800 text-green-400' : 'bg-red-800 text-red-400'
-                    }`}>
+                    <span className={`px-2 py-1 rounded text-xs ${log.status === 'SUCCESS' ? 'bg-green-800 text-green-400' : 'bg-red-800 text-red-400'
+                      }`}>
                       {log.status}
                     </span>
                   </td>
