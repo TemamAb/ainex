@@ -3,9 +3,9 @@
 import dynamic from 'next/dynamic'
 import React from 'react'
 
-// Import MasterDashboard with explicit module resolution to fix TypeScript/Build errors
+// Import MasterDashboard with explicit module resolution to fix TypeScript errors
 const MasterDashboard = dynamic(
-  () => import('../components/MasterDashboard').then((mod: any) => mod.MasterDashboard || mod.default),
+  () => import('../components/MasterDashboard').then((mod) => mod.MasterDashboard || mod.default),
   {
     ssr: false,
     loading: () => (
