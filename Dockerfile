@@ -3,7 +3,7 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 
 # Copy package files
-COPY package*.jso
+COPY package*.json ./ ./
 # Copy source code
 COPY . .
 
