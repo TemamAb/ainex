@@ -4,30 +4,26 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "cross-env NODE_OPTIONS=--no-experimental-fetch next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
-    "@google/genai": "^1.30.0",
-    "axios": "^1.13.2",
-    "ethers": "^6.15.0",
-    "lucide-react": "^0.309.0",
-    "next": "14.0.0",
+    "lucide-react": "^0.263.1",
+    "next": "^12.3.4",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "viem": "^2.40.3",
-    "ws": "^8.18.3"
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "@types/react": "^18.0.0",
-    "@types/react-dom": "^18.0.0",
-    "autoprefixer": "^10.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "autoprefixer": "^10.4.0",
+    "cross-env": "^7.0.3",
     "eslint": "^8.0.0",
-    "eslint-config-next": "14.0.0",
-    "postcss": "^8.0.0",
-    "tailwindcss": "^3.3.0",
+    "eslint-config-next": "^13.5.6",
+    "postcss": "^8.4.0",
+    "tailwindcss": "^3.0.0",
     "typescript": "^5.0.0"
   }
 }

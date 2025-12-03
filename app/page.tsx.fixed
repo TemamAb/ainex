@@ -1,0 +1,31 @@
+import dynamic from 'next/dynamic'
+import React from 'react'
+
+// Import your actual dashboard from App.tsx with SSR disabled
+const Dashboard = dynamic(() => import('../App').then(mod => mod.default || mod), {
+  ssr: false, // Disable SSR for your complex dashboard
+  loading: () => (
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: '100vh'
+    }}>
+      <p>Loading dashboard...</p>
+    </div>
+  )
+})
+
+// MasterDashboard component
+const MasterDashboard = dynamic(
+  () => import('../components/MasterDashboard').then((mod) => mod.MasterDashboard || mod.default),
+  { ssr: false }
+)
+
+export default function Home() {
+  return (
+    <div>
+      <MasterDashboard />
+    </div>
+  )
+}

@@ -1,24 +1,11 @@
-"use client"
-
 import dynamic from 'next/dynamic'
 import React from 'react'
 
-// CHIEF ARCHITECT FIX: Pointing to the existing MasterDashboard component
-// We use .then() to ensure we get the correct export (named or default)
-const MasterDashboard = dynamic(
-  () => import('../components/MasterDashboard').then((mod) => mod.MasterDashboard || mod.default),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex items-center justify-center min-h-screen bg-slate-950 text-emerald-500 font-mono">
-        <div className="text-center">
-          <div className="text-xl">Initializing AINEX Engine...</div>
-        </div>
-      </div>
-    )
-  }
-)
+const MasterDashboard = dynamic(() => import('../components/MasterDashboard'), { 
+  ssr: false,
+  loading: () => <div>Loading...</div>
+})
 
-export default function HomePage() {
+export default function Home() {
   return <MasterDashboard />
 }
