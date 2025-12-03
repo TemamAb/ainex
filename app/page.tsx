@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import React from 'react'
 
-// Import MasterDashboard with explicit module resolution to fix TypeScript errors
+// Pointing to your ACTUAL Dashboard component
 const MasterDashboard = dynamic(
   () => import('../components/MasterDashboard').then((mod) => mod.MasterDashboard || mod.default),
   {
@@ -13,7 +13,6 @@ const MasterDashboard = dynamic(
         <div className="text-center">
           <div className="text-4xl mb-4 animate-pulse">⚡</div>
           <div className="text-xl">Initializing AINEX Engine...</div>
-          <div className="text-sm text-slate-500 mt-2">Secure Arbitrage Environment</div>
         </div>
       </div>
     )
