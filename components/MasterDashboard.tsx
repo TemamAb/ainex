@@ -42,7 +42,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
   // Engine State
   const [currentMode, setCurrentMode] = useState<EngineMode>('IDLE');
   const [preflightPassed, setPreflightPassed] = useState(false);
-  const [simConfidence, setSimConfidence] = useState(50);
+  const [simConfidence, setSimConfidence] = useState(0); // Start at 0
   const [isPreflightRunning, setIsPreflightRunning] = useState(false);
   const [preflightChecks, setPreflightChecks] = useState<any[]>([]);
   const [modules, setModules] = useState<any[]>([
@@ -55,12 +55,19 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
   ]);
 
   // SIM Mode state
-  const [tradeSignals, setTradeSignals] = useState<TradeSignal[]>([]);
-  const [flashLoanMetrics, setFlashLoanMetrics] = useState<FlashLoanMetric[]>([]);
-  const [botStatuses, setBotStatuses] = useState<BotStatus[]>([]);
-  const [tradeLogs, setTradeLogs] = useState<TradeLog[]>([]);
-  const [latencyMetrics, setLatencyMetrics] = useState({ avgLatency: 0, mevOpportunities: 0 });
-  const [profitProjection, setProfitProjection] = useState({ hourly: 0, daily: 0, weekly: 0 });
+  const [simTradeSignals, setSimTradeSignals] = useState<TradeSignal[]>([]);
+  const [simFlashLoanMetrics, setSimFlashLoanMetrics] = useState<FlashLoanMetric[]>([]);
+  const [simBotStatuses, setSimBotStatuses] = useState<BotStatus[]>([]);
+  const [simTradeLogs, setSimTradeLogs] = useState<TradeLog[]>([]);
+  const [simLatencyMetrics, setSimLatencyMetrics] = useState({ avgLatency: 0, mevOpportunities: 0 });
+  const [simProfitProjection, setSimProfitProjection] = useState({ hourly: 0, daily: 0, weekly: 0 });
+
+  // LIVE Mode state (Separate to prevent data bleeding)
+  const [liveTradeSignals, setLiveTradeSignals] = useState<TradeSignal[]>([]);
+  const [liveFlashLoanMetrics, setLiveFlashLoanMetrics] = useState<FlashLoanMetric[]>([]);
+  const [liveBotStatuses, setLiveBotStatuses] = useState<BotStatus[]>([]);
+  const [liveTradeLogs, setLiveTradeLogs] = useState<TradeLog[]>([]);
+  const [liveProfitMetrics, setLiveProfitMetrics] = useState({ daily: 0, total: 0 });
 
   // Profit Withdrawal state
   const [withdrawalConfig, setWithdrawalConfig] = useState<ProfitWithdrawalConfig>({
@@ -75,19 +82,29 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
   });
 
   // Protocol Enforcement: Reset metrics when entering SIM or LIVE mode
-  const resetMetrics = () => {
-    setTradeSignals([]);
-    setFlashLoanMetrics([]);
-    setBotStatuses([]);
-    setTradeLogs([]);
-    setLatencyMetrics({ avgLatency: 0, mevOpportunities: 0 });
-    setProfitProjection({ hourly: 0, daily: 0, weekly: 0 });
-    console.log('Protocol Enforcement: Metrics reset to zero.');
+  const resetSimMetrics = () => {
+    setSimTradeSignals([]);
+    setSimFlashLoanMetrics([]);
+    setSimBotStatuses([]);
+    setSimTradeLogs([]);
+    setSimLatencyMetrics({ avgLatency: 0, mevOpportunities: 0 });
+    setSimProfitProjection({ hourly: 0, daily: 0, weekly: 0 });
+    setSimConfidence(0); // Reset confidence on new run
+    console.log('Protocol Enforcement: SIM Metrics reset.');
+  };
+
+  const resetLiveMetrics = () => {
+    setLiveTradeSignals([]);
+    setLiveFlashLoanMetrics([]);
+    setLiveBotStatuses([]);
+    setLiveTradeLogs([]);
+    setLiveProfitMetrics({ daily: 0, total: 0 });
+    console.log('Protocol Enforcement: LIVE Metrics reset.');
   };
 
   const handleStartSim = () => {
     if (preflightPassed) {
-      resetMetrics();
+      resetSimMetrics();
       setCurrentMode('SIM');
       setCurrentView('SIM');
     }
@@ -95,7 +112,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
 
   const handleStartLive = () => {
     if (simConfidence >= 85) {
-      resetMetrics();
+      resetLiveMetrics();
       setCurrentMode('LIVE');
       setCurrentView('LIVE');
     }
@@ -105,6 +122,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     setIsPreflightRunning(true);
     setCurrentMode('PREFLIGHT');
     setCurrentView('PREFLIGHT');
+    setPreflightPassed(false); // Reset pass state
 
     try {
       const { runPreflightChecks } = await import('../services/preflightService');
@@ -119,7 +137,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     }
   };
 
-  // SIM Mode data updates
+  // SIM Mode data updates - ONLY runs when mode is explicitly SIM
   useEffect(() => {
     if (currentMode !== 'SIM') return;
 
@@ -169,12 +187,12 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
           });
         }
 
-        setTradeSignals(signals);
-        setFlashLoanMetrics(flashLoans);
-        setBotStatuses(bots);
-        setTradeLogs(logs);
-        setLatencyMetrics({ avgLatency: latency.average, mevOpportunities: mev.frontRunningAttempts });
-        setProfitProjection({ hourly: profitProj.hourly, daily: profitProj.daily, weekly: profitProj.weekly });
+        setSimTradeSignals(signals);
+        setSimFlashLoanMetrics(flashLoans);
+        setSimBotStatuses(bots);
+        setSimTradeLogs(logs);
+        setSimLatencyMetrics({ avgLatency: latency.average, mevOpportunities: mev.frontRunningAttempts });
+        setSimProfitProjection({ hourly: profitProj.hourly, daily: profitProj.daily, weekly: profitProj.weekly });
 
         // Update confidence based on simulation performance
         setSimConfidence(prev => Math.min(100, prev + Math.random() * 5));
@@ -216,20 +234,15 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
                   <h2 className="text-2xl font-bold text-white mb-2">System Preflight</h2>
                   <p className="text-slate-400">Validate all engine components before initialization.</p>
                 </div>
-                <button
-                  onClick={handleRunPreflight}
-                  disabled={isPreflightRunning}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
-                >
-                  {isPreflightRunning ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                  {isPreflightRunning ? 'Running Checks...' : 'Run Diagnostics'}
-                </button>
               </div>
               <PreflightPanel
                 checks={preflightChecks}
                 isRunning={isPreflightRunning}
+                allPassed={preflightPassed}
+                criticalPassed={preflightChecks.filter(c => c.isCritical).every(c => c.status === 'passed')}
                 onRunPreflight={handleRunPreflight}
                 onStartSim={handleStartSim}
+                isIdle={currentMode === 'IDLE'}
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -282,12 +295,11 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
         }
 
         // Calculate SIM metrics (mirroring LIVE mode calculations)
-        const simSuccessfulTrades = tradeLogs.filter(t => t.status === 'SUCCESS');
-        const simFailedTrades = tradeLogs.filter(t => t.status === 'FAILED');
+        const simSuccessfulTrades = simTradeLogs.filter(t => t.status === 'SUCCESS');
         const simTotalProfit = simSuccessfulTrades.reduce((sum, log) => sum + log.profit, 0);
-        const simSuccessRate = tradeLogs.length > 0 ? (simSuccessfulTrades.length / tradeLogs.length) * 100 : 0;
+        const simSuccessRate = simTradeLogs.length > 0 ? (simSuccessfulTrades.length / simTradeLogs.length) * 100 : 0;
         const simRealizedPnL = simTotalProfit;
-        const simUnrealizedPnL = tradeSignals.filter(s => s.status === 'DETECTED').reduce((sum, s) => sum + parseFloat(s.expectedProfit) * 0.8, 0);
+        const simUnrealizedPnL = simTradeSignals.filter(s => s.status === 'DETECTED').reduce((sum, s) => sum + parseFloat(s.expectedProfit) * 0.8, 0);
         const simTotalPnL = simRealizedPnL + simUnrealizedPnL;
 
         return (
@@ -332,13 +344,13 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
                 <div className="text-center">
                   <p className="text-xs font-light text-slate-400 uppercase">Active Signals</p>
                   <p className="text-sm font-light text-amber-400">
-                    {tradeSignals.filter(s => s.status === 'DETECTED').length}
+                    {simTradeSignals.filter(s => s.status === 'DETECTED').length}
                   </p>
                 </div>
                 <div className="text-center">
                   <p className="text-xs font-light text-slate-400 uppercase">Total Trades</p>
                   <p className="text-sm font-light text-white">
-                    {tradeLogs.length}
+                    {simTradeLogs.length}
                   </p>
                 </div>
               </div>
@@ -390,8 +402,8 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
                     <span className="text-xs text-slate-400 uppercase font-bold">Daily P&L</span>
                     <BarChart3 className="w-4 h-4 text-blue-500" />
                   </div>
-                  <p className={`text-lg font-bold ${profitProjection.daily >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {profitProjection.daily >= 0 ? '+' : ''}${profitProjection.daily.toFixed(2)}
+                  <p className={`text-lg font-bold ${simProfitProjection.daily >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {simProfitProjection.daily >= 0 ? '+' : ''}${simProfitProjection.daily.toFixed(2)}
                   </p>
                   <p className="text-xs text-slate-500">24h projection</p>
                 </div>
@@ -409,10 +421,10 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
                 <div className="bg-black/30 border border-slate-800/50 rounded p-4">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs text-slate-400 uppercase font-bold">Max Drawdown</span>
-                    <AlertTriangle className={`w-4 h-4 ${Math.abs(Math.min(...tradeLogs.map(t => t.profit))) > 500 ? 'text-red-500' : 'text-emerald-500'}`} />
+                    <AlertTriangle className={`w-4 h-4 ${Math.abs(Math.min(...simTradeLogs.map(t => t.profit))) > 500 ? 'text-red-500' : 'text-emerald-500'}`} />
                   </div>
-                  <p className={`text-lg font-bold ${Math.abs(Math.min(...tradeLogs.map(t => t.profit))) > 500 ? 'text-red-400' : 'text-emerald-400'}`}>
-                    ${Math.abs(Math.min(...tradeLogs.map(t => t.profit), 0)).toFixed(2)}
+                  <p className={`text-lg font-bold ${Math.abs(Math.min(...simTradeLogs.map(t => t.profit))) > 500 ? 'text-red-400' : 'text-emerald-400'}`}>
+                    ${Math.abs(Math.min(...simTradeLogs.map(t => t.profit), 0)).toFixed(2)}
                   </p>
                   <p className="text-xs text-slate-500">Limit: $1,000</p>
                 </div>
@@ -434,7 +446,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
                     <Target className="w-4 h-4 text-purple-500" />
                   </div>
                   <p className="text-lg font-bold text-emerald-400">
-                    {latencyMetrics.avgLatency}ms
+                    {simLatencyMetrics.avgLatency}ms
                   </p>
                   <p className="text-xs text-slate-500">Network speed</p>
                 </div>
@@ -460,7 +472,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {botStatuses.map((bot) => (
+                {simBotStatuses.map((bot) => (
                   <div key={bot.id} className="bg-black/30 border border-slate-800/50 rounded p-4">
                     <div className="flex justify-between items-start mb-3">
                       <span className="text-sm font-bold text-slate-300">{bot.name}</span>
@@ -515,7 +527,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
                     </tr>
                   </thead>
                   <tbody className="text-sm font-mono">
-                    {tradeLogs.map((log) => (
+                    {simTradeLogs.map((log) => (
                       <tr key={log.id} className="border-b border-slate-800/50 hover:bg-white/5 transition-colors">
                         <td className="px-6 py-4 text-slate-400">
                           {new Date(log.timestamp).toLocaleTimeString()}
@@ -554,7 +566,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
                 </table>
               </div>
 
-              {tradeLogs.length === 0 && (
+              {simTradeLogs.length === 0 && (
                 <div className="px-6 py-8 text-center text-slate-500">
                   <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>Waiting for simulation data...</p>
@@ -570,7 +582,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {flashLoanMetrics.map((metric) => (
+                {simFlashLoanMetrics.map((metric) => (
                   <div key={metric.provider} className="bg-black/30 border border-slate-800/50 rounded p-4">
                     <div className="flex justify-between items-start mb-3">
                       <span className="text-sm font-bold text-slate-300">{metric.provider}</span>
@@ -607,9 +619,9 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
       case 'LIVE':
         return (
           <LiveModeDashboard
-            signals={tradeSignals}
-            totalProfit={profitProjection.daily}
-            flashMetrics={flashLoanMetrics}
+            signals={liveTradeSignals}
+            totalProfit={liveProfitMetrics.daily}
+            flashMetrics={liveFlashLoanMetrics}
             onExecuteTrade={(signal) => console.log('Exec', signal)}
             onPauseTrading={() => console.log('Pause')}
             onResumeTrading={() => console.log('Resume')}

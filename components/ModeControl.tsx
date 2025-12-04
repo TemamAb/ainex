@@ -85,7 +85,7 @@ const ModeControl: React.FC<ModeControlProps> = ({
                     <div className="mt-4 pt-4 border-t border-emerald-500/20">
                         <p className="text-xs text-emerald-400 flex items-center gap-2">
                             <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                            Real trades executing on blockchain
+                            LIVE TRADING ACTIVE - Real funds at risk
                         </p>
                     </div>
                 )}
@@ -98,10 +98,10 @@ const ModeControl: React.FC<ModeControlProps> = ({
                     onClick={onStartSim}
                     disabled={currentMode === 'SIM' || !canStartSim}
                     className={`w-full py-3 px-4 rounded font-bold uppercase tracking-wider transition-all ${currentMode === 'SIM'
-                            ? 'bg-white/10 text-white border-2 border-white'
-                            : canStartSim
-                                ? 'bg-slate-700 hover:bg-slate-600 text-white border-2 border-transparent'
-                                : 'bg-slate-800/50 text-slate-600 cursor-not-allowed border-2 border-transparent'
+                        ? 'bg-white/10 text-white border-2 border-white'
+                        : canStartSim
+                            ? 'bg-slate-700 hover:bg-slate-600 text-white border-2 border-transparent'
+                            : 'bg-slate-800/50 text-slate-600 cursor-not-allowed border-2 border-transparent'
                         }`}
                 >
                     {currentMode === 'SIM' ? '● SIM Mode Active' : 'Start SIM Mode'}
@@ -119,10 +119,10 @@ const ModeControl: React.FC<ModeControlProps> = ({
                     onClick={onStartLive}
                     disabled={!canStartLive}
                     className={`w-full py-3 px-4 rounded font-bold uppercase tracking-wider transition-all ${currentMode === 'LIVE'
-                            ? 'bg-emerald-900/50 text-emerald-400 border-2 border-emerald-500'
-                            : canStartLive
-                                ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-2 border-transparent'
-                                : 'bg-slate-800/50 text-slate-600 cursor-not-allowed border-2 border-transparent'
+                        ? 'bg-emerald-900/50 text-emerald-400 border-2 border-emerald-500'
+                        : canStartLive
+                            ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-2 border-transparent animate-pulse'
+                            : 'bg-slate-800/50 text-slate-600 cursor-not-allowed border-2 border-transparent'
                         }`}
                 >
                     {currentMode === 'LIVE' ? '● LIVE Mode Active' : 'Start LIVE Mode'}
@@ -134,8 +134,6 @@ const ModeControl: React.FC<ModeControlProps> = ({
                         Confidence must reach 85% to enable LIVE mode
                     </p>
                 )}
-
-                {/* Stop Button */}
                 {(currentMode === 'SIM' || currentMode === 'LIVE') && (
                     <button
                         onClick={onStopMode}

@@ -1,17 +1,28 @@
 import React from 'react';
 import { PreflightCheck, PreflightResults } from '../services/preflightService';
-import { DirectoryAnalysisResult } from '../services/directoryAnalysisService';
-import { CheckCircle, XCircle, Loader2, Clock, Cpu, Shield, Zap, FolderOpen, Database, Globe, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Clock, Cpu, Shield, Zap, Database, Globe, AlertTriangle } from 'lucide-react';
 
 interface PreflightPanelProps {
     checks: PreflightCheck[];
     isRunning: boolean;
+    allPassed: boolean;
+    criticalPassed: boolean;
     onRunPreflight: () => void;
-    onStartSim?: () => void;
+    onStartSim: () => void;
+    isIdle?: boolean;
     moduleActivations?: PreflightResults['moduleActivations'];
 }
 
-const PreflightPanel: React.FC<PreflightPanelProps> = ({ checks, isRunning, onRunPreflight, onStartSim, moduleActivations }) => {
+export const PreflightPanel: React.FC<PreflightPanelProps> = ({
+    checks,
+    isRunning,
+    allPassed,
+    criticalPassed,
+    onRunPreflight,
+    onStartSim,
+    isIdle = false,
+    moduleActivations
+}) => {
     const getStatusIcon = (status: PreflightCheck['status']) => {
         switch (status) {
             case 'passed':
@@ -38,187 +49,140 @@ const PreflightPanel: React.FC<PreflightPanelProps> = ({ checks, isRunning, onRu
         }
     };
 
-    const allPassed = checks.length > 0 && checks.every(check => check.status === 'passed');
-
-    // Check if all CRITICAL checks have passed
-    const criticalPassed = checks.length > 0 && checks.every(check => {
-        if (check.isCritical) return check.status === 'passed';
-        return true; // Optional checks don't block critical pass
-    });
-
     return (
-        <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-6 backdrop-blur-sm">
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xs font-light text-white uppercase tracking-wider flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
-                    Preflight Checks
+        <div className="bg-slate-900/50 border border-slate-800 rounded-lg overflow-hidden backdrop-blur-sm">
+            <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+                <h3 className="text-lg font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <Shield className="w-5 h-5 text-blue-500" />
+                    System Preflight Checks
                 </h3>
-                <button
-                    onClick={onRunPreflight}
-                    disabled={isRunning}
-                    className={`px-3 py-1.5 rounded font-light text-xs uppercase tracking-wider transition-all ${isRunning
-                        ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
-                        : 'bg-blue-600 hover:bg-blue-500 text-white'
-                        }`}
-                >
-                    {isRunning ? 'Running...' : 'Run Preflight'}
-                </button>
+                <div className="flex gap-2">
+                    <span className="text-xs font-mono text-slate-500">
+                        v2.4.0-rc1
+                    </span>
+                </div>
             </div>
 
-            {/* Network Connectivity Checks */}
-            <div className="space-y-6">
-                {['network', 'blockchain', 'ai', 'security'].map((category) => {
-                    const categoryChecks = checks.filter(c => c.category === category);
-                    if (categoryChecks.length === 0) return null;
-
-                    const getCategoryIcon = (cat: string) => {
-                        switch (cat) {
-                            case 'network': return <Globe className="w-4 h-4 text-blue-500" />;
-                            case 'blockchain': return <Database className="w-4 h-4 text-purple-500" />;
-                            case 'ai': return <Cpu className="w-4 h-4 text-emerald-500" />;
-                            case 'security': return <Shield className="w-4 h-4 text-red-500" />;
-                            default: return <Globe className="w-4 h-4 text-slate-500" />;
-                        }
-                    };
-
-                    const getCategoryTitle = (cat: string) => {
-                        switch (cat) {
-                            case 'network': return 'Network Connectivity';
-                            case 'blockchain': return 'Blockchain & Contracts';
-                            case 'ai': return 'AI & Execution Engine';
-                            case 'security': return 'Security & Risk';
-                            default: return 'Other Checks';
-                        }
-                    };
-
-                    return (
-                        <div key={category}>
-                            <h4 className="text-xs font-light text-slate-400 uppercase tracking-wider flex items-center gap-2 mb-2">
-                                {getCategoryIcon(category)}
-                                {getCategoryTitle(category)}
-                            </h4>
-                            <div className="space-y-2">
-                                {categoryChecks.map((check) => (
-                                    <div
-                                        key={check.id}
-                                        className={`border rounded p-3 transition-all duration-300 ${check.status === 'passed'
-                                            ? 'bg-emerald-900/20 border-emerald-500/50 shadow-[0_0_10px_rgba(16,185,129,0.1)]'
-                                            : 'bg-black/30 border-slate-800/50 hover:border-slate-700'
-                                            }`}
-                                    >
-                                        <div className="flex items-center justify-between mb-1">
-                                            <div className="flex items-center gap-3">
-                                                {getStatusIcon(check.status)}
-                                                <span className={`text-sm font-bold ${check.status === 'passed' ? 'text-emerald-100' : 'text-slate-300'}`}>
-                                                    {check.name}
-                                                </span>
-                                                {!check.isCritical && (
-                                                    <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">
-                                                        OPTIONAL
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <span className={`text-xs font-light uppercase ${getStatusColor(check.status)}`}>
-                                                {check.status}
-                                            </span>
-                                        </div>
-                                        {check.message && (
-                                            <p className={`text-xs font-light ml-7 ${check.status === 'passed' ? 'text-emerald-400/80' : 'text-slate-500'}`}>
-                                                {check.message}
-                                            </p>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
+            <div className="p-6">
+                {/* Status Overview */}
+                <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-black/30 p-4 rounded border border-slate-800">
+                        <span className="text-xs text-slate-500 uppercase">System Status</span>
+                        <div className="flex items-center gap-2 mt-1">
+                            <div className={`w-2 h-2 rounded-full ${allPassed ? 'bg-emerald-500' : isRunning ? 'bg-blue-500 animate-pulse' : 'bg-amber-500'}`}></div>
+                            <span className="font-bold text-slate-200">
+                                {isRunning ? 'DIAGNOSTICS RUNNING' : allPassed ? 'SYSTEM READY' : 'CHECKS PENDING'}
+                            </span>
                         </div>
-                    );
-                })}
-            </div>
+                    </div>
+                    <div className="bg-black/30 p-4 rounded border border-slate-800">
+                        <span className="text-xs text-slate-500 uppercase">Critical Systems</span>
+                        <div className="flex items-center gap-2 mt-1">
+                            <Shield className={`w-4 h-4 ${criticalPassed ? 'text-emerald-500' : 'text-red-500'}`} />
+                            <span className={`font-bold ${criticalPassed ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {criticalPassed ? 'OPERATIONAL' : 'ATTENTION REQUIRED'}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="bg-black/30 p-4 rounded border border-slate-800">
+                        <span className="text-xs text-slate-500 uppercase">Environment</span>
+                        <div className="flex items-center gap-2 mt-1">
+                            <Globe className="w-4 h-4 text-blue-500" />
+                            <span className="font-bold text-slate-200">Production (Mainnet)</span>
+                        </div>
+                    </div>
+                </div>
 
-            {/* Module Activation Results */}
-            {moduleActivations && moduleActivations.length > 0 && (
-                <div className="space-y-3 mt-6">
-                    <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mb-3">
-                        <Cpu className="w-4 h-4 text-emerald-500" />
-                        Module Activation ({moduleActivations.filter(m => m.success).length}/{moduleActivations.length})
-                    </h4>
-                    {moduleActivations.map((activation) => (
-                        <div
-                            key={activation.moduleId}
-                            className="bg-black/30 border border-slate-800/50 rounded p-4 hover:border-slate-700 transition-colors"
-                        >
-                            <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-3">
-                                    {activation.success ? (
-                                        <CheckCircle className="w-4 h-4 text-emerald-500" />
-                                    ) : (
-                                        <XCircle className="w-4 h-4 text-red-500" />
+                {/* Check List */}
+                <div className="space-y-3 mb-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                    {checks.length === 0 && isIdle && (
+                        <div className="text-center py-12 text-slate-500">
+                            <Shield className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                            <p>System Idle. Run preflight checks to initialize engine.</p>
+                        </div>
+                    )}
+                    {checks.map((check) => (
+                        <div key={check.id} className="flex items-center justify-between p-3 bg-black/20 rounded border border-slate-800/50 hover:border-slate-700 transition-colors">
+                            <div className="flex items-center gap-3">
+                                {getStatusIcon(check.status)}
+                                <div>
+                                    <p className={`text-sm font-medium ${check.status === 'failed' && check.isCritical ? 'text-red-400' : 'text-slate-300'}`}>
+                                        {check.name}
+                                        {check.isCritical && <span className="ml-2 text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded uppercase">Critical</span>}
+                                        {!check.isCritical && <span className="ml-2 text-[10px] bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded uppercase">Optional</span>}
+                                    </p>
+                                    {check.message && (
+                                        <p className="text-xs text-slate-500 mt-0.5">{check.message}</p>
                                     )}
-                                    <span className="text-sm font-bold text-slate-300">{activation.message}</span>
                                 </div>
-                                <span className={`text-xs font-mono font-bold uppercase ${activation.success ? 'text-emerald-400' : 'text-red-400'}`}>
-                                    {activation.success ? 'ACTIVATED' : 'FAILED'}
-                                </span>
                             </div>
-                            {activation.latency && (
-                                <p className="text-xs font-mono text-slate-500 ml-7">
-                                    Latency: {activation.latency}ms
-                                </p>
-                            )}
+                            <div className="text-xs font-mono text-slate-600">
+                                {check.timestamp ? new Date(check.timestamp).toLocaleTimeString() : '--:--:--'}
+                            </div>
                         </div>
                     ))}
                 </div>
-            )}
 
-            {/* Status Summary & Actions */}
-            <div className="mt-8 pt-6 border-t border-slate-800">
-                {allPassed ? (
-                    <div className="bg-emerald-900/20 border border-emerald-500/30 rounded p-3 mb-3">
-                        <p className="text-xs font-light text-emerald-400 flex items-center gap-2">
-                            <CheckCircle className="w-4 h-4" />
-                            All systems GO! Maximum performance mode enabled.
-                        </p>
-                    </div>
-                ) : criticalPassed ? (
-                    <div className="bg-yellow-900/20 border border-yellow-500/30 rounded p-3 mb-3">
-                        <p className="text-xs font-light text-yellow-400 flex items-center gap-2">
-                            <AlertTriangle className="w-4 h-4" />
-                            Minimum requirements met. Some optional checks failed.
-                        </p>
-                        <p className="text-xs font-light text-yellow-500/80 mt-1 ml-6">
-                            You can start SIM mode, but some features may be unavailable.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="bg-red-900/20 border border-red-500/30 rounded p-4 mb-4">
-                        <p className="text-sm font-bold text-red-400 flex items-center gap-2">
-                            <XCircle className="w-5 h-5" />
-                            Critical systems failed. Cannot start engine.
-                        </p>
+                {/* Module Activation Results */}
+                {moduleActivations && moduleActivations.length > 0 && (
+                    <div className="space-y-3 mt-6 mb-6">
+                        <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mb-3">
+                            <Cpu className="w-4 h-4 text-emerald-500" />
+                            Module Activation ({moduleActivations.filter(m => m.success).length}/{moduleActivations.length})
+                        </h4>
+                        {moduleActivations.map((activation) => (
+                            <div
+                                key={activation.moduleId}
+                                className="bg-black/30 border border-slate-800/50 rounded p-4 hover:border-slate-700 transition-colors"
+                            >
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-3">
+                                        {activation.success ? (
+                                            <CheckCircle className="w-4 h-4 text-emerald-500" />
+                                        ) : (
+                                            <XCircle className="w-4 h-4 text-red-500" />
+                                        )}
+                                        <span className="text-sm font-bold text-slate-300">{activation.message}</span>
+                                    </div>
+                                    <span className={`text-xs font-mono font-bold uppercase ${activation.success ? 'text-emerald-400' : 'text-red-400'}`}>
+                                        {activation.success ? 'ACTIVATED' : 'FAILED'}
+                                    </span>
+                                </div>
+                                {activation.latency && (
+                                    <p className="text-xs font-mono text-slate-500 ml-7">
+                                        Latency: {activation.latency}ms
+                                    </p>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 )}
 
-                <div className="flex justify-end gap-4">
+                {/* Action Bar */}
+                <div className="flex justify-end gap-4 pt-4 border-t border-slate-800">
                     <button
                         onClick={onRunPreflight}
                         disabled={isRunning}
-                        className="px-4 py-2 rounded font-bold text-sm text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                        className={`px-6 py-2 rounded font-bold text-sm uppercase tracking-wider transition-all ${isIdle
+                                ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.4)] animate-pulse'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                            }`}
                     >
-                        Rerun Checks
+                        {isRunning ? 'Running Diagnostics...' : isIdle ? 'Run Preflight Checks' : 'Rerun Checks'}
                     </button>
 
-                    {/* Start Button Logic */}
-                    {(allPassed || criticalPassed) && (
-                        <button
-                            className={`px-6 py-2 rounded font-bold text-sm uppercase tracking-wider transition-all flex items-center gap-2 ${allPassed
-                                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)]'
-                                : 'bg-yellow-600 hover:bg-yellow-500 text-white shadow-[0_0_20px_rgba(234,179,8,0.4)]'
-                                }`}
-                        >
-                            <Zap className="w-4 h-4" />
-                            {allPassed ? 'Start SIM Mode' : 'Start SIM (Limited)'}
-                        </button>
-                    )}
+                    {/* Start Button Logic - Explicitly requires user action */}
+                    <button
+                        onClick={onStartSim}
+                        disabled={!allPassed && !criticalPassed}
+                        className={`px-6 py-2 rounded font-bold text-sm uppercase tracking-wider transition-all flex items-center gap-2 ${(allPassed || criticalPassed)
+                                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.6)] cursor-pointer animate-pulse'
+                                : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
+                            }`}
+                    >
+                        <Zap className="w-4 h-4" />
+                        {allPassed ? 'Start SIM Mode' : criticalPassed ? 'Start SIM (Limited)' : 'Fix Critical Errors'}
+                    </button>
                 </div>
             </div>
         </div>

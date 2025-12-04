@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{}"
+self.__REACT_LOADABLE_MANIFEST='{"..\\\\components\\\\LiveBlockchainEvents.tsx -> ../blockchain/providers":{"id":5819,"files":[]},"..\\\\components\\\\MasterDashboard.tsx -> ../services/preflightService":{"id":4121,"files":["static/chunks/129.2e08a91c674d6f9b.js","static/chunks/121.fc0ec80d0a761a53.js"]},"index.jsx -> ../components/MasterDashboard":{"id":8548,"files":["static/chunks/438.57931fc5630c0709.js","static/chunks/548.702aa3083b0ab9f8.js"]}}';
