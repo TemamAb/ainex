@@ -146,23 +146,11 @@ export const PreflightPanel: React.FC<PreflightPanelProps> = ({
                         onClick={onRunPreflight}
                         disabled={isRunning}
                         className={`px-4 py-1.5 rounded font-bold text-xs uppercase tracking-wider transition-all ${isIdle
-                                ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_10px_rgba(37,99,235,0.4)] animate-pulse'
-                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                            ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_10px_rgba(37,99,235,0.4)] animate-pulse'
+                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
                             }`}
                     >
                         {isRunning ? 'Running...' : isIdle ? 'Run Preflight' : 'Rerun'}
-                    </button>
-
-                    <button
-                        onClick={onStartSim}
-                        disabled={!allPassed && !criticalPassed}
-                        className={`px-4 py-1.5 rounded font-bold text-xs uppercase tracking-wider transition-all flex items-center gap-2 ${(allPassed || criticalPassed)
-                                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-[0_0_10px_rgba(16,185,129,0.6)] cursor-pointer animate-pulse'
-                                : 'bg-slate-800 text-slate-500 cursor-not-allowed opacity-50'
-                            }`}
-                    >
-                        <Zap className="w-3 h-3" />
-                        {allPassed ? 'Start SIM' : criticalPassed ? 'Start SIM (Ltd)' : 'Fix Errors'}
                     </button>
                 </div>
             </div>

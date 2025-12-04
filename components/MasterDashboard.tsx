@@ -511,13 +511,12 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
                 <button
                   onClick={handleStartSim}
                   disabled={!preflightPassed || currentMode === 'SIM'}
-                  className={`px-4 py-2 rounded font-bold text-sm uppercase tracking-wider transition-all ${
-                    currentMode === 'SIM'
+                  className={`px-4 py-2 rounded font-bold text-sm uppercase tracking-wider transition-all ${currentMode === 'SIM'
                       ? 'bg-white/20 text-white border border-white'
                       : preflightPassed && currentMode !== 'SIM'
-                        ? 'bg-slate-700 hover:bg-slate-600 text-white border border-transparent'
+                        ? 'bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.6)] animate-pulse'
                         : 'bg-slate-800/50 text-slate-600 cursor-not-allowed border border-transparent'
-                  }`}
+                    }`}
                 >
                   {currentMode === 'SIM' ? '● SIM Active' : 'Start SIM'}
                 </button>
@@ -525,13 +524,12 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
                 <button
                   onClick={handleStartLive}
                   disabled={currentMode !== 'SIM' || simConfidence < 85}
-                  className={`px-4 py-2 rounded font-bold text-sm uppercase tracking-wider transition-all ${
-                    currentMode === 'LIVE'
+                  className={`px-4 py-2 rounded font-bold text-sm uppercase tracking-wider transition-all ${currentMode === 'LIVE'
                       ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-500'
                       : currentMode === 'SIM' && simConfidence >= 85
                         ? 'bg-emerald-600 hover:bg-emerald-500 text-white border border-transparent animate-pulse'
                         : 'bg-slate-800/50 text-slate-600 cursor-not-allowed border border-transparent'
-                  }`}
+                    }`}
                 >
                   {currentMode === 'LIVE' ? '● LIVE Active' : 'Start LIVE'}
                 </button>
