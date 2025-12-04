@@ -87,9 +87,7 @@ export const runPreflightChecks = async (): Promise<PreflightResults> => {
         updateCheck(1, 'passed', 'Connected to Arbitrum Mainnet');
     } catch (e: any) {
         updateCheck(1, 'failed', e.message);
-        // We continue even if Arb fails, but warn? For now, strict fail.
-        failRemaining(2, 'Arbitrum RPC required');
-        return { allPassed: false, checks, timestamp: Date.now(), moduleActivations: [] };
+        // Continue execution even if Arbitrum fails
     }
 
     // 3. Base RPC
@@ -101,8 +99,7 @@ export const runPreflightChecks = async (): Promise<PreflightResults> => {
         updateCheck(2, 'passed', 'Connected to Base Mainnet');
     } catch (e: any) {
         updateCheck(2, 'failed', e.message);
-        failRemaining(3, 'Base RPC required');
-        return { allPassed: false, checks, timestamp: Date.now(), moduleActivations: [] };
+        // Continue execution even if Base fails
     }
 
     // 4. Block Sync
