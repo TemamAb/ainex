@@ -9,6 +9,12 @@ COPY package*.json ./
 
 RUN npm install
 
+# Accept build arguments for Next.js public vars
+ARG NEXT_PUBLIC_ETH_RPC_URL
+ARG NEXT_PUBLIC_ARBITRUM_RPC_URL
+ARG NEXT_PUBLIC_BASE_RPC_URL
+ARG NEXT_PUBLIC_ETH_WS_URL
+
 # Copy the rest of the application code
 COPY . .
 

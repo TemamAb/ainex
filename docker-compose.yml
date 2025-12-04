@@ -5,6 +5,11 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_ETH_RPC_URL: ${ETH_RPC_URL}
+        NEXT_PUBLIC_ARBITRUM_RPC_URL: ${ARBITRUM_RPC}
+        NEXT_PUBLIC_BASE_RPC_URL: ${BASE_RPC}
+        NEXT_PUBLIC_ETH_WS_URL: ${WS_URL}
     ports:
       - "3000:3000"
     env_file:
@@ -12,6 +17,11 @@ services:
     environment:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
+      # Map backend env vars to Next.js public vars
+      - NEXT_PUBLIC_ETH_RPC_URL=${ETH_RPC_URL}
+      - NEXT_PUBLIC_ARBITRUM_RPC_URL=${ARBITRUM_RPC}
+      - NEXT_PUBLIC_BASE_RPC_URL=${BASE_RPC}
+      - NEXT_PUBLIC_ETH_WS_URL=${WS_URL}
     volumes:
       - ./public:/app/public:ro
     healthcheck:

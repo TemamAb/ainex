@@ -700,12 +700,12 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
             <div className="flex flex-col w-64">
               <div className="flex justify-between text-[10px] text-slate-400 mb-1">
                 <span>Daily Target ({tradeSettings.profitTarget.daily} {tradeSettings.profitTarget.unit})</span>
-                <span className="text-green-400">{(profitProjection.daily / Number(tradeSettings.profitTarget.daily) * 100).toFixed(0)}%</span>
+                <span className="text-green-400">{(simProfitProjection.daily / Number(tradeSettings.profitTarget.daily) * 100).toFixed(0)}%</span>
               </div>
               <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-blue-500 to-green-400 transition-all duration-1000"
-                  style={{ width: `${Math.min(100, profitProjection.daily / Number(tradeSettings.profitTarget.daily) * 100)}%` }}
+                  style={{ width: `${Math.min(100, simProfitProjection.daily / Number(tradeSettings.profitTarget.daily) * 100)}%` }}
                 ></div>
               </div>
             </div>
