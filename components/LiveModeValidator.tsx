@@ -27,7 +27,15 @@ const LiveModeValidator: React.FC<LiveModeValidatorProps> = ({ isLive, recentTra
 
     // Validate LIVE mode authenticity
     useEffect(() => {
-        if (!isLive || recentTransactions.length === 0) return;
+        if (!isLive || recentTransactions.length === 0) {
+            setValidationStatus({
+                isGenuineLive: false,
+                verifiedCount: 0,
+                totalCount: 0,
+                verificationRate: 0
+            });
+            return;
+        }
 
         const validateMode = async () => {
             setIsValidating(true);
@@ -37,13 +45,48 @@ const LiveModeValidator: React.FC<LiveModeValidatorProps> = ({ isLive, recentTra
                     .map(t => t.txHash)
                     .slice(0, 10); // Validate last 10 transactions
 
-                if (txHashes.length > 0) {
-                    const result = await validateLiveModeAuthenticity(txHashes, chain);
-                    setValidationStatus(result);
+                if (txHashes.length === 0) {
+                    // No valid tx hashes - likely simulation mode or waiting for first trade
+                    setValidationStatus({
+                        isGenuineLive: false,
+                        verifiedCount: 0,
+                        totalCount: 0,
+                        verificationRate: 0
+                    });
                     setLastValidation(Date.now());
+                    setIsValidating(false);
+                    return;
                 }
+
+                // Check if these are simulated/fake transactions
+                // Real tx hashes are 66 characters (0x + 64 hex chars)
+                const realTxHashes = txHashes.filter(hash => hash.length === 66);
+
+                if (realTxHashes.length === 0) {
+                    // All transactions are simulated (short fake hashes)
+                    setValidationStatus({
+                        isGenuineLive: false,
+                        verifiedCount: 0,
+                        totalCount: txHashes.length,
+                        verificationRate: 0
+                    });
+                    setLastValidation(Date.now());
+                    setIsValidating(false);
+                    return;
+                }
+
+                // Verify real blockchain transactions
+                const result = await validateLiveModeAuthenticity(realTxHashes, chain);
+                setValidationStatus(result);
+                setLastValidation(Date.now());
             } catch (error) {
                 console.error('Validation failed:', error);
+                setValidationStatus({
+                    isGenuineLive: false,
+                    verifiedCount: 0,
+                    totalCount: recentTransactions.length,
+                    verificationRate: 0
+                });
             } finally {
                 setIsValidating(false);
             }
@@ -98,10 +141,21 @@ const LiveModeValidator: React.FC<LiveModeValidatorProps> = ({ isLive, recentTra
             );
         }
 
+        // If we have transactions but they're not verified (simulated trades)
+        if (validationStatus.totalCount > 0 && !validationStatus.isGenuineLive) {
+            return (
+                <div className="flex items-center gap-2 px-3 py-2 bg-amber-900/30 border border-amber-500/30 rounded-lg">
+                    <AlertTriangle className="w-4 h-4 text-amber-400" />
+                    <span className="text-xs font-light text-amber-400">DEMO MODE</span>
+                </div>
+            );
+        }
+
+        // No transactions yet - waiting for first trade
         return (
-            <div className="flex items-center gap-2 px-3 py-2 bg-red-900/30 border border-red-500/30 rounded-lg">
-                <XCircle className="w-4 h-4 text-red-400" />
-                <span className="text-xs font-light text-red-400">VERIFICATION FAILED</span>
+            <div className="flex items-center gap-2 px-3 py-2 bg-slate-700/50 border border-slate-600 rounded-lg">
+                <Clock className="w-4 h-4 text-slate-400" />
+                <span className="text-xs font-light text-slate-400">AWAITING TRADES</span>
             </div>
         );
     };

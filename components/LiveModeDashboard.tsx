@@ -45,47 +45,18 @@ const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
         dailyLossLimit: 1000,
         positionSize: 0,
         exposure: 0,
-        volatilityIndex: 0.45 + Math.random() * 0.3,
-        correlationRisk: 0.6 + Math.random() * 0.3,
+        volatilityIndex: 0, // Will be calculated from real market data
+        correlationRisk: 0, // Will be calculated from real positions
         liquidationThreshold: 0.85,
         autoStopLoss: 500
     });
 
-    // Simulate live trading execution
+    // Live trades will be populated from real blockchain events only
+    // No simulation - all data comes from actual transaction execution
     useEffect(() => {
-        if (!isPaused) {
-            const interval = setInterval(() => {
-                // Simulate new trade signals being executed
-                const pendingSignals = signals.filter(s => s.status === 'DETECTED');
-                if (pendingSignals.length > 0 && Math.random() > 0.7) {
-                    const signal = pendingSignals[0];
-                    const liveTrade: LiveTrade = {
-                        id: `live-${Date.now()}`,
-                        signal,
-                        status: 'EXECUTING',
-                        executionTime: Date.now()
-                    };
-                    setLiveTrades(prev => [liveTrade, ...prev].slice(0, 20));
-
-                    // Simulate execution completion
-                    setTimeout(() => {
-                        setLiveTrades(prev => prev.map(trade =>
-                            trade.id === liveTrade.id
-                                ? {
-                                    ...trade,
-                                    status: Math.random() > 0.1 ? 'CONFIRMED' : 'FAILED',
-                                    gasUsed: `${Math.floor(Math.random() * 200000 + 100000)}`,
-                                    actualProfit: parseFloat(signal.expectedProfit) * (0.8 + Math.random() * 0.4),
-                                    txHash: `0x${Math.random().toString(16).slice(2)}`
-                                }
-                                : trade
-                        ));
-                    }, 2000 + Math.random() * 3000);
-                }
-            }, 5000);
-
-            return () => clearInterval(interval);
-        }
+        // Future: Listen to real blockchain events here
+        // For now, trades start at zero and accumulate from real execution
+        return () => { }; // Cleanup if needed
     }, [signals, isPaused]);
 
     const successfulTrades = liveTrades.filter(t => t.status === 'CONFIRMED');

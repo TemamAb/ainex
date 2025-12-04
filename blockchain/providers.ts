@@ -91,3 +91,33 @@ export const getLatestBlockNumber = async (chain: 'ethereum' | 'arbitrum' | 'bas
 
     return await provider.getBlockNumber();
 };
+
+// Get recent transactions from mempool (simplified for SIM mode)
+export const getRecentTransactions = async (chain: 'ethereum' | 'arbitrum' | 'base', limit: number = 10): Promise<any[]> => {
+    try {
+        const provider = chain === 'ethereum' ? getEthereumProvider() :
+            chain === 'arbitrum' ? getArbitrumProvider() :
+                getBaseProvider();
+
+        const latestBlock = await provider.getBlockNumber();
+        const transactions: any[] = [];
+
+        // Get transactions from recent blocks
+        for (let i = 0; i < Math.min(limit, 5); i++) {
+            const blockNumber = latestBlock - i;
+            if (blockNumber > 0) {
+                const block = await provider.getBlock(blockNumber, true);
+                if (block && block.transactions) {
+                    // Take first few transactions from each block
+                    const blockTxs = block.transactions.slice(0, 2);
+                    transactions.push(...blockTxs);
+                }
+            }
+        }
+
+        return transactions.slice(0, limit);
+    } catch (error) {
+        console.error('Error fetching recent transactions:', error);
+        return [];
+    }
+};
