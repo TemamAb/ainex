@@ -22,7 +22,7 @@ export interface PreflightResults {
 }
 
 // Run all preflight checks sequentially with dependencies
-export const runPreflightChecks = async (): Promise<PreflightResults> => {
+export const runPreflightChecks = async (onProgress?: (checks: PreflightCheck[]) => void): Promise<PreflightResults> => {
     const checks: PreflightCheck[] = [
         // Network Checks (CRITICAL)
         { id: 'eth-rpc', name: 'Ethereum RPC Connection', status: 'pending', message: '', category: 'network', isCritical: true },
@@ -53,6 +53,10 @@ export const runPreflightChecks = async (): Promise<PreflightResults> => {
         checks[index].status = status;
         checks[index].message = message;
         checks[index].timestamp = Date.now();
+        // Call progress callback to update UI
+        if (onProgress) {
+            onProgress([...checks]);
+        }
     };
 
     // Helper to fail remaining checks if a critical dependency fails

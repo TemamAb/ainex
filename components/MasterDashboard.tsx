@@ -30,7 +30,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
   const [currency, setCurrency] = useState<'ETH' | 'USD'>('ETH');
   const [refreshRate, setRefreshRate] = useState(1000); // ms
   const [lifetimeProfit, setLifetimeProfit] = useState(0);
-  const [daysDeployed, setDaysDeployed] = useState(45);
+  const [daysDeployed, setDaysDeployed] = useState(0);
 
   // Settings State
   const [tradeSettings, setTradeSettings] = useState({
@@ -117,6 +117,13 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     }
   };
 
+  const handleStopEngine = () => {
+    setCurrentMode('IDLE');
+    setCurrentView('PREFLIGHT');
+    resetSimMetrics();
+    resetLiveMetrics();
+  };
+
   const handleRunPreflight = async () => {
     setIsPreflightRunning(true);
     setCurrentMode('PREFLIGHT');
@@ -125,14 +132,17 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
 
     try {
       const { runPreflightChecks } = await import('../services/preflightService');
-      const result = await runPreflightChecks();
+      const result = await runPreflightChecks((updatedChecks) => {
+        // Update UI with progress
+        setPreflightChecks([...updatedChecks]);
+      });
 
       setPreflightPassed(result.allPassed);
       setPreflightChecks(result.checks);
 
       if (result.allPassed) {
         setCurrentMode('IDLE');
-        setCurrentView('SIM');
+        // Stay in PREFLIGHT view - user must manually click Start SIM
       }
     } catch (error) {
       console.error('Preflight failed:', error);
