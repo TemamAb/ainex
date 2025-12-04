@@ -1,9 +1,9 @@
 services:
   - type: web
     name: ainex-profit-engine
-    env: static
-    buildCommand: npm install && npm run build
-    staticPublishPath: ./dist
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: ./
     envVars:
       - key: ENGINE_MODE
         value: LIVE_MAINNET
@@ -13,16 +13,11 @@ services:
         value: true
       - key: SIMULATION_MODE
         value: false
-      - key: REACT_APP_PIMLICO_KEY
-        value: generate_on_deploy
-
-  - type: worker
-    name: ainex-rust-engine
-    env: rust
-    buildCommand: cargo build --release
-    startCommand: ./target/release/ainex_rust_engine
-    envVars:
-      - key: ETH_RPC_URL
+      - key: NEXT_PUBLIC_ETH_RPC_URL
+        value: https://eth-mainnet.g.alchemy.com/v2/demo
+      - key: NEXT_PUBLIC_ARBITRUM_RPC_URL
+        value: https://arb-mainnet.g.alchemy.com/v2/demo
+      - key: NEXT_PUBLIC_BASE_RPC_URL
+        value: https://base-mainnet.g.alchemy.com/v2/demo
+      - key: NEXT_PUBLIC_ETH_WS_URL
         value: wss://eth-mainnet.g.alchemy.com/v2/demo
-      - key: RUST_LOG
-        value: info
