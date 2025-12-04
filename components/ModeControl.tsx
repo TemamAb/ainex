@@ -41,76 +41,76 @@ const ModeControl: React.FC<ModeControlProps> = ({
     };
 
     return (
-        <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-6 backdrop-blur-sm">
-            <h3 className="text-lg font-bold text-white uppercase tracking-wider mb-6">
-                Engine Mode Control
+        <div className="bg-slate-900/40 border border-slate-800 rounded p-4 backdrop-blur-sm">
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-4">
+                Mode Control
             </h3>
 
             {/* Current Mode Display */}
-            <div className={`border rounded-lg p-6 mb-6 ${getModeBackground()}`}>
+            <div className={`border rounded p-3 mb-4 ${getModeBackground()}`}>
                 <div className="flex items-center justify-between">
                     <div>
-                        <p className="text-xs text-slate-500 uppercase font-bold mb-2">Current Mode</p>
-                        <p className={`text-3xl font-bold font-rajdhani uppercase ${getModeColor()}`}>
+                        <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Current Mode</p>
+                        <p className={`text-sm font-bold font-mono uppercase ${getModeColor()}`}>
                             {currentMode}
                         </p>
                     </div>
                     {currentMode === 'SIM' && (
-                        <Activity className="w-12 h-12 text-white opacity-50" />
+                        <Activity className="w-4 h-4 text-white opacity-50" />
                     )}
                     {currentMode === 'LIVE' && (
-                        <Zap className="w-12 h-12 text-emerald-400 opacity-50" />
+                        <Zap className="w-4 h-4 text-emerald-400 opacity-50" />
                     )}
                 </div>
 
                 {currentMode === 'SIM' && (
-                    <div className="mt-4 pt-4 border-t border-white/10">
-                        <p className="text-xs text-slate-400 mb-2">Confidence Score</p>
-                        <div className="flex items-center gap-3">
-                            <div className="flex-1 bg-black/30 h-2 rounded-full overflow-hidden">
+                    <div className="mt-2 pt-2 border-t border-white/10">
+                        <p className="text-[10px] text-slate-400 mb-1">Confidence</p>
+                        <div className="flex items-center gap-2">
+                            <div className="flex-1 bg-black/30 h-1.5 rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-white transition-all duration-500"
                                     style={{ width: `${simConfidence}%` }}
                                 ></div>
                             </div>
-                            <span className="text-lg font-bold text-white font-mono">{simConfidence}%</span>
+                            <span className="text-xs font-bold text-white font-mono">{simConfidence}%</span>
                         </div>
                         {simConfidence >= 85 && (
-                            <p className="text-xs text-emerald-400 mt-2">✓ Ready for LIVE mode</p>
+                            <p className="text-[10px] text-emerald-400 mt-1">✓ Ready for LIVE</p>
                         )}
                     </div>
                 )}
 
                 {currentMode === 'LIVE' && (
-                    <div className="mt-4 pt-4 border-t border-emerald-500/20">
-                        <p className="text-xs text-emerald-400 flex items-center gap-2">
-                            <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-                            LIVE TRADING ACTIVE - Real funds at risk
+                    <div className="mt-2 pt-2 border-t border-emerald-500/20">
+                        <p className="text-[10px] text-emerald-400 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                            LIVE TRADING ACTIVE
                         </p>
                     </div>
                 )}
             </div>
 
             {/* Mode Control Buttons */}
-            <div className="space-y-3">
+            <div className="space-y-2">
                 {/* SIM Mode Button */}
                 <button
                     onClick={onStartSim}
                     disabled={currentMode === 'SIM' || !canStartSim}
-                    className={`w-full py-3 px-4 rounded font-bold uppercase tracking-wider transition-all ${currentMode === 'SIM'
-                        ? 'bg-white/10 text-white border-2 border-white'
+                    className={`w-full py-2 px-3 rounded font-bold text-xs uppercase tracking-wider transition-all ${currentMode === 'SIM'
+                        ? 'bg-white/10 text-white border border-white'
                         : canStartSim
-                            ? 'bg-slate-700 hover:bg-slate-600 text-white border-2 border-transparent'
-                            : 'bg-slate-800/50 text-slate-600 cursor-not-allowed border-2 border-transparent'
+                            ? 'bg-slate-700 hover:bg-slate-600 text-white border border-transparent'
+                            : 'bg-slate-800/50 text-slate-600 cursor-not-allowed border border-transparent'
                         }`}
                 >
-                    {currentMode === 'SIM' ? '● SIM Mode Active' : 'Start SIM Mode'}
+                    {currentMode === 'SIM' ? '● SIM Active' : 'Start SIM'}
                 </button>
 
                 {!canStartSim && currentMode !== 'SIM' && (
-                    <p className="text-xs text-amber-400 flex items-center gap-2 px-2">
+                    <p className="text-[10px] text-amber-400 flex items-center gap-1 px-1">
                         <AlertTriangle className="w-3 h-3" />
-                        Complete preflight checks first
+                        Run preflight first
                     </p>
                 )}
 
@@ -118,28 +118,30 @@ const ModeControl: React.FC<ModeControlProps> = ({
                 <button
                     onClick={onStartLive}
                     disabled={!canStartLive}
-                    className={`w-full py-3 px-4 rounded font-bold uppercase tracking-wider transition-all ${currentMode === 'LIVE'
-                        ? 'bg-emerald-900/50 text-emerald-400 border-2 border-emerald-500'
+                    className={`w-full py-2 px-3 rounded font-bold text-xs uppercase tracking-wider transition-all ${currentMode === 'LIVE'
+                        ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-500'
                         : canStartLive
-                            ? 'bg-emerald-600 hover:bg-emerald-500 text-white border-2 border-transparent animate-pulse'
-                            : 'bg-slate-800/50 text-slate-600 cursor-not-allowed border-2 border-transparent'
+                            ? 'bg-emerald-600 hover:bg-emerald-500 text-white border border-transparent animate-pulse'
+                            : 'bg-slate-800/50 text-slate-600 cursor-not-allowed border border-transparent'
                         }`}
                 >
-                    {currentMode === 'LIVE' ? '● LIVE Mode Active' : 'Start LIVE Mode'}
+                    {currentMode === 'LIVE' ? '● LIVE Active' : 'Start LIVE'}
                 </button>
 
                 {!canStartLive && currentMode !== 'LIVE' && currentMode === 'SIM' && (
-                    <p className="text-xs text-amber-400 flex items-center gap-2 px-2">
+                    <p className="text-[10px] text-amber-400 flex items-center gap-1 px-1">
                         <AlertTriangle className="w-3 h-3" />
-                        Confidence must reach 85% to enable LIVE mode
+                        Need 85% confidence
                     </p>
                 )}
+
+                {/* Stop Button */}
                 {(currentMode === 'SIM' || currentMode === 'LIVE') && (
                     <button
                         onClick={onStopMode}
-                        className="w-full py-2 px-4 rounded font-bold uppercase tracking-wider bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-500/30 transition-all text-sm"
+                        className="w-full py-1.5 px-3 rounded font-bold uppercase tracking-wider bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-500/30 transition-all text-xs"
                     >
-                        Stop {currentMode} Mode
+                        Stop {currentMode}
                     </button>
                 )}
             </div>

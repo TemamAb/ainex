@@ -227,12 +227,12 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     switch (currentView) {
       case 'PREFLIGHT':
         return (
-          <div className="space-y-6">
-            <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
-              <div className="flex items-center justify-between mb-6">
+          <div className="space-y-4">
+            <div className="bg-slate-800/50 p-4 rounded border border-slate-700">
+              <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-2">System Preflight</h2>
-                  <p className="text-slate-400">Validate all engine components before initialization.</p>
+                  <h2 className="text-sm font-bold text-white mb-1">System Preflight</h2>
+                  <p className="text-xs text-slate-400">Validate engine components.</p>
                 </div>
               </div>
               <PreflightPanel
@@ -245,31 +245,31 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
                 isIdle={currentMode === 'IDLE'}
               />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <SystemStatus modules={modules} />
-              <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700">
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-blue-400" />
+              <div className="bg-slate-800/50 p-4 rounded border border-slate-700">
+                <h3 className="text-xs font-bold text-white mb-3 flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-blue-400" />
                   System Health
                 </h3>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-400">CPU Load</span>
-                    <div className="w-32 h-2 bg-slate-700 rounded-full overflow-hidden">
+                    <span className="text-xs text-slate-400">CPU Load</span>
+                    <div className="w-24 h-1.5 bg-slate-700 rounded-full overflow-hidden">
                       <div className="h-full bg-green-500 w-[24%]"></div>
                     </div>
-                    <span className="text-green-400 text-sm">24%</span>
+                    <span className="text-green-400 text-xs font-mono">24%</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Memory Usage</span>
-                    <div className="w-32 h-2 bg-slate-700 rounded-full overflow-hidden">
+                    <span className="text-xs text-slate-400">Memory</span>
+                    <div className="w-24 h-1.5 bg-slate-700 rounded-full overflow-hidden">
                       <div className="h-full bg-blue-500 w-[45%]"></div>
                     </div>
-                    <span className="text-blue-400 text-sm">45%</span>
+                    <span className="text-blue-400 text-xs font-mono">45%</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-400">Network Latency</span>
-                    <span className="text-emerald-400 text-sm font-mono">12ms</span>
+                    <span className="text-xs text-slate-400">Latency</span>
+                    <span className="text-emerald-400 text-xs font-mono">12ms</span>
                   </div>
                 </div>
               </div>
@@ -281,17 +281,17 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
         if (currentMode !== 'SIM') {
           return (
             <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-              <AlertTriangle className="w-16 h-16 text-yellow-500 mb-4" />
-              <h2 className="text-2xl font-bold text-white mb-2">Simulation Mode Not Active</h2>
-              <p className="text-slate-400 mb-6">Please run preflight checks to enable simulation.</p>
+              <AlertTriangle className="w-8 h-8 text-yellow-500 mb-3" />
+              <h2 className="text-sm font-bold text-white mb-1">Simulation Mode Not Active</h2>
+              <p className="text-xs text-slate-400 mb-4">Run preflight checks to enable simulation.</p>
               <button
                 onClick={() => setCurrentView('PREFLIGHT')}
-                className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded transition-colors"
+                className="px-4 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded text-xs transition-colors"
               >
                 Go to Preflight
               </button>
             </div>
-          )
+          );
         }
 
         // Calculate SIM metrics (mirroring LIVE mode calculations)
@@ -385,28 +385,6 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
                   </p>
                   <p className="text-xs text-slate-500">Confirmed trades</p>
                 </div>
-
-                <div className="bg-black/30 border border-slate-800/50 rounded p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-slate-400 uppercase font-bold">Unrealized P&L</span>
-                    <Clock className="w-4 h-4 text-amber-500" />
-                  </div>
-                  <p className={`text-lg font-bold ${simUnrealizedPnL >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {simUnrealizedPnL >= 0 ? '+' : ''}${simUnrealizedPnL.toFixed(2)}
-                  </p>
-                  <p className="text-xs text-slate-500">Pending signals</p>
-                </div>
-
-                <div className="bg-black/30 border border-slate-800/50 rounded p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-slate-400 uppercase font-bold">Daily P&L</span>
-                    <BarChart3 className="w-4 h-4 text-blue-500" />
-                  </div>
-                  <p className={`text-lg font-bold ${simProfitProjection.daily >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {simProfitProjection.daily >= 0 ? '+' : ''}${simProfitProjection.daily.toFixed(2)}
-                  </p>
-                  <p className="text-xs text-slate-500">24h projection</p>
-                </div>
               </div>
             </div>
 
@@ -462,7 +440,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
                   <p className="text-xs text-slate-500">Auto-stop enabled</p>
                 </div>
               </div>
-            </div>
+            </div >
 
             {/* Bot Status Grid */}
             <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-6 backdrop-blur-sm">
@@ -500,7 +478,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
                   </div>
                 ))}
               </div>
-            </div>
+            </div >
 
             {/* Trade Execution Feed */}
             <div className="bg-slate-900/40 border border-slate-800 rounded-lg overflow-hidden backdrop-blur-sm">
@@ -566,16 +544,18 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
                 </table>
               </div>
 
-              {simTradeLogs.length === 0 && (
-                <div className="px-6 py-8 text-center text-slate-500">
-                  <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>Waiting for simulation data...</p>
-                </div>
-              )}
-            </div>
+              {
+                simTradeLogs.length === 0 && (
+                  <div className="px-6 py-8 text-center text-slate-500">
+                    <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>Waiting for simulation data...</p>
+                  </div>
+                )
+              }
+            </div >
 
             {/* Flash Loan Status */}
-            <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-6 backdrop-blur-sm">
+            < div className="bg-slate-900/40 border border-slate-800 rounded-lg p-6 backdrop-blur-sm" >
               <h3 className="text-lg font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
                 <Zap className="w-5 h-5 text-blue-500" />
                 Flash Loan Providers (Simulated)
@@ -612,8 +592,8 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
                   </div>
                 ))}
               </div>
-            </div>
-          </div>
+            </div >
+          </div >
         );
 
       case 'LIVE':
