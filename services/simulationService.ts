@@ -1,6 +1,6 @@
-import type { TradeSignal, FlashLoanMetric } from '../types.ts';
-import { getRealPrices } from './priceService.ts';
-import { getCurrentGasPrice, getRecentTransactions } from '../blockchain/providers.ts';
+import type { TradeSignal, FlashLoanMetric, BotStatus } from '../types.ts';
+import { getRealPrices } from './priceService';
+import { getCurrentGasPrice, getRecentTransactions } from '../blockchain/providers';
 import { ethers } from 'ethers';
 
 // SIM Mode Simulation Service
@@ -27,6 +27,7 @@ export interface SimulationMetrics {
         successRate: number;
     };
     flashLoanMetrics: FlashLoanMetric[];
+    botStatuses: BotStatus[];
     confidence: number;
     variance: number;
 }
@@ -76,6 +77,54 @@ export const calculateConfidenceScore = (
     return Math.min(99, Math.max(10, confidence));
 };
 
+// Generate dynamic bot statuses based on real signals and network conditions
+export const generateBotStatuses = (
+    signalCount: number,
+    confidence: number,
+    gasStability: number
+): BotStatus[] => {
+    const bots: BotStatus[] = [
+        {
+            id: 'arb-detector',
+            name: 'Arbitrage Detector',
+            type: 'Detection',
+            tier: 'TIER_1_ARBITRAGE',
+            status: signalCount > 0 ? 'ACTIVE' : 'STANDBY',
+            uptime: '99.8%',
+            efficiency: Math.min(95, confidence)
+        },
+        {
+            id: 'flash-executor',
+            name: 'Flash Loan Executor',
+            type: 'Execution',
+            tier: 'TIER_2_LIQUIDATION',
+            status: confidence > 70 ? 'ACTIVE' : 'STANDBY',
+            uptime: '99.5%',
+            efficiency: Math.min(90, confidence * 0.9)
+        },
+        {
+            id: 'mev-shield',
+            name: 'MEV Protection',
+            type: 'Security',
+            tier: 'TIER_3_MEV',
+            status: gasStability > 0.8 ? 'ACTIVE' : 'EXECUTING',
+            uptime: '100%',
+            efficiency: gasStability * 100
+        },
+        {
+            id: 'price-monitor',
+            name: 'Price Monitor',
+            type: 'Monitoring',
+            tier: 'TIER_1_ARBITRAGE',
+            status: 'ACTIVE',
+            uptime: '99.9%',
+            efficiency: 98
+        }
+    ];
+
+    return bots;
+};
+
 // Run continuous Real-Time Analysis for SIM mode
 export const runSimulationLoop = (
     onMetricsUpdate: (metrics: SimulationMetrics) => void,
@@ -96,7 +145,7 @@ export const runSimulationLoop = (
             const recentTxs = await getRecentTransactions('ethereum', 5);
 
             const hasData = prices.ethereum.usd > 0;
-            if (!hasData) return;
+            // if (!hasData) return; // REMOVED EARLY RETURN to allow UI update with 0 confidence
 
             // 2. Analyze Recent Transactions for Arbitrage "What-If" Scenarios
             // We look at real high-value transactions in the last block and simulate "If this was an arb opportunity, what would we have made?"
@@ -124,7 +173,7 @@ export const runSimulationLoop = (
                         timestamp: Date.now(),
                         blockNumber: tx.blockNumber || 0,
                         txHash: tx.hash,
-                        status: 'PENDING'
+                        status: 'DETECTED'
                     };
 
                     newSignals.push(signal);
@@ -139,9 +188,13 @@ export const runSimulationLoop = (
             // If gas price is extremely high (>100 gwei), confidence drops due to volatility
             const gasGwei = parseFloat(ethers.formatUnits(gasPrice, 'gwei'));
             const gasStability = gasGwei > 100 ? 0.5 : 0.95;
-            const confidenceScore = calculateConfidenceScore(gasStability, 1);
+            // Ensure confidence is 0 if no data, otherwise calculate
+            const confidenceScore = hasData ? calculateConfidenceScore(gasStability, 1) : 0;
 
-            // 4. Update Metrics
+            // 4. Generate Dynamic Bot Statuses
+            const botStatuses = generateBotStatuses(newSignals.length, confidenceScore, gasStability);
+
+            // 5. Update Metrics
             // annualized projection based on this burst of activity
             const dailyProjection = accumulatedPotentialProfit * (60 * 60 * 24 / Math.max(1, analyzedTxCount)) * 0.1; // Conservative 10% capture rate of market volume
 
@@ -165,6 +218,7 @@ export const runSimulationLoop = (
                     successRate: 100
                 },
                 flashLoanMetrics: getFlashLoanMetrics(),
+                botStatuses: botStatuses,
                 confidence: confidenceScore,
                 variance: 5
             };
