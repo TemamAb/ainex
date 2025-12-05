@@ -170,28 +170,15 @@ export const AI_TERMINAL = {
 
 
 export const MOCK_BOTS: BotStatus[] = [
-  { id: 'b1', name: 'Alpha-Clone-01', type: 'SCANNER', tier: 'TIER_1', status: 'ONLINE', uptime: '48h 12m', efficiency: 98.5 },
-  { id: 'b2', name: 'Mev-Shield-Core', type: 'VALIDATOR', tier: 'TIER_2', status: 'ONLINE', uptime: '120h 05m', efficiency: 99.9 },
-  { id: 'b3', name: 'Execution-Agent-X', type: 'EXECUTOR', tier: 'TIER_3', status: 'WARNING', uptime: '4h 30m', efficiency: 78.2 },
-  { id: 'b4', name: 'Liquidity-Sniper', type: 'SCANNER', tier: 'TIER_1', status: 'OFFLINE', uptime: '0m', efficiency: 0 },
+  // STRICT NO MOCK DATA: Bots must be registered dynamically by the execution engine
 ];
 
 export const MOCK_TRADES: TradeLog[] = [
-  { id: 'tx-0x8a...29b', timestamp: '10:42:05', pair: 'WETH/USDC', dex: ['Uniswap V3', 'Curve'], profit: 1240.50, gas: 45.20, status: 'SUCCESS' },
-  { id: 'tx-0x7b...11a', timestamp: '10:41:58', pair: 'WBTC/DAI', dex: ['SushiSwap', 'Balancer'], profit: 890.12, gas: 52.10, status: 'SUCCESS' },
-  { id: 'tx-0x3c...99f', timestamp: '10:40:12', pair: 'LINK/WETH', dex: ['Uniswap V2', 'SushiSwap'], profit: 0, gas: 12.00, status: 'FAILED' },
-  { id: 'tx-0x1d...44e', timestamp: '10:39:45', pair: 'AAVE/USDT', dex: ['Aave', 'Uniswap V3'], profit: 345.80, gas: 38.50, status: 'SUCCESS' },
-  { id: 'tx-0x9e...22c', timestamp: '10:38:20', pair: 'MKR/DAI', dex: ['Balancer', 'Uniswap V3'], profit: 2100.00, gas: 110.00, status: 'SUCCESS' },
+  // STRICT NO MOCK DATA: Trade logs must come from real blockchain events
 ];
 
 export const SYSTEM_LOGS = [
-  "[INFO] 10:42:05 - Arbitrage opportunity detected on WETH/USDC (Spread: 0.8%)",
-  "[EXEC] 10:42:05 - Flash loan initiated: 1,000,000 USDC via Aave Pool",
-  "[EXEC] 10:42:06 - Swap executed on Uniswap V3 (Route: USDC -> WETH)",
-  "[EXEC] 10:42:06 - Swap executed on Curve (Route: WETH -> USDC)",
-  "[INFO] 10:42:07 - Loan repaid. Net Profit: 1240.50 USDC",
-  "[RISK] 10:42:10 - Gas spike detected (55 gwei). Adjusting slipage tolerance.",
-  "[WARN] 10:42:15 - Execution-Agent-X latency increased to 150ms.",
+  "[INFO] System initialized. Waiting for real-time events...",
 ];
 
 export const RAW_FILE_LIST = `

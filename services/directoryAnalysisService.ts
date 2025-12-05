@@ -1,4 +1,5 @@
-import { ModuleType, EngineModule, ModuleStatus } from '../types';
+import type { ModuleType, EngineModule } from '../types.ts';
+import { ModuleStatus } from '../types.ts';
 
 // Directory Analysis Service
 // Analyzes the core-logic directory structure and categorizes functional modules

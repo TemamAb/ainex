@@ -1,11 +1,13 @@
-export enum ModuleStatus {
-  ACTIVE = 'ACTIVE',
-  INACTIVE = 'INACTIVE',
-  OPTIMIZING = 'OPTIMIZING',
-  EXECUTING = 'EXECUTING',
-  STANDBY = 'STANDBY',
-  ERROR = 'ERROR'
-}
+export const ModuleStatus = {
+  ACTIVE: 'ACTIVE',
+  INACTIVE: 'INACTIVE',
+  OPTIMIZING: 'OPTIMIZING',
+  EXECUTING: 'EXECUTING',
+  STANDBY: 'STANDBY',
+  ERROR: 'ERROR'
+} as const;
+
+export type ModuleStatus = (typeof ModuleStatus)[keyof typeof ModuleStatus];
 
 export type BotTier = 'TIER_1_ARBITRAGE' | 'TIER_2_LIQUIDATION' | 'TIER_3_MEV';
 

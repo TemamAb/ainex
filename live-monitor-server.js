@@ -1,10 +1,10 @@
 // Live Profit Monitor Server
 // Serves the HTML and provides RPC endpoint from .env
 
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import { ethers } from 'ethers';
+const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
+const { ethers } = require('ethers');
 
 dotenv.config();
 

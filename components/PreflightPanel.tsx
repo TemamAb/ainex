@@ -89,11 +89,11 @@ export const PreflightPanel: React.FC<PreflightPanelProps> = ({
                         </div>
                     )}
                     {checks.map((check) => (
-                        <div key={check.id} className="flex items-center justify-between p-2 bg-black/20 rounded border border-slate-800/50 hover:border-slate-700 transition-colors">
+                        <div key={check.id} className={`flex items-center justify-between p-2 rounded border hover:border-slate-700 transition-colors ${check.status === 'failed' ? 'bg-red-900/30 border-red-500 border-l-4 text-white' : 'bg-black/20 border-slate-800/50'}`}>>>
                             <div className="flex items-center gap-2">
                                 {getStatusIcon(check.status)}
                                 <div>
-                                    <p className={`text-xs font-medium ${check.status === 'failed' && check.isCritical ? 'text-red-400' : 'text-slate-300'}`}>
+                                    <p className={`text-xs font-medium ${check.status === 'failed' ? 'text-white' : (check.status === 'failed' && check.isCritical ? 'text-red-400' : 'text-slate-300')}`}>
                                         {check.name}
                                         {check.isCritical && <span className="ml-2 text-[10px] bg-red-500/20 text-red-400 px-1 py-0.5 rounded uppercase">Crit</span>}
                                         {!check.isCritical && <span className="ml-2 text-[10px] bg-slate-700 text-slate-400 px-1 py-0.5 rounded uppercase">Opt</span>}
