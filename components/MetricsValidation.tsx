@@ -10,40 +10,14 @@ interface ValidationEvent {
     hash: string;
 }
 
-const MetricsValidation: React.FC = () => {
-    const [events, setEvents] = useState<ValidationEvent[]>([]);
-    const [isGenerating, setIsGenerating] = useState(false);
+interface MetricsValidationProps {
+    events?: ValidationEvent[];
+}
 
-    const generateRandomEvents = () => {
-        setIsGenerating(true);
-        const newEvents: ValidationEvent[] = [];
-        const types: ValidationEvent['type'][] = ['CLICK', 'TRANSACTION', 'API_CALL', 'VALIDATION'];
-        const statuses: ValidationEvent['status'][] = ['SUCCESS', 'FAILED', 'PENDING'];
+const MetricsValidation: React.FC<MetricsValidationProps> = ({ events = [] }) => {
+    // No internal state for events, fully controlled by props
+    // This ensures only REAL system events are displayed
 
-        for (let i = 0; i < 10; i++) {
-            const type = types[Math.floor(Math.random() * types.length)];
-            const status = statuses[Math.floor(Math.random() * statuses.length)];
-
-            newEvents.push({
-                id: `evt-${Date.now()}-${i}`,
-                type,
-                timestamp: Date.now() - Math.floor(Math.random() * 10000),
-                status,
-                details: `Simulated ${type.toLowerCase()} event #${Math.floor(Math.random() * 1000)}`,
-                hash: `0x${Array.from({ length: 8 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}...`
-            });
-        }
-
-        // Simulate a small delay for visual effect
-        setTimeout(() => {
-            setEvents(newEvents);
-            setIsGenerating(false);
-        }, 500);
-    };
-
-    useEffect(() => {
-        generateRandomEvents();
-    }, []);
 
     return (
         <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-6 max-w-4xl mx-auto">
@@ -52,17 +26,9 @@ const MetricsValidation: React.FC = () => {
                     <Hash className="w-6 h-6 text-purple-400" />
                     <div>
                         <h2 className="text-xl font-bold text-white">Metrics Validation</h2>
-                        <p className="text-sm text-slate-400">Randomized event stream verification</p>
+                        <p className="text-sm text-slate-400">Real-time system event verification</p>
                     </div>
                 </div>
-                <button
-                    onClick={generateRandomEvents}
-                    disabled={isGenerating}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50"
-                >
-                    <RefreshCw className={`w-4 h-4 ${isGenerating ? 'animate-spin' : ''}`} />
-                    Generate New Set
-                </button>
             </div>
 
             <div className="space-y-3">
@@ -79,9 +45,9 @@ const MetricsValidation: React.FC = () => {
                             <div>
                                 <div className="flex items-center gap-2">
                                     <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${event.type === 'TRANSACTION' ? 'bg-green-500/20 text-green-400' :
-                                            event.type === 'CLICK' ? 'bg-blue-500/20 text-blue-400' :
-                                                event.type === 'API_CALL' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                    'bg-purple-500/20 text-purple-400'
+                                        event.type === 'CLICK' ? 'bg-blue-500/20 text-blue-400' :
+                                            event.type === 'API_CALL' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                'bg-purple-500/20 text-purple-400'
                                         }`}>
                                         {event.type}
                                     </span>
@@ -94,8 +60,8 @@ const MetricsValidation: React.FC = () => {
                         <div className="flex items-center gap-4">
                             <div className="text-right">
                                 <div className={`text-xs font-bold flex items-center gap-1 justify-end ${event.status === 'SUCCESS' ? 'text-green-400' :
-                                        event.status === 'FAILED' ? 'text-red-400' :
-                                            'text-yellow-400'
+                                    event.status === 'FAILED' ? 'text-red-400' :
+                                        'text-yellow-400'
                                     }`}>
                                     {event.status === 'SUCCESS' && <CheckCircle className="w-3 h-3" />}
                                     {event.status === 'FAILED' && <XCircle className="w-3 h-3" />}

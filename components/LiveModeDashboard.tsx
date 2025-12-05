@@ -17,6 +17,8 @@ interface LiveModeDashboardProps {
     onPauseTrading?: () => void;
     onResumeTrading?: () => void;
     isPaused?: boolean;
+    mode: 'SIM' | 'LIVE';
+    confidence?: number;
 }
 
 interface LiveTrade {
@@ -36,7 +38,9 @@ const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
     onExecuteTrade,
     onPauseTrading,
     onResumeTrading,
-    isPaused = false
+    isPaused = false,
+    mode,
+    confidence = 0
 }) => {
     const [liveTrades, setLiveTrades] = useState<LiveTrade[]>([]);
     const [activeTrades, setActiveTrades] = useState<TradeSignal[]>([]);
@@ -83,37 +87,47 @@ const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
             <div className="bg-slate-900/40 border border-emerald-500/30 rounded-lg p-4 backdrop-blur-sm">
                 <div className="flex justify-between items-center mb-3">
                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                        <h3 className="text-sm font-light text-emerald-400 uppercase tracking-wider">
-                            LIVE TRADING ACTIVE
+                        <div className={`w-2 h-2 rounded-full animate-pulse ${mode === 'LIVE' ? 'bg-emerald-500' : 'bg-blue-500'}`}></div>
+                        <h3 className={`text-sm font-light uppercase tracking-wider ${mode === 'LIVE' ? 'text-emerald-400' : 'text-blue-400'}`}>
+                            {mode === 'LIVE' ? 'LIVE TRADING ACTIVE' : 'SIMULATION RUNNING'}
                         </h3>
                     </div>
                     <div className="flex items-center gap-2">
-                        <button
-                            onClick={isPaused ? onResumeTrading : onPauseTrading}
-                            className={`px-3 py-1.5 rounded font-light text-xs uppercase tracking-wider transition-all ${isPaused
-                                ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                                : 'bg-amber-600 hover:bg-amber-500 text-white'
-                                }`}
-                        >
-                            {isPaused ? (
-                                <>
-                                    <Play className="w-3 h-3 inline mr-1" />
-                                    Resume
-                                </>
-                            ) : (
-                                <>
-                                    <Pause className="w-3 h-3 inline mr-1" />
-                                    Pause
-                                </>
-                            )}
-                        </button>
+                        {mode === 'LIVE' && (
+                            <button
+                                onClick={isPaused ? onResumeTrading : onPauseTrading}
+                                className={`px-3 py-1.5 rounded font-light text-xs uppercase tracking-wider transition-all ${isPaused
+                                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                                    : 'bg-amber-600 hover:bg-amber-500 text-white'
+                                    }`}
+                            >
+                                {isPaused ? (
+                                    <>
+                                        <Play className="w-3 h-3 inline mr-1" />
+                                        Resume
+                                    </>
+                                ) : (
+                                    <>
+                                        <Pause className="w-3 h-3 inline mr-1" />
+                                        Pause
+                                    </>
+                                )}
+                            </button>
+                        )}
+                        {mode === 'SIM' && (
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded">
+                                <span className="text-xs text-slate-400">Confidence:</span>
+                                <span className={`text-xs font-bold ${confidence >= 85 ? 'text-emerald-400' : 'text-yellow-400'}`}>
+                                    {confidence.toFixed(1)}%
+                                </span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div className="text-center">
-                        <p className="text-xs font-light text-slate-400 uppercase">Live Profit</p>
+                        <p className="text-xs font-light text-slate-400 uppercase">{mode === 'LIVE' ? 'Real Profit' : 'Est. Profit'}</p>
                         <p className={`text-sm font-light ${liveProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                             ${liveProfit.toFixed(2)}
                         </p>
@@ -140,16 +154,18 @@ const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
             </div>
 
             {/* Blockchain Verification */}
-            <LiveModeValidator
-                isLive={!isPaused}
-                recentTransactions={liveTrades.map(t => ({
-                    id: t.id,
-                    txHash: t.txHash || '',
-                    profit: t.actualProfit || 0,
-                    status: t.status
-                }))}
-                chain="ethereum"
-            />
+            {mode === 'LIVE' && (
+                <LiveModeValidator
+                    isLive={!isPaused}
+                    recentTransactions={liveTrades.map(t => ({
+                        id: t.id,
+                        txHash: t.txHash || '',
+                        profit: t.actualProfit || 0,
+                        status: t.status
+                    }))}
+                    chain="ethereum"
+                />
+            )}
 
             {/* Live Blockchain Events */}
             <LiveBlockchainEvents isLive={!isPaused} />
