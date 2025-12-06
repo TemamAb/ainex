@@ -1,4 +1,4 @@
-as import { ethers } from 'ethers';
+import { ethers } from 'ethers';
 
 // Flash Loan Aggregator Service
 // Multi-protocol flash loan orchestration
