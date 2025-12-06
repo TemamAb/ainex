@@ -52,7 +52,7 @@ export const PreflightPanel: React.FC<PreflightPanelProps> = ({
 
             <div className="p-3">
                 {/* Status Overview */}
-                <div className="mb-3 grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div className="mb-3 grid grid-cols-2 md:grid-cols-4 gap-2">
                     <div className="bg-black/30 p-2 rounded border border-slate-800">
                         <span className="text-xs text-slate-500 uppercase">Status</span>
                         <div className="flex items-center gap-2 mt-1">
@@ -63,19 +63,30 @@ export const PreflightPanel: React.FC<PreflightPanelProps> = ({
                         </div>
                     </div>
                     <div className="bg-black/30 p-2 rounded border border-slate-800">
-                        <span className="text-xs text-slate-500 uppercase">Critical</span>
+                        <span className="text-xs text-slate-500 uppercase">Core</span>
                         <div className="flex items-center gap-2 mt-1">
-                            <Shield className={`w-3 h-3 ${criticalPassed ? 'text-emerald-500' : 'text-red-500'}`} />
-                            <span className={`text-xs font-bold ${criticalPassed ? 'text-emerald-400' : 'text-red-400'}`}>
-                                {criticalPassed ? 'OK' : 'ATTENTION'}
+                            <Database className="w-3 h-3 text-blue-500" />
+                            <span className="text-xs font-bold text-slate-200">
+                                {checks.filter(check => check.category !== 'sim_mode' && check.category !== 'live_mode').filter(c => c.status === 'passed').length}/{checks.filter(check => check.category !== 'sim_mode' && check.category !== 'live_mode').length}
                             </span>
                         </div>
                     </div>
                     <div className="bg-black/30 p-2 rounded border border-slate-800">
-                        <span className="text-xs text-slate-500 uppercase">Env</span>
+                        <span className="text-xs text-slate-500 uppercase">SIM Mode</span>
                         <div className="flex items-center gap-2 mt-1">
-                            <Globe className="w-3 h-3 text-blue-500" />
-                            <span className="text-xs font-bold text-slate-200">Mainnet</span>
+                            <Zap className="w-3 h-3 text-blue-400" />
+                            <span className="text-xs font-bold text-slate-200">
+                                {checks.filter(check => check.category === 'sim_mode').filter(c => c.status === 'passed').length}/{checks.filter(check => check.category === 'sim_mode').length}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="bg-black/30 p-2 rounded border border-slate-800">
+                        <span className="text-xs text-slate-500 uppercase">LIVE Mode</span>
+                        <div className="flex items-center gap-2 mt-1">
+                            <AlertTriangle className="w-3 h-3 text-emerald-500" />
+                            <span className="text-xs font-bold text-slate-200">
+                                {checks.filter(check => check.category === 'live_mode').filter(c => c.status === 'passed').length}/{checks.filter(check => check.category === 'live_mode').length}
+                            </span>
                         </div>
                     </div>
                 </div>

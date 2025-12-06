@@ -14,10 +14,32 @@ services:
       - key: SIMULATION_MODE
         value: false
       - key: NEXT_PUBLIC_ETH_RPC_URL
-        value: https://eth-mainnet.g.alchemy.com/v2/demo
+        value: https://eth-mainnet.g.alchemy.com/v2/9v_Ducm70QxIb75p3_wPS
       - key: NEXT_PUBLIC_ARBITRUM_RPC_URL
-        value: https://arb-mainnet.g.alchemy.com/v2/demo
+        value: https://arb1.arbitrum.io/rpc
       - key: NEXT_PUBLIC_BASE_RPC_URL
-        value: https://base-mainnet.g.alchemy.com/v2/demo
+        value: https://mainnet.base.org
       - key: NEXT_PUBLIC_ETH_WS_URL
-        value: wss://eth-mainnet.g.alchemy.com/v2/demo
+        value: wss://eth.llamarpc.com
+      - key: NEXT_PUBLIC_ARBITRUM_WS_URL
+        value: wss://arb1.arbitrum.io/rpc
+      - key: NEXT_PUBLIC_BASE_WS_URL
+        value: wss://mainnet.base.org
+      - key: ALCHEMY_MAINNET_URL
+        value: https://eth-mainnet.g.alchemy.com/v2/9v_Ducm70QxIb75p3_wPS
+      - key: PIMLICO_API_KEY
+        value: pim_UbfKR9ocMe5ibNUCGgB8fE
+      - key: ETHERSCAN_API_KEY
+        value: W7HCDYZ4RJPQQPAS7FM5B229S1HP2S3EZT
+      - key: ARBISCAN_API_KEY
+        value: ZSP4MJ9GRH3CZTR778SJRANWU68HJ9AVH7
+      - key: GOOGLE_AI_STUDIO
+        value: AIzaSyB65MUKSgpVYcb3Bon6MS_u87hTNHWl5iY
+      - key: ANKR_API_KEY
+        value: 2dc704d9a38ce72c69e8a1c8e1b90bfd8d075e179f634b62ede584286d4c6b8a
+      - key: ANKR_RPC
+        value: https://rpc.ankr.com/multichain/2dc704d9a38ce72c69e8a1c8e1b90bfd8d075e179f634b62ede584286d4c6b8a
+      - key: NEXT_PUBLIC_WALLET_PRIVATE_KEY
+        value: YOUR_PRIVATE_KEY_HERE
+      - key: ADMIN_PASSWORD
+        value: Temam@1954

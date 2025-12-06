@@ -23,24 +23,32 @@ let baseProvider: ethers.JsonRpcProvider | null = null;
 
 export const getEthereumProvider = async (): Promise<ethers.JsonRpcProvider> => {
     if (!ethereumProvider) {
-        // Try environment variable first, but fall back to free endpoint if it fails
-        const envUrl = process.env.NEXT_PUBLIC_ETH_RPC_URL;
-        if (envUrl) {
+        const fallbackUrls = [
+            process.env.NEXT_PUBLIC_ETH_RPC_URL,
+            'https://ethereum.publicnode.com',
+            'https://cloudflare-eth.com',
+            'https://rpc.ankr.com/eth'
+        ].filter(Boolean); // Remove undefined values
+
+        for (const url of fallbackUrls) {
             try {
-                // validate-env.js confirmed this URL is correct, but we wrap in try/catch for runtime safety
-                const testProvider = new ethers.JsonRpcProvider(envUrl);
-                // Test the connection by trying to get network info
-                await testProvider.getNetwork();
+                console.log(`Trying Ethereum RPC: ${url}`);
+                const testProvider = new ethers.JsonRpcProvider(url);
+                // Test the connection with timeout
+                const network = await Promise.race([
+                    testProvider.getNetwork(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+                ]);
                 ethereumProvider = testProvider;
-                console.log('Using environment RPC URL for Ethereum');
+                console.log(`Successfully connected to Ethereum RPC: ${url} (Chain ID: ${(network as any).chainId})`);
+                break;
             } catch (error) {
-                console.error('Environment RPC URL connection failed:', error);
-                console.warn('Falling back to public PublicNode RPC...');
-                ethereumProvider = new ethers.JsonRpcProvider('https://ethereum.publicnode.com');
+                console.warn(`Failed to connect to Ethereum RPC ${url}:`, error.message);
             }
-        } else {
-            console.warn('NEXT_PUBLIC_ETH_RPC_URL not set. Using public PublicNode RPC.');
-            ethereumProvider = new ethers.JsonRpcProvider('https://ethereum.publicnode.com');
+        }
+
+        if (!ethereumProvider) {
+            throw new Error('All Ethereum RPC endpoints failed');
         }
     }
     return ethereumProvider;
@@ -48,8 +56,33 @@ export const getEthereumProvider = async (): Promise<ethers.JsonRpcProvider> => 
 
 export const getArbitrumProvider = async (): Promise<ethers.JsonRpcProvider> => {
     if (!arbitrumProvider) {
-        console.log('Initializing Arbitrum Provider with URL:', RPC_ENDPOINTS.arbitrum.mainnet);
-        arbitrumProvider = new ethers.JsonRpcProvider(RPC_ENDPOINTS.arbitrum.mainnet);
+        const fallbackUrls = [
+            process.env.NEXT_PUBLIC_ARBITRUM_RPC_URL,
+            'https://arb1.arbitrum.io/rpc',
+            'https://arbitrum-one.publicnode.com',
+            'https://rpc.ankr.com/arbitrum'
+        ].filter(Boolean); // Remove undefined values
+
+        for (const url of fallbackUrls) {
+            try {
+                console.log(`Trying Arbitrum RPC: ${url}`);
+                const testProvider = new ethers.JsonRpcProvider(url);
+                // Test the connection with timeout
+                const network = await Promise.race([
+                    testProvider.getNetwork(),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+                ]);
+                arbitrumProvider = testProvider;
+                console.log(`Successfully connected to Arbitrum RPC: ${url} (Chain ID: ${(network as any).chainId})`);
+                break;
+            } catch (error) {
+                console.warn(`Failed to connect to Arbitrum RPC ${url}:`, error.message);
+            }
+        }
+
+        if (!arbitrumProvider) {
+            throw new Error('All Arbitrum RPC endpoints failed');
+        }
     }
     return arbitrumProvider;
 };
