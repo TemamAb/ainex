@@ -33,7 +33,8 @@ export interface TradeSignal {
   route: string[];
   timestamp: number;
   txHash?: string;
-  status: 'DETECTED' | 'EXECUTING' | 'CONFIRMED';
+  status: 'DETECTED' | 'EXECUTING' | 'CONFIRMED' | 'COMPLETED' | 'FAILED';
+  actualProfit?: string;
 }
 
 export interface AIStrategyResponse {
@@ -78,12 +79,13 @@ export interface BotStatus {
 
 export interface TradeLog {
   id: string;
-  timestamp: string;
+  timestamp: number;
   pair: string;
-  dex: string[];
+  action: 'LONG' | 'SHORT' | 'FLASH_LOAN' | 'MEV_BUNDLE';
   profit: number;
-  gas: number;
-  status: 'SUCCESS' | 'FAILED';
+  status: 'SUCCESS' | 'FAILED' | 'COMPLETED';
+  gasUsed: string;
+  txHash?: string;
 }
 
 export interface ProfitTargetSettings {

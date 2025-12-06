@@ -29,6 +29,7 @@
 ## Blockchain Events
 - [x] Update LiveBlockchainEvents.tsx to stream real events via WebSocket instead of generating mock data
 - [x] Confirm real-time event streaming works
+- [x] Fix polling fallback to process real blockchain transactions instead of only block events
 
 ## Data Consistency
 - [x] Ensure SIM and LIVE modes use consistent real-time data sources

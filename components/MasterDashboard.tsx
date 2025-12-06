@@ -96,7 +96,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
   const [simBotStatuses, setSimBotStatuses] = useState<BotStatus[]>([]);
   const [simTradeLogs, setSimTradeLogs] = useState<TradeLog[]>([]);
   const [simLatencyMetrics, setSimLatencyMetrics] = useState({ avgLatency: 0, mevOpportunities: 0 });
-  const [simProfitProjection, setSimProfitProjection] = useState({ hourly: 0, daily: 0, weekly: 0 });
+  const [simProfitProjection, setSimProfitProjection] = useState({ hourly: 0, daily: 0, weekly: 0, monthly: 0 });
 
   // LIVE Mode State - Real blockchain data
   const [liveTradeSignals, setLiveTradeSignals] = useState<TradeSignal[]>([]);
@@ -125,7 +125,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     setSimBotStatuses([]);
     setSimTradeLogs([]);
     setSimLatencyMetrics({ avgLatency: 0, mevOpportunities: 0 });
-    setSimProfitProjection({ hourly: 0, daily: 0, weekly: 0 });
+    setSimProfitProjection({ hourly: 0, daily: 0, weekly: 0, monthly: 0 });
     setSimConfidence(0);
     console.log('Protocol Enforcement: SIM Metrics reset.');
   };
@@ -362,37 +362,95 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
             }
           }, 5000);
 
-          // 5. Start Enhanced Profit Tracking with Risk Monitoring
+          // 5. Start Enhanced Profit Tracking with REAL Trade Execution
           let totalProfit = 0;
           const profitTrackingInterval = setInterval(async () => {
             try {
-              // Get advanced metrics from integration service
-              const advancedMetrics = await advancedIntegrationService.getAdvancedMetrics();
+              // Check for executable signals and execute real trades
+              const executableSignals = liveTradeSignals.filter(signal =>
+                signal.status === 'DETECTED' &&
+                signal.confidence >= 85 &&
+                parseFloat(signal.expectedProfit) > 0.001 // Minimum profit threshold
+              );
 
-              // Simulate profit accumulation with risk-adjusted calculations
-              const baseProfit = Math.random() * 0.01;
-              const riskAdjustment = advancedMetrics.riskMonitoring?.currentExposure || 0.1;
-              const quantumAdvantage = advancedMetrics.quantumOptimization?.advantage || 0.1;
-              const newProfit = baseProfit * (1 + quantumAdvantage) * (1 - riskAdjustment);
+              if (executableSignals.length > 0 && !isTradingPaused) {
+                console.log(`[LIVE EXECUTION] Found ${executableSignals.length} executable signals`);
 
-              totalProfit += newProfit;
+                for (const signal of executableSignals.slice(0, 1)) { // Execute one at a time
+                  try {
+                    console.log(`[LIVE EXECUTION] Executing trade for signal: ${signal.id}`);
+
+                    // Update signal status to executing
+                    setLiveTradeSignals(prev => prev.map(s =>
+                      s.id === signal.id ? { ...s, status: 'EXECUTING' as const } : s
+                    ));
+
+                    // Execute the real trade
+                    const { executeTrade } = require('../services/executionService');
+                    const result = await executeTrade(signal);
+
+                    if (result.success) {
+                      console.log(`[LIVE EXECUTION] Trade executed successfully! Profit: ${result.effectivePrice || result.expectedProfit} ETH, TxHash: ${result.txHash}`);
+
+                      // Update signal status to completed
+                      setLiveTradeSignals(prev => prev.map(s =>
+                        s.id === signal.id ? {
+                          ...s,
+                          status: 'COMPLETED' as const,
+                          txHash: result.txHash || s.txHash,
+                          actualProfit: result.effectivePrice || result.expectedProfit
+                        } : s
+                      ));
+
+                      // Add real profit to tracking
+                      const realProfit = parseFloat(result.effectivePrice || result.expectedProfit || '0');
+                      totalProfit += realProfit;
+
+                      // Update trade logs
+                      const tradeLog = {
+                        id: result.txHash || signal.id,
+                        timestamp: Date.now(),
+                        pair: signal.pair,
+                        action: signal.action,
+                        profit: realProfit,
+                        status: 'COMPLETED' as const,
+                        gasUsed: result.gasUsed || '0',
+                        txHash: result.txHash
+                      };
+                      setLiveTradeLogs(prev => [tradeLog, ...prev].slice(0, 100));
+
+                    } else {
+                      console.error(`[LIVE EXECUTION] Trade failed: ${result.error}`);
+
+                      // Update signal status to failed
+                      setLiveTradeSignals(prev => prev.map(s =>
+                        s.id === signal.id ? { ...s, status: 'FAILED' as const } : s
+                      ));
+                    }
+
+                  } catch (executionError) {
+                    console.error(`[LIVE EXECUTION] Execution error for signal ${signal.id}:`, executionError);
+
+                    // Update signal status to failed
+                    setLiveTradeSignals(prev => prev.map(s =>
+                      s.id === signal.id ? { ...s, status: 'FAILED' as const } : s
+                    ));
+                  }
+                }
+              }
+
+              // Update profit metrics display
               setLiveProfitMetrics(prev => ({
-                daily: prev.daily + newProfit,
+                daily: prev.daily + (totalProfit - prev.total), // Add any new profits
                 total: totalProfit,
-                quantumAdvantage,
-                riskAdjusted: true
+                lastExecution: Date.now(),
+                realTradesExecuted: liveTradeLogs.length
               }));
+
             } catch (error) {
-              console.error('[ENHANCED PROFIT TRACKING] Error:', error);
-              // Fallback to basic tracking
-              const newProfit = Math.random() * 0.01;
-              totalProfit += newProfit;
-              setLiveProfitMetrics(prev => ({
-                daily: prev.daily + newProfit,
-                total: totalProfit
-              }));
+              console.error('[REAL PROFIT TRACKING] Error:', error);
             }
-          }, 10000);
+          }, 15000); // Check every 15 seconds for executable trades
 
           // 6. Advanced Integration Monitoring (Quantum + Multi-Agent + Compliance)
           advancedIntegrationInterval = setInterval(async () => {
@@ -514,7 +572,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
           }, 30000); // Update every 30 seconds
 
           // Store cleanup functions
-          const cleanup = () => {
+          const fullCleanup = () => {
             if (cleanupBotSystem) cleanupBotSystem();
             if (flashLoanMetricsInterval) clearInterval(flashLoanMetricsInterval);
             if (profitTrackingInterval) clearInterval(profitTrackingInterval);
@@ -525,20 +583,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
           };
 
           // Override cleanupBotSystem with full cleanup
-          cleanupBotSystem = cleanup;
-
-          // Store cleanup functions
-          const cleanup = () => {
-            if (cleanupBotSystem) cleanupBotSystem();
-            if (flashLoanMetricsInterval) clearInterval(flashLoanMetricsInterval);
-            if (profitTrackingInterval) clearInterval(profitTrackingInterval);
-            if (advancedIntegrationInterval) clearInterval(advancedIntegrationInterval);
-            if (quantumOptimizationInterval) clearInterval(quantumOptimizationInterval);
-            if (complianceMonitoringInterval) clearInterval(complianceMonitoringInterval);
-          };
-
-          // Override cleanupBotSystem with full cleanup
-          cleanupBotSystem = cleanup;
+          cleanupBotSystem = fullCleanup;
 
         } catch (error) {
           console.error('[LIVE MODE] Failed to start enterprise arbitrage engine:', error);
@@ -570,8 +615,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
             profitProjection={{
               hourly: simProfitProjection.hourly,
               daily: simProfitProjection.daily,
-              weekly: simProfitProjection.weekly,
-              monthly: simProfitProjection.monthly || 0
+              weekly: simProfitProjection.weekly
             }}
           />
         );
@@ -594,9 +638,17 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
       case 'AI_CONSOLE':
         return <AiConsole />;
       case 'SETTINGS':
-        return <SettingsPanel onSettingsChange={(settings) => console.log('Settings changed:', settings)} />;
+        return <SettingsPanel
+          tradeSettings={tradeSettings}
+          currentProfit={{
+            hourly: currentMode === 'SIM' ? simProfitProjection.hourly : 0,
+            daily: currentMode === 'SIM' ? simProfitProjection.daily : liveProfitMetrics.daily,
+            weekly: currentMode === 'SIM' ? simProfitProjection.weekly : 0
+          }}
+          onSettingsChange={setTradeSettings}
+        />;
       case 'METRICS_VALIDATION':
-        return <MetricsValidation events={currentMode === 'SIM' ? simTradeLogs.map(l => ({ id: l.id, type: 'VALIDATION', timestamp: new Date(l.timestamp).getTime(), status: 'SUCCESS', details: `Simulated: ${l.pair}`, hash: l.id })) : liveTradeLogs.map(l => ({ id: l.id, type: 'TRANSACTION', timestamp: new Date(l.timestamp).getTime(), status: l.status, details: `Executed: ${l.pair}`, hash: l.id }))} />;
+        return <MetricsValidation events={currentMode === 'SIM' ? simTradeLogs.map(l => ({ id: l.id, type: 'VALIDATION', timestamp: new Date(l.timestamp).getTime(), status: 'SUCCESS' as const, details: `Simulated: ${l.pair}`, hash: l.id })) : liveTradeLogs.map(l => ({ id: l.id, type: 'TRANSACTION', timestamp: new Date(l.timestamp).getTime(), status: l.status === 'COMPLETED' ? 'SUCCESS' as const : l.status as 'SUCCESS' | 'FAILED' | 'PENDING', details: `Executed: ${l.pair}`, hash: l.id }))} />;
       default:
         return <PreflightPanel checks={preflightChecks} isRunning={isPreflightRunning} allPassed={preflightPassed} criticalPassed={preflightPassed} onRunPreflight={handleRunPreflight} onStartSim={handleStartSim} isIdle={currentMode === 'IDLE'} />;
     }

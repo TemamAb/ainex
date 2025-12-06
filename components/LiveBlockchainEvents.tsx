@@ -76,16 +76,30 @@ const LiveBlockchainEvents: React.FC<LiveBlockchainEventsProps> = ({ isLive }) =
             }
         };
 
-        const fallbackToPolling = () => {
+        const fallbackToPolling = async () => {
             console.log('Falling back to polling for blockchain events');
+            const { getLatestBlockNumber, getEthereumProvider } = await import('../blockchain/providers');
+            const provider = await getEthereumProvider();
+
             const pollBlockNumber = async () => {
                 try {
-                    const { getLatestBlockNumber } = await import('../blockchain/providers');
                     const blockNum = await getLatestBlockNumber('ethereum');
                     if (blockNum !== latestBlock) {
                         setLatestBlock(blockNum);
 
-                        // Add block event
+                        // Get block details and process real transactions
+                        try {
+                            const block = await provider.getBlock(blockNum, true);
+                            if (block && block.transactions.length > 0) {
+                                // Process real transactions from the block
+                                const blockEvents = await processBlockTransactions(block, provider);
+                                setEvents(prev => [...blockEvents, ...prev].slice(0, 50)); // Keep last 50 events
+                            }
+                        } catch (blockError) {
+                            console.error('Error processing polled block:', blockError);
+                        }
+
+                        // Add block mined event
                         const blockEvent: BlockchainEvent = {
                             id: `block-${blockNum}`,
                             timestamp: Date.now(),
@@ -117,7 +131,7 @@ const LiveBlockchainEvents: React.FC<LiveBlockchainEventsProps> = ({ isLive }) =
     }, [isLive]);
 
     // Process real transactions from a block to create meaningful events
-    const processBlockTransactions = async (block: ethers.Block, provider: ethers.WebSocketProvider): Promise<BlockchainEvent[]> => {
+    const processBlockTransactions = async (block: ethers.Block, provider: ethers.JsonRpcProvider | ethers.WebSocketProvider): Promise<BlockchainEvent[]> => {
         const events: BlockchainEvent[] = [];
 
         for (const txHash of block.transactions.slice(0, 5)) { // Process first 5 transactions
@@ -171,7 +185,7 @@ const LiveBlockchainEvents: React.FC<LiveBlockchainEventsProps> = ({ isLive }) =
     };
 
     // Check if transaction interacts with known DEX contracts
-    const isDexTransaction = async (tx: ethers.TransactionResponse, provider: ethers.WebSocketProvider): Promise<boolean> => {
+    const isDexTransaction = async (tx: ethers.TransactionResponse, provider: ethers.JsonRpcProvider | ethers.WebSocketProvider): Promise<boolean> => {
         const dexContracts = [
             '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D', // Uniswap V2 Router
             '0xE592427A0AEce92De3Edee1F18E0157C05861564', // Uniswap V3 Router
