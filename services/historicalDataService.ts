@@ -42,7 +42,7 @@ export const generateHistoricalData = (): HistoricalDataPoint[] => {
     // Calculate daily metrics
     const successfulTrades = dailyTrades.filter(t => t.status === 'SUCCESS');
     const dailyProfit = successfulTrades.reduce((sum, t) => sum + t.profit, 0);
-    const dailyVolume = dailyTrades.reduce((sum, t) => sum + Math.abs(t.profit) + t.gas, 0);
+    const dailyVolume = dailyTrades.reduce((sum, t) => sum + Math.abs(t.profit) + parseFloat(t.gasUsed), 0);
     const dailySuccessRate = dailyTrades.length > 0 ? (successfulTrades.length / dailyTrades.length) * 100 : 0;
 
     data.push({
@@ -76,12 +76,13 @@ const generateDailyTrades = (date: Date): TradeLog[] => {
 
     trades.push({
       id: `trade-${date.getTime()}-${i}`,
-      timestamp: tradeTime.toISOString(),
+      timestamp: tradeTime.getTime(),
       pair: pairs[Math.floor(Math.random() * pairs.length)],
-      dex: dexs.slice(0, 1 + Math.floor(Math.random() * 3)),
+      action: 'FLASH_LOAN',
       profit: profit,
-      gas: gas,
-      status: profit > 0 ? 'SUCCESS' : 'FAILED'
+      status: profit > 0 ? 'SUCCESS' : 'FAILED',
+      gasUsed: gas.toString(),
+      txHash: `0x${Math.random().toString(16).substr(2, 64)}`
     });
   }
 
