@@ -24,7 +24,7 @@ const ModeControl: React.FC<ModeControlProps> = ({
     onRunPreflight,
     isPreflightRunning = false,
 }) => {
-    const canStartSim = preflightPassed && (currentMode === 'IDLE' || currentMode === 'PREFLIGHT');
+    const canStartSim = currentMode === 'IDLE' || currentMode === 'PREFLIGHT';
     const canStartLive = currentMode === 'SIM' && simConfidence >= 85;
 
     // Color coding: SIM = white, LIVE = green

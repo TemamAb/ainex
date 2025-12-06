@@ -143,18 +143,16 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
   };
 
   const handleStartSim = async () => {
-    if (preflightPassed) {
-      resetSimMetrics();
-      // Start Activation Sequence
-      setIsActivating('SIM');
-      setActivationSteps(getSimActivationSteps());
+    resetSimMetrics();
+    // Start Activation Sequence
+    setIsActivating('SIM');
+    setActivationSteps(getSimActivationSteps());
 
-      await runActivationSequence(getSimActivationSteps(), (steps) => setActivationSteps(steps));
+    await runActivationSequence(getSimActivationSteps(), (steps) => setActivationSteps(steps));
 
-      setIsActivating(null);
-      setCurrentMode('SIM');
-      setCurrentView('SIM');
-    }
+    setIsActivating(null);
+    setCurrentMode('SIM');
+    setCurrentView('SIM');
   };
 
   const handleStartLive = async () => {
