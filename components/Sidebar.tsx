@@ -96,7 +96,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     ];
 
     const handleModeSelect = (modeId: string) => {
-        if (modeId === 'SIM' && !preflightPassed) return;
         if (modeId === 'LIVE' && (!preflightPassed || simConfidence < 85)) return;
 
         onModeChange(modeId);

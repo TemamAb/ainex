@@ -6,7 +6,7 @@ const MasterDashboard = dynamic(
   () => import('../components/MasterDashboard'),
   {
     ssr: false,
-    loading: () => <div>Loading dashboard...</div>
+    loading: () => <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontSize: '24px' }}>Loading AINEX Dashboard...</div>
   }
 )
 
