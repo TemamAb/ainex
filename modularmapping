@@ -1,0 +1,206 @@
+# AINEX Project Modular File Organization
+
+This document organizes all files in the AINEX project into logical modules based on their functionality and purpose.
+
+## 1. Core Application & Configuration
+- next.config.js - Next.js configuration
+- next-env.d.ts - Next.js TypeScript definitions
+- package.json - Node.js dependencies and scripts
+- package-lock.json - Dependency lock file
+- package-monitor.json - Monitoring package config
+- package.json.backup - Backup package config
+- tsconfig.json - TypeScript configuration
+- tsconfig.tsbuildinfo - TypeScript build info
+- types.ts - Global type definitions
+- constants.ts - Application constants
+- .eslintrc.json - ESLint configuration
+- eslint.config.mjs - ESLint config (modern)
+- tailwind.config.ts - Tailwind CSS configuration
+- postcss.config.js - PostCSS configuration
+- vercel.json - Vercel deployment config
+
+## 2. Frontend Components & Pages
+- pages/_app.tsx - Next.js app wrapper
+- pages/index.jsx - Main landing page
+- components/ - All React components (.tsx files):
+  - ActivationOverlay.tsx
+  - AiConsole.tsx
+  - ConfidenceReport.tsx
+  - LiveBlockchainEvents.tsx
+  - LiveModeDashboard.tsx
+  - LiveModeValidator.tsx
+  - MasterDashboard.tsx
+  - MetricsValidation.tsx
+  - ModeControl.tsx
+  - PreflightPanel.tsx
+  - ProfitTargetPanel.tsx
+  - ProfitWithdrawal.tsx
+  - RpcList.tsx
+  - SettingsPanel.tsx
+  - Sidebar.tsx
+  - SimModeDashboard.tsx
+  - VerificationBadge.tsx
+
+## 3. Services & Business Logic
+- services/ - All service modules (.ts files):
+  - activationService.ts - Mode activation logic
+  - advancedIntegrationService.ts - Advanced integrations
+  - arbitrageService.ts - Arbitrage detection
+  - blockchainValidator.ts - Blockchain validation
+  - botSystem.ts - Bot management
+  - bundleExecutorService.ts - MEV bundle execution
+  - contractService.ts - Smart contract interactions
+  - directoryAnalysisService.ts - Directory analysis
+  - etherscanService.ts - Etherscan API integration
+  - executionService.ts - Trade execution
+  - flashAggregatorService.ts - Flash loan aggregation
+  - geminiService.ts - AI strategy optimization
+  - historicalDataService.ts - Historical data management
+  - moduleRegistry.ts - Module registration
+  - preflightService.ts - Preflight checks
+  - priceService.ts - Price data services
+  - profitTargetService.ts - Profit target management
+  - rpcService.ts - RPC connection management
+  - simulationService.ts - Simulation engine
+  - strategyOptimizerService.ts - Strategy optimization
+  - withdrawalService.ts - Profit withdrawal
+
+## 4. Blockchain & Smart Contracts
+- blockchain/ - Blockchain utilities:
+  - contracts.ts - Contract interfaces
+  - mempool.ts - Mempool monitoring
+  - providers.ts - Blockchain providers
+- core-logic/contracts/ - Smart contracts (.sol):
+  - ApexDEXRouter.sol
+  - ApexFlashAggregator.sol
+  - ApexFlashLoan.sol
+  - MEVShield.sol
+
+## 5. AI & Machine Learning
+- core-logic/ai/ - AI algorithms (.py):
+  - alpha-clone.py
+  - behavioral-models.py
+  - co-pilot-orchestrator.py
+  - market-analyzer.py
+  - predictive-analytics.py
+  - quantum-optimizer.py
+  - risk-intelligence.py
+  - strategy-optimizer.py
+- core-logic/ai-engine/ - AI engine components (.py):
+  - mempool_shadow.py
+  - real_time_scanner.py
+  - simulate_day.py
+  - train_model.py
+- core-logic/agents/ - AI agents (.py):
+  - DecisionAgent.py
+  - DetectionAgent.py
+  - ExecutionAgent.py
+  - MultiAgentOrchestrator.py
+
+## 6. Bot Systems
+- core-logic/bots/ - Bot implementations (.js):
+  - aggregator-integration.js
+  - executor-bot.js
+  - memory-pool.js
+  - message-broker.js
+  - scanner-bot.js
+  - validator-bot.js
+
+## 7. Execution & Trading
+- core-logic/execution/ - Execution engines (.js):
+  - atomic-cross-chain.js
+  - BundleExecutor.js
+  - flash-aggregator.js
+  - institutional-executor.js
+  - liquidity-optimizer.js
+  - mev-protector.js
+
+## 8. Infrastructure & Networking
+- core-logic/infrastructure/ - Infrastructure components (.js):
+  - bridge-manager.js
+  - chain-dominance.js
+  - cross-chain-monitor.js
+  - multi-chain-router.js
+  - rpc-optimizer.js
+  - service-mesh.js
+  - shared-cache.js
+  - websocket-manager.js
+  - worker-threads.js
+
+## 9. Deployment & Infrastructure
+- Dockerfile - Main Docker image
+- Dockerfile.agents - Agents Docker image
+- Dockerfile.api - API Docker image
+- docker-compose.yml - Docker compose setup
+- .dockerignore - Docker ignore rules
+- render.yaml - Render deployment config
+- core-logic/deployment/ - Deployment scripts:
+  - deployment-manager.js
+  - environment-config.js
+  - kubernetes-orchestration.yml
+- scripts/ - Deployment scripts (.cjs, .sh):
+  - deploy-mainnet.cjs
+  - All .sh files in root
+
+## 10. Monitoring & Platform
+- core-logic/monitoring/ - Monitoring tools (.js):
+  - performance-tracker.js
+- core-logic/platform/ - Platform services (.js):
+  - auth-system.js
+  - command-center.js
+  - compliance-engine.js
+
+## 11. Security
+- core-logic/security/ - Security modules (directory contents)
+
+## 12. Flash Arb Engine
+- flash-arb-engine/ - Specialized arbitrage engine:
+  - .cursorrules
+  - ARCHITECT_PLAN.md
+  - Makefile
+  - bot/ directory
+  - contracts/ directory
+  - flash-arb-engine/ directory
+
+## 13. Testing & Validation
+- All test files:
+  - test-*.js, test-*.ts
+  - validate-*.js
+  - verify-*.ts
+  - run-preflight*.js, run-preflight*.ts
+
+## 14. Documentation
+- All markdown files (.md):
+  - README.md
+  - AGENTS.md
+  - architecture.md
+  - COMMANDER_BRIEFING.md
+  - DEPLOYMENT*.md
+  - ENTERPRISE_PREFLIGHT_SPEC.md
+  - PHASE_FLOW_VISUAL.md
+  - QUICK_START_DEPLOY.md
+  - And all other .md files
+
+## 15. Environment & Configuration
+- .env* files - Environment variables
+- .gitignore - Git ignore rules
+- requirements.txt - Python dependencies
+- metadata.json - Project metadata
+
+## 16. Assets & Styling
+- public/ - Static assets:
+  - logo.jpg
+  - assets/ directory
+- styles/ - CSS styles:
+  - globals.css
+
+## 17. Scripts & Utilities
+- All utility scripts (.sh, .ps1, .cjs) not in scripts/:
+  - build.sh
+  - clean-env.ps1
+  - fix-*.sh, fix-*.ps1
+  - launch-ai-agents.sh
+  - setup-ai-keys.sh
+  - live-monitor-*.js, live-monitor-*.html
+  - monitor-server.cjs
+  - GITHUB_PUSH_GUIDE.md (though it's .md, it's a guide)
