@@ -96,8 +96,35 @@ export const getBaseProvider = async (): Promise<ethers.JsonRpcProvider> => {
 
 // WebSocket Provider for real-time mempool monitoring
 export const getWebSocketProvider = (chain: 'ethereum' | 'arbitrum' | 'base'): ethers.WebSocketProvider => {
-    const wsUrl = RPC_ENDPOINTS[chain].ws;
-    return new ethers.WebSocketProvider(wsUrl);
+    const wsUrls: { [key: string]: string[] } = {
+        ethereum: [
+            'wss://mainnet.infura.io/ws/v3/9aa3d95b3bc440fa88ea12eaa4456161',
+            'wss://eth-mainnet.g.alchemy.com/v2/demo',
+            'wss://rpc.ankr.com/eth/ws'
+        ],
+        arbitrum: [
+            'wss://arb-mainnet.g.alchemy.com/v2/demo',
+            'wss://arbitrum-one.publicnode.com'
+        ],
+        base: [
+            'wss://base-mainnet.g.alchemy.com/v2/demo',
+            'wss://base.publicnode.com'
+        ]
+    };
+
+    const urls = wsUrls[chain] || wsUrls.ethereum;
+
+    for (const url of urls) {
+        try {
+            const provider = new ethers.WebSocketProvider(url);
+            console.log(`WebSocket connected to ${chain}: ${url}`);
+            return provider;
+        } catch (error) {
+            console.warn(`Failed to connect to ${url}, trying next...`);
+        }
+    }
+
+    throw new Error(`Unable to connect to ${chain} WebSocket provider`);
 };
 
 // Get current gas price

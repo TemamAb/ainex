@@ -26,38 +26,69 @@ export interface PreflightResults {
 }
 
 // Run all preflight checks sequentially with dependencies
-export const runPreflightChecks = async (onProgress?: (checks: PreflightCheck[]) => void): Promise<PreflightResults> => {
+export const runPreflightChecks = async (mode: 'sim' | 'live' = 'sim', onProgress?: (checks: PreflightCheck[]) => void): Promise<PreflightResults> => {
     const checks: PreflightCheck[] = [
         // Network Checks (CRITICAL)
-        { id: 'eth-rpc', name: 'Ethereum RPC Connection', status: 'pending', message: '', category: 'network', isCritical: true },
-        { id: 'arb-rpc', name: 'Arbitrum RPC Connection', status: 'pending', message: '', category: 'network', isCritical: true },
-        { id: 'base-rpc', name: 'Base RPC Connection', status: 'pending', message: '', category: 'network', isCritical: true },
-        { id: 'eth-block', name: 'Ethereum Block Sync', status: 'pending', message: '', category: 'network', isCritical: true },
-        { id: 'gas-price', name: 'Gas Price Feed', status: 'pending', message: '', category: 'network', isCritical: true },
+        { id: 'eth-rpc', name: 'Ethereum RPC Connection', status: 'pending', message: '', category: 'network', isCritical: true, mode: 'both' },
+        { id: 'arb-rpc', name: 'Arbitrum RPC Connection', status: 'pending', message: '', category: 'network', isCritical: true, mode: 'both' },
+        { id: 'base-rpc', name: 'Base RPC Connection', status: 'pending', message: '', category: 'network', isCritical: true, mode: 'both' },
+        { id: 'eth-block', name: 'Ethereum Block Sync', status: 'pending', message: '', category: 'network', isCritical: true, mode: 'both' },
+        { id: 'gas-price', name: 'Gas Price Feed', status: 'pending', message: '', category: 'network', isCritical: true, mode: 'both' },
         // Blockchain & Contract Checks
-        { id: 'contracts-integrity', name: 'Smart Contract Integrity', status: 'pending', message: '', category: 'blockchain', isCritical: true },
-        { id: 'flash-loan-liquidity', name: 'Flash Loan Liquidity (Aave/Uniswap)', status: 'pending', message: '', category: 'blockchain', isCritical: true },
-        { id: 'gasless-relayer', name: 'Gasless Relayer (Gelato)', status: 'pending', message: '', category: 'blockchain', isCritical: false },
-        { id: 'smart-wallet', name: 'Smart Wallet Status', status: 'pending', message: '', category: 'blockchain', isCritical: true },
+        { id: 'contracts-integrity', name: 'Smart Contract Integrity', status: 'pending', message: '', category: 'blockchain', isCritical: true, mode: 'both' },
+        { id: 'flash-loan-liquidity', name: 'Flash Loan Liquidity (Aave/Uniswap)', status: 'pending', message: '', category: 'blockchain', isCritical: true, mode: 'both' },
+        { id: 'gasless-relayer', name: 'Gasless Relayer (Gelato)', status: 'pending', message: '', category: 'blockchain', isCritical: false, mode: 'both' },
+        { id: 'smart-wallet', name: 'Smart Wallet Status', status: 'pending', message: '', category: 'blockchain', isCritical: true, mode: 'both' },
         // AI & Engine Checks
-        { id: 'ai-models', name: 'AI Model Availability', status: 'pending', message: '', category: 'ai', isCritical: true },
-        { id: 'execution-engine', name: 'Execution Engine Status', status: 'pending', message: '', category: 'modules', isCritical: true },
+        { id: 'ai-models', name: 'AI Model Availability', status: 'pending', message: '', category: 'ai', isCritical: true, mode: 'both' },
+        { id: 'execution-engine', name: 'Execution Engine Status', status: 'pending', message: '', category: 'modules', isCritical: true, mode: 'both' },
         // Security Checks
-        { id: 'risk-management', name: 'Risk Management Config', status: 'pending', message: '', category: 'security', isCritical: true },
-        { id: 'env-secrets', name: 'Environment Secrets', status: 'pending', message: '', category: 'security', isCritical: true },
+        { id: 'risk-management', name: 'Risk Management Config', status: 'pending', message: '', category: 'security', isCritical: true, mode: 'both' },
+        { id: 'env-secrets', name: 'Environment Secrets', status: 'pending', message: '', category: 'security', isCritical: true, mode: 'both' },
         // Protocol Checks
-        { id: 'no-mock-data', name: 'No Mock Data Enforcement', status: 'pending', message: '', category: 'security', isCritical: true }
+        { id: 'no-mock-data', name: 'No Mock Data Enforcement', status: 'pending', message: '', category: 'security', isCritical: true, mode: 'both' },
+        // SIM Mode Checks
+        { id: 'sim-advanced-integration', name: 'Advanced Integration Service', status: 'pending', message: '', category: 'sim_mode', isCritical: mode === 'sim', mode: 'sim' },
+        { id: 'sim-bot-system', name: 'Tri-Tier Bot System', status: 'pending', message: '', category: 'sim_mode', isCritical: mode === 'sim', mode: 'sim' },
+        { id: 'sim-flash-loan-metrics', name: 'Advanced Flash Loan Metrics', status: 'pending', message: '', category: 'sim_mode', isCritical: mode === 'sim', mode: 'sim' },
+        { id: 'sim-profit-tracking', name: 'Profit Tracking System', status: 'pending', message: '', category: 'sim_mode', isCritical: mode === 'sim', mode: 'sim' },
+        { id: 'sim-quantum-optimization', name: 'Quantum Optimization', status: 'pending', message: '', category: 'sim_mode', isCritical: mode === 'sim', mode: 'sim' },
+        { id: 'sim-ai-strategy', name: 'AI Strategy Optimization', status: 'pending', message: '', category: 'sim_mode', isCritical: mode === 'sim', mode: 'sim' },
+        { id: 'sim-compliance-monitoring', name: 'Compliance & Risk Monitoring', status: 'pending', message: '', category: 'sim_mode', isCritical: mode === 'sim', mode: 'sim' },
+        { id: 'sim-blockchain-monitoring', name: 'Blockchain Monitoring', status: 'pending', message: '', category: 'sim_mode', isCritical: mode === 'sim', mode: 'sim' },
+        { id: 'sim-price-feed', name: 'Price Feed Integration', status: 'pending', message: '', category: 'sim_mode', isCritical: mode === 'sim', mode: 'sim' },
+        { id: 'sim-historical-analysis', name: 'Historical Analysis', status: 'pending', message: '', category: 'sim_mode', isCritical: mode === 'sim', mode: 'sim' },
+        { id: 'sim-profit-target', name: 'Profit Target Optimization', status: 'pending', message: '', category: 'sim_mode', isCritical: mode === 'sim', mode: 'sim' },
+        { id: 'sim-strategy-optimization', name: 'Strategy Optimization', status: 'pending', message: '', category: 'sim_mode', isCritical: mode === 'sim', mode: 'sim' },
+        { id: 'sim-security-monitoring', name: 'Security Monitoring', status: 'pending', message: '', category: 'sim_mode', isCritical: mode === 'sim', mode: 'sim' },
+        // LIVE Mode Checks
+        { id: 'live-advanced-integration', name: 'Advanced Integration Service', status: 'pending', message: '', category: 'live_mode', isCritical: mode === 'live', mode: 'live' },
+        { id: 'live-bot-system', name: 'Tri-Tier Bot System', status: 'pending', message: '', category: 'live_mode', isCritical: mode === 'live', mode: 'live' },
+        { id: 'live-flash-loan-execution', name: 'Real Flash Loan Execution', status: 'pending', message: '', category: 'live_mode', isCritical: mode === 'live', mode: 'live' },
+        { id: 'live-arbitrage-engine', name: 'Live Arbitrage Execution Engine', status: 'pending', message: '', category: 'live_mode', isCritical: mode === 'live', mode: 'live' },
+        { id: 'live-quantum-optimization', name: 'Quantum Optimization for Live Trades', status: 'pending', message: '', category: 'live_mode', isCritical: mode === 'live', mode: 'live' },
+        { id: 'live-ai-strategy', name: 'AI-Driven Live Strategy Optimization', status: 'pending', message: '', category: 'live_mode', isCritical: mode === 'live', mode: 'live' },
+        { id: 'live-compliance-monitoring', name: 'Real-time Compliance Monitoring', status: 'pending', message: '', category: 'live_mode', isCritical: mode === 'live', mode: 'live' },
+        { id: 'live-blockchain-monitoring', name: 'Live Blockchain Event Monitoring', status: 'pending', message: '', category: 'live_mode', isCritical: mode === 'live', mode: 'live' },
+        { id: 'live-price-feed', name: 'Live Price Feed for Real-time Trading', status: 'pending', message: '', category: 'live_mode', isCritical: mode === 'live', mode: 'live' },
+        { id: 'live-risk-management', name: 'Advanced Risk Management System', status: 'pending', message: '', category: 'live_mode', isCritical: mode === 'live', mode: 'live' },
+        { id: 'live-profit-target', name: 'Dynamic Profit Target Optimization', status: 'pending', message: '', category: 'live_mode', isCritical: mode === 'live', mode: 'live' },
+        { id: 'live-security-monitoring', name: 'Enterprise Security Monitoring', status: 'pending', message: '', category: 'live_mode', isCritical: mode === 'live', mode: 'live' },
+        { id: 'live-withdrawal-system', name: 'Automated Profit Withdrawal System', status: 'pending', message: '', category: 'live_mode', isCritical: mode === 'live', mode: 'live' }
     ];
 
+    // Filter checks based on mode
+    const filteredChecks = checks.filter(check => check.mode === 'both' || check.mode === mode);
+
     const updateCheck = (index: number, status: PreflightCheck['status'], message: string) => {
-        checks[index].status = status;
-        checks[index].message = message;
-        checks[index].timestamp = Date.now();
-        if (onProgress) onProgress([...checks]);
+        filteredChecks[index].status = status;
+        filteredChecks[index].message = message;
+        filteredChecks[index].timestamp = Date.now();
+        if (onProgress) onProgress([...filteredChecks]);
     };
 
     const failRemaining = (startIndex: number, reason: string) => {
-        for (let i = startIndex; i < checks.length; i++) {
+        for (let i = startIndex; i < filteredChecks.length; i++) {
             updateCheck(i, 'failed', `Skipped due to dependency failure: ${reason}`);
         }
     };
@@ -73,7 +104,7 @@ export const runPreflightChecks = async (onProgress?: (checks: PreflightCheck[])
     } catch (e: any) {
         updateCheck(0, 'failed', `Ethereum RPC connection failed: ${e.message}`);
         failRemaining(1, 'Ethereum RPC connection failed');
-        return { allPassed: false, checks, timestamp: Date.now(), moduleActivations: [] };
+        return { allPassed: false, checks: filteredChecks, timestamp: Date.now(), moduleActivations: [] };
     }
 
     // 2. Arbitrum RPC
@@ -85,7 +116,7 @@ export const runPreflightChecks = async (onProgress?: (checks: PreflightCheck[])
     } catch (e: any) {
         updateCheck(1, 'failed', `Arbitrum RPC connection failed: ${e.message}`);
         failRemaining(2, 'Arbitrum RPC connection failed');
-        return { allPassed: false, checks, timestamp: Date.now(), moduleActivations: [] };
+        return { allPassed: false, checks: filteredChecks, timestamp: Date.now(), moduleActivations: [] };
     }
 
     // 3. Base RPC
@@ -97,7 +128,7 @@ export const runPreflightChecks = async (onProgress?: (checks: PreflightCheck[])
     } catch (e: any) {
         updateCheck(2, 'failed', `Base RPC connection failed: ${e.message}`);
         failRemaining(3, 'Base RPC connection failed');
-        return { allPassed: false, checks, timestamp: Date.now(), moduleActivations: [] };
+        return { allPassed: false, checks: filteredChecks, timestamp: Date.now(), moduleActivations: [] };
     }
 
     // 4. Block Sync
@@ -109,7 +140,7 @@ export const runPreflightChecks = async (onProgress?: (checks: PreflightCheck[])
     } catch (e: any) {
         updateCheck(3, 'failed', e.message);
         failRemaining(4, 'Block sync failed');
-        return { allPassed: false, checks, timestamp: Date.now(), moduleActivations: [] };
+        return { allPassed: false, checks: filteredChecks, timestamp: Date.now(), moduleActivations: [] };
     }
 
     // 5. Gas Price
@@ -180,7 +211,7 @@ export const runPreflightChecks = async (onProgress?: (checks: PreflightCheck[])
         updateCheck(13, 'passed', 'Mock Data: DISABLED. Real-time streams only.');
     } else {
         updateCheck(13, 'failed', 'Mock Data is ENABLED via NEXT_PUBLIC_ALLOW_MOCK. Protocol violation.');
-        return { allPassed: false, checks, timestamp: Date.now(), moduleActivations: [] };
+        return { allPassed: false, checks: filteredChecks, timestamp: Date.now(), moduleActivations: [] };
     }
 
     // --- PHASE 5: SIM Mode Feature Validation ---
