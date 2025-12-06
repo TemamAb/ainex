@@ -86,6 +86,47 @@ export interface TradeLog {
   status: 'SUCCESS' | 'FAILED';
 }
 
+export interface ProfitTargetSettings {
+  // Optimal AI-calculated targets
+  optimal: {
+    hourly: string;
+    daily: string;
+    weekly: string;
+    unit: 'ETH' | 'USD';
+  };
+  // User override settings
+  override: {
+    enabled: boolean;
+    hourly: string;
+    daily: string;
+    weekly: string;
+    unit: 'ETH' | 'USD';
+  };
+  // Dynamic adjustment factors
+  dynamicAdjustment: {
+    marketVolatility: number; // 0-1, affects target scaling
+    opportunityDensity: number; // 0-1, number of arbitrage signals
+    aiConfidence: number; // 0-1, AI performance score
+    riskScore: number; // 0-1, current risk level
+  };
+  // Active target (optimal or override)
+  active: {
+    hourly: string;
+    daily: string;
+    weekly: string;
+    unit: 'ETH' | 'USD';
+  };
+}
+
+export interface TradeSettings {
+  profitTarget: ProfitTargetSettings;
+  reinvestmentRate: number;
+  riskProfile: 'LOW' | 'MEDIUM' | 'HIGH';
+  isAIConfigured: boolean;
+  maxSlippage: number;
+  gasLimitMultiplier: number;
+}
+
 export interface ProfitWithdrawalConfig {
   isEnabled: boolean;
   walletAddress: string;

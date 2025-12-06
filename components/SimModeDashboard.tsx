@@ -78,19 +78,23 @@ const SimModeDashboard: React.FC<SimModeDashboardProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="bg-black/30 border border-slate-800/50 rounded p-4">
                         <div className="text-sm text-slate-400 mb-1">Hourly</div>
-                        <div className="text-xl font-bold text-emerald-400">${profitProjection.hourly.toFixed(2)}</div>
+                        <div className="text-xl font-bold text-emerald-400">{profitProjection.hourly.toFixed(4)} ETH</div>
+                        <div className="text-xs text-slate-500">${(profitProjection.hourly * 3000).toFixed(2)} USD</div>
                     </div>
                     <div className="bg-black/30 border border-slate-800/50 rounded p-4">
                         <div className="text-sm text-slate-400 mb-1">Daily</div>
-                        <div className="text-xl font-bold text-emerald-400">${profitProjection.daily.toFixed(2)}</div>
+                        <div className="text-xl font-bold text-emerald-400">{profitProjection.daily.toFixed(4)} ETH</div>
+                        <div className="text-xs text-slate-500">${(profitProjection.daily * 3000).toFixed(2)} USD</div>
                     </div>
                     <div className="bg-black/30 border border-slate-800/50 rounded p-4">
                         <div className="text-sm text-slate-400 mb-1">Weekly</div>
-                        <div className="text-xl font-bold text-emerald-400">${profitProjection.weekly.toFixed(2)}</div>
+                        <div className="text-xl font-bold text-emerald-400">{profitProjection.weekly.toFixed(2)} ETH</div>
+                        <div className="text-xs text-slate-500">${(profitProjection.weekly * 3000).toFixed(2)} USD</div>
                     </div>
                     <div className="bg-black/30 border border-slate-800/50 rounded p-4">
                         <div className="text-sm text-slate-400 mb-1">Monthly</div>
-                        <div className="text-xl font-bold text-emerald-400">${profitProjection.monthly.toFixed(2)}</div>
+                        <div className="text-xl font-bold text-emerald-400">{profitProjection.monthly.toFixed(2)} ETH</div>
+                        <div className="text-xs text-slate-500">${(profitProjection.monthly * 3000).toFixed(2)} USD</div>
                     </div>
                 </div>
             </div>

@@ -1,25 +1,30 @@
 import React, { useState } from 'react';
 import { Sliders, Target, Shield, RefreshCw, Save } from 'lucide-react';
+import ProfitTargetPanel from './ProfitTargetPanel';
+import { TradeSettings } from '../types';
 
 interface SettingsPanelProps {
-    onSettingsChange: (settings: any) => void;
+    onSettingsChange: (settings: TradeSettings) => void;
+    tradeSettings: TradeSettings;
+    currentProfit: {
+        hourly: number;
+        daily: number;
+        weekly: number;
+    };
 }
 
-const SettingsPanel: React.FC<SettingsPanelProps> = ({ onSettingsChange }) => {
-    const [profitTarget, setProfitTarget] = useState({
-        daily: '1.5',
-        unit: 'ETH'
-    });
-    const [reinvestmentRate, setReinvestmentRate] = useState(50);
-    const [riskProfile, setRiskProfile] = useState<'LOW' | 'MEDIUM' | 'HIGH'>('MEDIUM');
+const SettingsPanel: React.FC<SettingsPanelProps> = ({ onSettingsChange, tradeSettings, currentProfit }) => {
+    const [reinvestmentRate, setReinvestmentRate] = useState(tradeSettings.reinvestmentRate);
+    const [riskProfile, setRiskProfile] = useState<'LOW' | 'MEDIUM' | 'HIGH'>(tradeSettings.riskProfile);
     const [isSaved, setIsSaved] = useState(false);
 
     const handleSave = () => {
-        onSettingsChange({
-            profitTarget,
+        const updatedSettings: TradeSettings = {
+            ...tradeSettings,
             reinvestmentRate,
             riskProfile
-        });
+        };
+        onSettingsChange(updatedSettings);
         setIsSaved(true);
         setTimeout(() => setIsSaved(false), 2000);
     };
@@ -32,37 +37,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onSettingsChange }) => {
             </div>
 
             <div className="space-y-8">
-                {/* Profit Target Section */}
-                <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-slate-300 mb-2">
-                        <Target className="w-5 h-5 text-green-400" />
-                        <h3 className="font-semibold">Daily Profit Target</h3>
-                    </div>
-                    <div className="flex items-center gap-4 bg-slate-900/50 p-4 rounded-lg border border-slate-700">
-                        <div className="flex-1">
-                            <label className="text-xs text-slate-500 block mb-1">Target Amount</label>
-                            <input
-                                type="number"
-                                value={profitTarget.daily}
-                                onChange={(e) => setProfitTarget({ ...profitTarget, daily: e.target.value })}
-                                className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-blue-500 outline-none"
-                            />
-                        </div>
-                        <div className="w-32">
-                            <label className="text-xs text-slate-500 block mb-1">Currency</label>
-                            <select
-                                value={profitTarget.unit}
-                                onChange={(e) => setProfitTarget({ ...profitTarget, unit: e.target.value })}
-                                className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-blue-500 outline-none"
-                            >
-                                <option value="ETH">ETH</option>
-                                <option value="USD">USD</option>
-                                <option value="BTC">BTC</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
                 {/* Reinvestment Rate Section */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between text-slate-300 mb-2">
@@ -115,6 +89,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onSettingsChange }) => {
                         ))}
                     </div>
                 </div>
+
+                {/* Advanced Profit Target Management */}
+                <ProfitTargetPanel
+                    tradeSettings={tradeSettings}
+                    onSettingsChange={onSettingsChange}
+                    currentProfit={currentProfit}
+                />
 
                 {/* Save Button */}
                 <div className="pt-4 flex justify-end">

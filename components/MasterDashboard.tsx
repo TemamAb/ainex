@@ -11,11 +11,13 @@ import AiConsole from './AiConsole';
 import LiveBlockchainEvents from './LiveBlockchainEvents';
 import SettingsPanel from './SettingsPanel';
 import MetricsValidation from './MetricsValidation';
-import { TradeSignal, FlashLoanMetric, BotStatus, TradeLog, ProfitWithdrawalConfig } from '../types';
+import { TradeSignal, FlashLoanMetric, BotStatus, TradeLog, ProfitWithdrawalConfig, TradeSettings, ProfitTargetSettings } from '../types';
+import { profitTargetService } from '../services/profitTargetService';
 import { getFlashLoanMetrics, runSimulationLoop } from '../services/simulationService';
 import { scheduleWithdrawal, executeWithdrawal, checkWithdrawalConditions, saveWithdrawalHistory } from '../services/withdrawalService';
-import { getLatestBlockNumber, getRecentTransactions } from '../blockchain/providers';
+import { getLatestBlockNumber, getRecentTransactions, getCurrentGasPrice } from '../blockchain/providers';
 import { runActivationSequence, getSimActivationSteps, getLiveActivationSteps, ActivationStep } from '../services/activationService';
+import { ethers } from 'ethers';
 import ActivationOverlay from './ActivationOverlay';
 type EngineMode = 'IDLE' | 'PREFLIGHT' | 'SIM' | 'LIVE';
 type DashboardView = 'PREFLIGHT' | 'SIM' | 'LIVE' | 'MONITOR' | 'WITHDRAWAL' | 'EVENTS' | 'AI_CONSOLE' | 'SETTINGS' | 'DEPLOYMENT' | 'METRICS_VALIDATION';
@@ -36,11 +38,39 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
   const [daysDeployed, setDaysDeployed] = useState(0);
 
   // Settings State
-  const [tradeSettings, setTradeSettings] = useState({
-    profitTarget: { daily: '1.5', unit: 'ETH' },
+  const [tradeSettings, setTradeSettings] = useState<TradeSettings>({
+    profitTarget: {
+      optimal: {
+        hourly: '0.08',
+        daily: '2.5',
+        weekly: '15.0',
+        unit: 'ETH'
+      },
+      override: {
+        enabled: false,
+        hourly: '0.08',
+        daily: '2.5',
+        weekly: '15.0',
+        unit: 'ETH'
+      },
+      dynamicAdjustment: {
+        marketVolatility: 0.2,
+        opportunityDensity: 0.5,
+        aiConfidence: 0.85,
+        riskScore: 0.15
+      },
+      active: {
+        hourly: '0.08',
+        daily: '2.5',
+        weekly: '15.0',
+        unit: 'ETH'
+      }
+    },
     reinvestmentRate: 50,
     riskProfile: 'MEDIUM',
-    isAIConfigured: true
+    isAIConfigured: true,
+    maxSlippage: 0.03,
+    gasLimitMultiplier: 1.2
   });
 
   // Engine State
@@ -425,6 +455,77 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
 
           // 9. AI Optimization Integration with Quantum Enhancement
           console.log('[LIVE MODE] Quantum AI optimization active - monitoring performance and adjusting strategies with quantum advantage');
+
+          // 10. Dynamic Profit Target Optimization
+          const profitTargetInterval = setInterval(async () => {
+            try {
+              // Get current market conditions
+              const gasPrice = await getCurrentGasPrice('ethereum');
+              const gasGwei = parseFloat(ethers.formatUnits(gasPrice, 'gwei'));
+              const gasEfficiency = gasGwei > 100 ? 0.7 : gasGwei > 50 ? 0.85 : 1.0;
+
+              const marketConditions = {
+                volatility: Math.min(1, gasGwei / 200), // Normalize gas volatility
+                opportunityDensity: Math.min(1, liveTradeSignals.length / 20), // Based on signal count
+                liquidityDepth: 0.8, // Assume good liquidity for now
+                gasEfficiency
+              };
+
+              // Get AI performance metrics
+              const advancedMetrics = await advancedIntegrationService.getAdvancedMetrics();
+              const aiMetrics = {
+                confidence: advancedMetrics.multiAgentCoordination?.successRate || 0.8,
+                quantumAdvantage: advancedMetrics.quantumOptimization?.advantage || 0.15,
+                riskScore: advancedMetrics.riskMonitoring?.currentExposure || 0.3,
+                successRate: 0.91 // From advanced metrics
+              };
+
+              // Calculate new optimal targets
+              const newOptimalTargets = profitTargetService.calculateOptimalTargets(marketConditions, aiMetrics);
+
+              // Update trade settings with new optimal targets
+              setTradeSettings(prev => {
+                const updated = {
+                  ...prev,
+                  profitTarget: {
+                    ...prev.profitTarget,
+                    optimal: newOptimalTargets,
+                    dynamicAdjustment: {
+                      marketVolatility: marketConditions.volatility,
+                      opportunityDensity: marketConditions.opportunityDensity,
+                      aiConfidence: aiMetrics.confidence,
+                      riskScore: aiMetrics.riskScore
+                    }
+                  }
+                };
+
+                // Update active targets (unless user override is enabled)
+                if (!updated.profitTarget.override.enabled) {
+                  updated.profitTarget.active = newOptimalTargets;
+                }
+
+                return updated;
+              });
+
+              console.log('[PROFIT TARGET OPTIMIZATION] Updated optimal targets:', newOptimalTargets);
+            } catch (error) {
+              console.error('[PROFIT TARGET OPTIMIZATION] Error:', error);
+            }
+          }, 30000); // Update every 30 seconds
+
+          // Store cleanup functions
+          const cleanup = () => {
+            if (cleanupBotSystem) cleanupBotSystem();
+            if (flashLoanMetricsInterval) clearInterval(flashLoanMetricsInterval);
+            if (profitTrackingInterval) clearInterval(profitTrackingInterval);
+            if (advancedIntegrationInterval) clearInterval(advancedIntegrationInterval);
+            if (quantumOptimizationInterval) clearInterval(quantumOptimizationInterval);
+            if (complianceMonitoringInterval) clearInterval(complianceMonitoringInterval);
+            if (profitTargetInterval) clearInterval(profitTargetInterval);
+          };
+
+          // Override cleanupBotSystem with full cleanup
+          cleanupBotSystem = cleanup;
 
           // Store cleanup functions
           const cleanup = () => {

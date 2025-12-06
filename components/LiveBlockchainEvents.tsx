@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, TrendingUp, Zap, DollarSign, Clock } from 'lucide-react';
+import { ethers } from 'ethers';
 
 interface BlockchainEvent {
     id: string;
@@ -19,66 +20,194 @@ interface LiveBlockchainEventsProps {
 const LiveBlockchainEvents: React.FC<LiveBlockchainEventsProps> = ({ isLive }) => {
     const [events, setEvents] = useState<BlockchainEvent[]>([]);
     const [latestBlock, setLatestBlock] = useState<number>(0);
+    const [wsProvider, setWsProvider] = useState<ethers.WebSocketProvider | null>(null);
 
-    // Fetch real blockchain block numbers
+    // Initialize WebSocket connection for real-time events
     useEffect(() => {
-        if (!isLive) return;
+        if (!isLive) {
+            if (wsProvider) {
+                wsProvider.destroy();
+                setWsProvider(null);
+            }
+            return;
+        }
 
-        const fetchBlockNumber = async () => {
+        const initWebSocket = async () => {
             try {
-                const { getLatestBlockNumber } = await import('../blockchain/providers');
-                const blockNum = await getLatestBlockNumber('ethereum');
-                setLatestBlock(blockNum);
+                const { getWebSocketProvider } = await import('../blockchain/providers');
+                const provider = getWebSocketProvider('ethereum');
+                setWsProvider(provider);
+
+                // Listen for new blocks
+                provider.on('block', async (blockNumber: number) => {
+                    setLatestBlock(blockNumber);
+
+                    // Get block details for real events
+                    try {
+                        const block = await provider.getBlock(blockNumber, true);
+                        if (block && block.transactions.length > 0) {
+                            // Process real transactions from the block
+                            const blockEvents = await processBlockTransactions(block, provider);
+                            setEvents(prev => [...blockEvents, ...prev].slice(0, 50)); // Keep last 50 events
+                        }
+
+                        // Add block mined event
+                        const blockEvent: BlockchainEvent = {
+                            id: `block-${blockNumber}`,
+                            timestamp: Date.now(),
+                            type: 'BLOCK',
+                            chain: 'Ethereum',
+                            description: `New block #${blockNumber} mined on Ethereum`,
+                            status: 'SUCCESS'
+                        };
+                        setEvents(prev => [blockEvent, ...prev].slice(0, 50));
+
+                    } catch (error) {
+                        console.error('Error processing block:', error);
+                    }
+                });
+
+                console.log('WebSocket connected for real-time blockchain events');
+
             } catch (error) {
-                console.error('Failed to fetch block number:', error);
+                console.error('Failed to initialize WebSocket:', error);
+                // Fallback to polling if WebSocket fails
+                fallbackToPolling();
             }
         };
 
-        fetchBlockNumber();
-        const interval = setInterval(fetchBlockNumber, 12000); // Update every 12 seconds (Ethereum block time)
-        return () => clearInterval(interval);
-    }, [isLive]);
+        const fallbackToPolling = () => {
+            console.log('Falling back to polling for blockchain events');
+            const pollBlockNumber = async () => {
+                try {
+                    const { getLatestBlockNumber } = await import('../blockchain/providers');
+                    const blockNum = await getLatestBlockNumber('ethereum');
+                    if (blockNum !== latestBlock) {
+                        setLatestBlock(blockNum);
 
-    useEffect(() => {
-        if (!isLive || latestBlock === 0) return;
-
-        // Simulate live blockchain events with real block numbers
-        const generateEvent = (): BlockchainEvent => {
-            const types: BlockchainEvent['type'][] = ['TRADE', 'BLOCK', 'MEV', 'FLASH_LOAN'];
-            const chains: BlockchainEvent['chain'][] = ['Ethereum', 'Arbitrum', 'Base'];
-            const type = types[Math.floor(Math.random() * types.length)];
-            const chain = chains[Math.floor(Math.random() * chains.length)];
-
-            // Use real block number with slight variation for different chains
-            const blockOffset = chain === 'Ethereum' ? 0 : Math.floor(Math.random() * 5);
-            const eventBlock = latestBlock - blockOffset;
-
-            const descriptions = {
-                TRADE: `Arbitrage executed on ${chain} (Block #${eventBlock})`,
-                BLOCK: `New block #${eventBlock} mined on ${chain}`,
-                MEV: `MEV opportunity detected on ${chain} (Block #${eventBlock})`,
-                FLASH_LOAN: `Flash loan executed on ${chain} (Block #${eventBlock})`
+                        // Add block event
+                        const blockEvent: BlockchainEvent = {
+                            id: `block-${blockNum}`,
+                            timestamp: Date.now(),
+                            type: 'BLOCK',
+                            chain: 'Ethereum',
+                            description: `New block #${blockNum} mined on Ethereum`,
+                            status: 'SUCCESS'
+                        };
+                        setEvents(prev => [blockEvent, ...prev].slice(0, 50));
+                    }
+                } catch (error) {
+                    console.error('Failed to poll block number:', error);
+                }
             };
 
-            return {
-                id: `event-${Date.now()}-${Math.random()}`,
-                timestamp: Date.now(),
-                type,
-                chain,
-                description: descriptions[type],
-                value: type === 'TRADE' || type === 'FLASH_LOAN' ? `${(Math.random() * 2).toFixed(4)} ETH` : undefined,
-                txHash: `0x${Array.from({ length: 10 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}...`,
-                status: Math.random() > 0.1 ? 'SUCCESS' : Math.random() > 0.5 ? 'PENDING' : 'FAILED'
-            };
+            pollBlockNumber();
+            const interval = setInterval(pollBlockNumber, 12000); // Poll every 12 seconds
+            return () => clearInterval(interval);
         };
 
-        const interval = setInterval(() => {
-            const newEvent = generateEvent();
-            setEvents(prev => [newEvent, ...prev].slice(0, 20)); // Keep last 20 events
-        }, 3000); // New event every 3 seconds
+        initWebSocket();
 
-        return () => clearInterval(interval);
-    }, [isLive, latestBlock]);
+        return () => {
+            if (wsProvider) {
+                wsProvider.destroy();
+                setWsProvider(null);
+            }
+        };
+    }, [isLive]);
+
+    // Process real transactions from a block to create meaningful events
+    const processBlockTransactions = async (block: ethers.Block, provider: ethers.WebSocketProvider): Promise<BlockchainEvent[]> => {
+        const events: BlockchainEvent[] = [];
+
+        for (const txHash of block.transactions.slice(0, 5)) { // Process first 5 transactions
+            try {
+                const tx = await provider.getTransaction(txHash);
+                if (!tx) continue;
+
+                const valueInEth = parseFloat(ethers.formatEther(tx.value || BigInt(0)));
+
+                // Detect potential arbitrage/flash loan patterns
+                if (valueInEth > 0.1) {
+                    // Check if transaction interacts with DEX contracts
+                    const isDexTx = await isDexTransaction(tx, provider);
+
+                    if (isDexTx) {
+                        const event: BlockchainEvent = {
+                            id: `trade-${tx.hash}`,
+                            timestamp: Date.now(),
+                            type: 'TRADE',
+                            chain: 'Ethereum',
+                            description: `DEX transaction detected (Block #${block.number})`,
+                            value: `${valueInEth.toFixed(4)} ETH`,
+                            txHash: `${tx.hash.substring(0, 10)}...`,
+                            status: 'SUCCESS'
+                        };
+                        events.push(event);
+                    }
+                }
+
+                // Detect flash loan patterns (large value with zero gas price or specific patterns)
+                if (valueInEth > 10 && tx.gasPrice === BigInt(0)) {
+                    const event: BlockchainEvent = {
+                        id: `flash-${tx.hash}`,
+                        timestamp: Date.now(),
+                        type: 'FLASH_LOAN',
+                        chain: 'Ethereum',
+                        description: `Flash loan executed (Block #${block.number})`,
+                        value: `${valueInEth.toFixed(4)} ETH`,
+                        txHash: `${tx.hash.substring(0, 10)}...`,
+                        status: 'SUCCESS'
+                    };
+                    events.push(event);
+                }
+
+            } catch (error) {
+                console.error('Error processing transaction:', error);
+            }
+        }
+
+        return events;
+    };
+
+    // Check if transaction interacts with known DEX contracts
+    const isDexTransaction = async (tx: ethers.TransactionResponse, provider: ethers.WebSocketProvider): Promise<boolean> => {
+        const dexContracts = [
+            '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D', // Uniswap V2 Router
+            '0xE592427A0AEce92De3Edee1F18E0157C05861564', // Uniswap V3 Router
+            '0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F', // Sushiswap Router
+            '0x1111111254fb6c44bac0bed2854e76f90643097d', // 1inch Router
+        ];
+
+        try {
+            // Check if transaction is to a DEX contract
+            if (dexContracts.some(addr => addr.toLowerCase() === tx.to?.toLowerCase())) {
+                return true;
+            }
+
+            // Check transaction data for DEX function signatures
+            const data = tx.data;
+            if (data && data.length > 10) {
+                const functionSignature = data.substring(0, 10);
+                // Common DEX function signatures
+                const dexSignatures = [
+                    '0x7ff36ab5', // swapExactETHForTokens (Uniswap)
+                    '0x18cbafe5', // swapExactTokensForETH (Uniswap)
+                    '0x5c60da1b', // swap (Sushiswap)
+                    '0x12aa3caf', // fillOrder (1inch)
+                ];
+
+                if (dexSignatures.includes(functionSignature)) {
+                    return true;
+                }
+            }
+
+            return false;
+        } catch (error) {
+            console.error('Error checking DEX transaction:', error);
+            return false;
+        }
+    };
 
     const getEventIcon = (type: BlockchainEvent['type']) => {
         switch (type) {
