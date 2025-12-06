@@ -187,7 +187,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
 
     try {
       const { runPreflightChecks } = await import('../services/preflightService');
-      const result = await runPreflightChecks((updatedChecks) => {
+      const result = await runPreflightChecks('sim', (updatedChecks) => {
         // Update UI with progress
         setPreflightChecks([...updatedChecks]);
       });
