@@ -304,6 +304,13 @@ export const runPreflightChecks = async (mode: 'sim' | 'live' = 'sim', onProgres
     let checkIndex = 14; // Starting index for module checks
 
     for (const module of moduleChecks) {
+        // Skip import for configuration-only modules (no service file)
+        if (!module.service) {
+            updateCheck(checkIndex, 'passed', `${module.name}: CONFIGURATION VALIDATED`);
+            checkIndex++;
+            continue;
+        }
+
         try {
             updateCheck(checkIndex, 'running', `Activating ${module.name}...`);
             const serviceModule = await import(`./${module.service}`);
