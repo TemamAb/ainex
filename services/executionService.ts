@@ -1,4 +1,4 @@
-ext of pilmico import { ethers } from 'ethers';
+import { ethers } from 'ethers';
 import { getEthereumProvider } from '../blockchain/providers';
 import { getRouterContract } from './contractService';
 import type { TradeSignal } from '../types';

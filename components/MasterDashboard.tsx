@@ -210,7 +210,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     };
   }, [currentMode]);
 
-  // ENHANCED LIVE Mode: Enterprise-Grade Arbitrage with Quantum Optimization, Multi-Agent Coordination & Advanced Execution
+  // LIVE Mode: Enterprise-Grade Arbitrage with Quantum Optimization, Multi-Agent Coordination & Advanced Execution
   useEffect(() => {
     let cleanupBotSystem: (() => void) | undefined;
     let advancedIntegrationInterval: NodeJS.Timeout | undefined;
@@ -218,7 +218,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     let complianceMonitoringInterval: NodeJS.Timeout | undefined;
 
     if (currentMode === 'LIVE') {
-      console.log('[ENHANCED LIVE MODE] Starting enterprise arbitrage engine with quantum optimization, multi-agent coordination, and advanced execution...');
+      console.log('[LIVE MODE] Starting enterprise arbitrage engine with quantum optimization, multi-agent coordination, and advanced execution...');
 
       const startEnhancedLiveArbitrage = async () => {
         try {
@@ -231,7 +231,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
           const isReady = await validateExecutionReadiness();
 
           if (!isReady) {
-            console.error('[ENHANCED LIVE MODE] Execution system not ready - aborting startup');
+            console.error('[LIVE MODE] Execution system not ready - aborting startup');
             return;
           }
 
@@ -242,7 +242,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
           cleanupBotSystem = await botSystem.start(
             // Enhanced onNewSignal callback with quantum optimization
             async (signal: TradeSignal) => {
-              console.log('[ENHANCED LIVE MODE] New arbitrage signal detected:', signal);
+              console.log('[LIVE MODE] New arbitrage signal detected:', signal);
 
               try {
                 // Apply quantum optimization to signal
@@ -268,7 +268,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
             },
             // Enhanced onBotStatusUpdate with multi-agent coordination
             async (statuses: BotStatus[]) => {
-              console.log('[ENHANCED LIVE MODE] Bot status update:', statuses);
+              console.log('[LIVE MODE] Bot status update:', statuses);
 
               try {
                 // Multi-agent coordination for bot optimization
@@ -316,7 +316,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
 
               setLiveFlashLoanMetrics(metrics);
             } catch (error) {
-              console.error('[ENHANCED LIVE MODE] Quantum flash loan metrics error:', error);
+              console.error('[LIVE MODE] Quantum flash loan metrics error:', error);
               // Fallback to basic metrics
               const opportunities = await detectArbitrageOpportunities();
               const metrics = opportunities.map(opp => ({
@@ -369,7 +369,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
             try {
               const metrics = await advancedIntegrationService.getAdvancedMetrics();
 
-              console.log('[ENHANCED LIVE MODE] Advanced Metrics:', {
+              console.log('[LIVE MODE] Advanced Metrics:', {
                 quantumAdvantage: metrics.quantumOptimization?.advantage,
                 activeAgents: metrics.multiAgentCoordination?.activeAgents,
                 complianceStatus: metrics.complianceStatus?.checksPassed,
@@ -424,7 +424,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
           }, 45000); // Every 45 seconds
 
           // 9. AI Optimization Integration with Quantum Enhancement
-          console.log('[ENHANCED LIVE MODE] Quantum AI optimization active - monitoring performance and adjusting strategies with quantum advantage');
+          console.log('[LIVE MODE] Quantum AI optimization active - monitoring performance and adjusting strategies with quantum advantage');
 
           // Store cleanup functions
           const cleanup = () => {
@@ -440,7 +440,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
           cleanupBotSystem = cleanup;
 
         } catch (error) {
-          console.error('[ENHANCED LIVE MODE] Failed to start enterprise arbitrage engine:', error);
+          console.error('[LIVE MODE] Failed to start enterprise arbitrage engine:', error);
         }
       };
 
