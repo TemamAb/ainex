@@ -39,6 +39,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     profitTarget: { daily: '1.5', unit: 'ETH' },
     reinvestmentRate: 50,
     riskProfile: 'MEDIUM',
+    aiOptimizationCycle: 15,
     isAIConfigured: true
   });
 
@@ -76,7 +77,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
   const [isTradingPaused, setIsTradingPaused] = useState(false);
 
   // Profit Withdrawal state
-  const [withdrawalConfig, setWithdrawalConfig] = useState({
+  const [withdrawalConfig, setWithdrawalConfig] = useState<ProfitWithdrawalConfig>({
     isEnabled: false,
     walletAddress: '',
     thresholdAmount: '0.5',
@@ -109,33 +110,29 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
   };
 
   const handleStartSim = async () => {
-    if (preflightPassed) {
-      resetSimMetrics();
-      // Start Activation Sequence
-      setIsActivating('SIM');
-      setActivationSteps(getSimActivationSteps());
+    resetSimMetrics();
+    // Start Activation Sequence
+    setIsActivating('SIM');
+    setActivationSteps(getSimActivationSteps());
 
-      await runActivationSequence(getSimActivationSteps(), (steps) => setActivationSteps(steps));
+    await runActivationSequence(getSimActivationSteps(), (steps) => setActivationSteps(steps));
 
-      setIsActivating(null);
-      setCurrentMode('SIM');
-      setCurrentView('SIM');
-    }
+    setIsActivating(null);
+    setCurrentMode('SIM');
+    setCurrentView('SIM');
   };
 
   const handleStartLive = async () => {
-    if (simConfidence >= 85) {
-      resetLiveMetrics();
-      // Start Activation Sequence
-      setIsActivating('LIVE');
-      setActivationSteps(getLiveActivationSteps());
+    resetLiveMetrics();
+    // Start Activation Sequence
+    setIsActivating('LIVE');
+    setActivationSteps(getLiveActivationSteps());
 
-      await runActivationSequence(getLiveActivationSteps(), (steps) => setActivationSteps(steps));
+    await runActivationSequence(getLiveActivationSteps(), (steps) => setActivationSteps(steps));
 
-      setIsActivating(null);
-      setCurrentMode('LIVE');
-      setCurrentView('LIVE');
-    }
+    setIsActivating(null);
+    setCurrentMode('LIVE');
+    setCurrentView('LIVE');
   };
 
   const handleStopEngine = () => {
@@ -376,10 +373,10 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
 
                 <button
                   onClick={handleStartLive}
-                  disabled={(currentMode as string) !== 'SIM' || simConfidence < 85}
+                  disabled={currentMode === 'LIVE'}
                   className={`px-3 py-1.5 rounded font-bold text-xs uppercase tracking-wide transition-all ${currentMode === 'LIVE'
                     ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-500'
-                    : (currentMode === 'SIM' as string) && simConfidence >= 85
+                    : currentMode !== 'LIVE'
                       ? 'bg-emerald-600 hover:bg-emerald-500 text-white border border-transparent animate-pulse'
                       : 'bg-slate-800/50 text-slate-600 cursor-not-allowed border border-transparent'
                     }`}
@@ -406,7 +403,6 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
                 Days Deployed: <span className="font-bold">{daysDeployed}d</span>
               </div>
             </div>
-
           </div>
 
           {/* Activation Overlay */}
@@ -447,9 +443,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
               </select>
             </div>
           </div>
-
-      </div>
-    </header>
+        </header>
 
         {/* Scrollable Content */ }
   <main className="flex-1 overflow-y-auto p-6 bg-[#0b0c0e]">

@@ -93,6 +93,14 @@ const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
                         </h3>
                     </div>
                     <div className="flex items-center gap-2">
+                        {/* Unified Control Panel for both SIM and LIVE modes */}
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded">
+                            <span className="text-xs text-slate-400">Confidence:</span>
+                            <span className={`text-xs font-bold ${confidence >= 85 ? 'text-emerald-400' : 'text-yellow-400'}`}>
+                                {confidence.toFixed(1)}%
+                            </span>
+                        </div>
+
                         {mode === 'LIVE' && (
                             <button
                                 onClick={isPaused ? onResumeTrading : onPauseTrading}
@@ -113,14 +121,6 @@ const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
                                     </>
                                 )}
                             </button>
-                        )}
-                        {mode === 'SIM' && (
-                            <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded">
-                                <span className="text-xs text-slate-400">Confidence:</span>
-                                <span className={`text-xs font-bold ${confidence >= 85 ? 'text-emerald-400' : 'text-yellow-400'}`}>
-                                    {confidence.toFixed(1)}%
-                                </span>
-                            </div>
                         )}
                     </div>
                 </div>

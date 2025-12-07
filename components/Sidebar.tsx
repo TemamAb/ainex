@@ -10,7 +10,8 @@ import {
     Zap,
     Radio,
     ChevronDown,
-    Settings
+    Settings,
+    Save
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -27,6 +28,7 @@ interface SidebarProps {
         profitTarget: { daily: string; unit: string };
         reinvestmentRate: number;
         riskProfile: string;
+        aiOptimizationCycle: number; // minutes (1-60)
         isAIConfigured?: boolean;
     };
     onSettingsChange: (newSettings: any) => void;
@@ -231,6 +233,46 @@ const Sidebar: React.FC<SidebarProps> = ({
                                         </button>
                                     ))}
                                 </div>
+                            </div>
+
+                            {/* AI Optimization Cycle */}
+                            <div className="space-y-1">
+                                <label className="text-xs text-slate-400 flex justify-between">
+                                    AI Optimization Cycle
+                                    <span className="text-emerald-500 text-[10px] animate-pulse">AI Whisper: 15min</span>
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="range"
+                                        min="1"
+                                        max="60"
+                                        value={tradeSettings.aiOptimizationCycle}
+                                        onChange={(e) => updateSetting('aiOptimizationCycle', Number(e.target.value))}
+                                        className="flex-1 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-emerald-500 [&::-webkit-slider-thumb]:rounded-full"
+                                    />
+                                    <span className="text-xs font-bold text-emerald-400 min-w-[3rem] text-right">
+                                        {tradeSettings.aiOptimizationCycle}min
+                                    </span>
+                                </div>
+                                <div className="flex justify-between text-[10px] text-slate-500">
+                                    <span>1min</span>
+                                    <span>60min</span>
+                                </div>
+                            </div>
+
+                            {/* Save Button */}
+                            <div className="pt-2 border-t border-slate-700">
+                                <button
+                                    onClick={() => {
+                                        // Save settings logic - could trigger persistence or validation
+                                        console.log('Saving strategy settings:', tradeSettings);
+                                        // You could add toast notification or API call here
+                                    }}
+                                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded transition-colors shadow-lg shadow-emerald-500/25"
+                                >
+                                    <Save className="w-3 h-3" />
+                                    Save Settings
+                                </button>
                             </div>
                         </div>
                     )}

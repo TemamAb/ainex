@@ -1,4 +1,5 @@
 import { ModuleStatus } from '../types';
+import { getModulesByType } from './moduleRegistry';
 
 export interface ActivationStep {
     id: string;
@@ -8,17 +9,87 @@ export interface ActivationStep {
 }
 
 export const getSimActivationSteps = (): ActivationStep[] => [
-    { id: 'market-data', label: 'Connecting to Real Market Data', status: 'PENDING', details: 'Source: Coingecko API / Chainlink Oracles' },
-    { id: 'paper-wallet', label: 'Initializing Paper Trading Wallet', status: 'PENDING', details: 'Mode: Virtual Sandbox' },
-    { id: 'strategy-engine', label: 'Loading Strategy Engine', status: 'PENDING', details: 'Arbitrage Scanner: Active' },
-    { id: 'engine-loop', label: 'Starting Real-Time Analysis Loop', status: 'PENDING', details: 'Latency: <50ms' }
+    {
+        id: 'strategy-modules',
+        label: 'Activating Strategy Modules',
+        status: 'PENDING',
+        details: `Loading ${getModulesByType('STRATEGY').length} strategy modules (Arbitrage, Liquidation, MEV scanners)`
+    },
+    {
+        id: 'ai-modules',
+        label: 'Activating AI Modules',
+        status: 'PENDING',
+        details: `Loading ${getModulesByType('AI').length} AI modules (Strategy Engine, Gemini Integration)`
+    },
+    {
+        id: 'blockchain-modules',
+        label: 'Connecting Blockchain Providers',
+        status: 'PENDING',
+        details: `Connecting ${getModulesByType('BLOCKCHAIN').length} blockchain networks (Ethereum, Arbitrum, Base)`
+    },
+    {
+        id: 'monitoring-modules',
+        label: 'Activating Monitoring Modules',
+        status: 'PENDING',
+        details: `Loading ${getModulesByType('MONITORING').length} monitoring modules (Performance, Profit tracking)`
+    },
+    {
+        id: 'services-modules',
+        label: 'Activating Service Modules',
+        status: 'PENDING',
+        details: `Loading ${getModulesByType('SERVICES').length} service modules (Price feeds, RPC services)`
+    }
 ];
 
 export const getLiveActivationSteps = (): ActivationStep[] => [
-    { id: 'wallet-check', label: 'Verifying Wallet & Funds', status: 'PENDING', details: 'Checking Native ETH / Paymaster availability' },
-    { id: 'mainnet-rpc', label: 'Connecting to Mainnet RPCs', status: 'PENDING', details: 'Ethereum, Arbitrum, Base' },
-    { id: 'security-check', label: 'Final Security Handshake', status: 'PENDING', details: 'MEV Protection: Armed' },
-    { id: 'live-execution', label: 'Enabling Live Execution', status: 'PENDING', details: 'Real Funds at Risk' }
+    {
+        id: 'strategy-modules',
+        label: 'Activating Strategy Modules',
+        status: 'PENDING',
+        details: `Loading ${getModulesByType('STRATEGY').length} strategy modules (Arbitrage, Liquidation, MEV scanners)`
+    },
+    {
+        id: 'execution-modules',
+        label: 'Activating Execution Modules',
+        status: 'PENDING',
+        details: `Loading ${getModulesByType('EXECUTION').length} execution modules (Flash loans, MEV bundles, Atomic swaps)`
+    },
+    {
+        id: 'infrastructure-modules',
+        label: 'Activating Infrastructure Modules',
+        status: 'PENDING',
+        details: `Loading ${getModulesByType('INFRA').length} infrastructure modules (Paymaster, Wallets, Gateway)`
+    },
+    {
+        id: 'security-modules',
+        label: 'Activating Security Modules',
+        status: 'PENDING',
+        details: `Loading ${getModulesByType('SECURITY').length} security modules (Threat intelligence, Capital allocation)`
+    },
+    {
+        id: 'ai-modules',
+        label: 'Activating AI Modules',
+        status: 'PENDING',
+        details: `Loading ${getModulesByType('AI').length} AI modules (Strategy Engine, Gemini Integration)`
+    },
+    {
+        id: 'blockchain-modules',
+        label: 'Connecting Blockchain Providers',
+        status: 'PENDING',
+        details: `Connecting ${getModulesByType('BLOCKCHAIN').length} blockchain networks (Ethereum, Arbitrum, Base)`
+    },
+    {
+        id: 'monitoring-modules',
+        label: 'Activating Monitoring Modules',
+        status: 'PENDING',
+        details: `Loading ${getModulesByType('MONITORING').length} monitoring modules (Performance, Profit tracking)`
+    },
+    {
+        id: 'services-modules',
+        label: 'Activating Service Modules',
+        status: 'PENDING',
+        details: `Loading ${getModulesByType('SERVICES').length} service modules (Price feeds, RPC services)`
+    }
 ];
 
 export const runActivationSequence = async (
