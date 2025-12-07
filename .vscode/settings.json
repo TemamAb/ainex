@@ -1,0 +1,37 @@
+{
+    "ai.experimental.enabled": true,
+    
+    // CodeGPT Configuration
+    "codegpt.apiKey": "your-free-openai-key",
+    "codegpt.model": "gpt-3.5-turbo",
+    
+    // Cody AI Configuration  
+    "cody.enabled": true,
+    "cody.advanced.suppressWelcomeTips": false,
+    
+    // Continue Configuration
+    "continue.enabled": true,
+    "continue.models": [
+        {
+            "title": "Free GPT-3.5",
+            "provider": "openai",
+            "model": "gpt-3.5-turbo",
+            "apiKey": "your-free-openai-key"
+        }
+    ],
+    
+    // Tabnine Configuration
+    "tabnine.enabled": true,
+    "tabnine.experimentalAutoImports": true,
+    
+    // ChatGPT Configuration
+    "chatgpt.gpt3.apiKey": "your-free-openai-key",
+    
+    // General AI Settings
+    "editor.inlineSuggest.enabled": true,
+    "editor.quickSuggestions": {
+        "strings": true,
+        "comments": true,
+        "other": true
+    }
+}

@@ -1,6 +1,6 @@
 import type { TradeSignal, FlashLoanMetric } from '../types.ts';
-import { getRealPrices } from './priceService.ts';
-import { getCurrentGasPrice, getRecentTransactions } from '../blockchain/providers.ts';
+import { getRealPrices } from './priceService';
+import { getCurrentGasPrice, getRecentTransactions } from '../blockchain/providers';
 import { ethers } from 'ethers';
 
 // SIM Mode Simulation Service
@@ -96,7 +96,7 @@ export const runSimulationLoop = (
             const recentTxs = await getRecentTransactions('ethereum', 5);
 
             const hasData = prices.ethereum.usd > 0;
-            if (!hasData) return;
+            // if (!hasData) return; // REMOVED EARLY RETURN to allow UI update with 0 confidence
 
             // 2. Analyze Recent Transactions for Arbitrage "What-If" Scenarios
             // We look at real high-value transactions in the last block and simulate "If this was an arb opportunity, what would we have made?"
@@ -124,7 +124,7 @@ export const runSimulationLoop = (
                         timestamp: Date.now(),
                         blockNumber: tx.blockNumber || 0,
                         txHash: tx.hash,
-                        status: 'PENDING'
+                        status: 'DETECTED'
                     };
 
                     newSignals.push(signal);
@@ -139,7 +139,8 @@ export const runSimulationLoop = (
             // If gas price is extremely high (>100 gwei), confidence drops due to volatility
             const gasGwei = parseFloat(ethers.formatUnits(gasPrice, 'gwei'));
             const gasStability = gasGwei > 100 ? 0.5 : 0.95;
-            const confidenceScore = calculateConfidenceScore(gasStability, 1);
+            // Ensure confidence is 0 if no data, otherwise calculate
+            const confidenceScore = hasData ? calculateConfidenceScore(gasStability, 1) : 0;
 
             // 4. Update Metrics
             // annualized projection based on this burst of activity

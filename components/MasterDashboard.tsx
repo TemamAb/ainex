@@ -14,6 +14,8 @@ import { TradeSignal, FlashLoanMetric, BotStatus, TradeLog, ProfitWithdrawalConf
 import { getFlashLoanMetrics, runSimulationLoop } from '../services/simulationService';
 import { scheduleWithdrawal, executeWithdrawal, checkWithdrawalConditions, saveWithdrawalHistory } from '../services/withdrawalService';
 import { getLatestBlockNumber, getRecentTransactions } from '../blockchain/providers';
+import { runActivationSequence, getSimActivationSteps, getLiveActivationSteps, ActivationStep } from '../services/activationService';
+import ActivationOverlay from './ActivationOverlay';
 type EngineMode = 'IDLE' | 'PREFLIGHT' | 'SIM' | 'LIVE';
 type DashboardView = 'PREFLIGHT' | 'SIM' | 'LIVE' | 'MONITOR' | 'WITHDRAWAL' | 'EVENTS' | 'AI_CONSOLE' | 'SETTINGS' | 'DEPLOYMENT' | 'METRICS_VALIDATION';
 
@@ -46,6 +48,9 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
   const [simConfidence, setSimConfidence] = useState(0);
   const [isPreflightRunning, setIsPreflightRunning] = useState(false);
   const [preflightChecks, setPreflightChecks] = useState<any[]>([]);
+  // Activation States
+  const [activationSteps, setActivationSteps] = useState<ActivationStep[]>([]);
+  const [isActivating, setIsActivating] = useState<'SIM' | 'LIVE' | null>(null);
   const [modules, setModules] = useState<any[]>([
     { id: '1', name: 'Blockchain Provider', type: 'BLOCKCHAIN', status: 'ACTIVE', details: 'Connected to Ethereum, Arbitrum, Base', metrics: '99.9% uptime' },
     { id: '2', name: 'AI Strategy Engine', type: 'AI', status: 'ACTIVE', details: 'Neural networks loaded', metrics: '87% accuracy' },
@@ -103,17 +108,31 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     console.log('Protocol Enforcement: LIVE Metrics reset.');
   };
 
-  const handleStartSim = () => {
+  const handleStartSim = async () => {
     if (preflightPassed) {
       resetSimMetrics();
+      // Start Activation Sequence
+      setIsActivating('SIM');
+      setActivationSteps(getSimActivationSteps());
+
+      await runActivationSequence(getSimActivationSteps(), (steps) => setActivationSteps(steps));
+
+      setIsActivating(null);
       setCurrentMode('SIM');
       setCurrentView('SIM');
     }
   };
 
-  const handleStartLive = () => {
+  const handleStartLive = async () => {
     if (simConfidence >= 85) {
       resetLiveMetrics();
+      // Start Activation Sequence
+      setIsActivating('LIVE');
+      setActivationSteps(getLiveActivationSteps());
+
+      await runActivationSequence(getLiveActivationSteps(), (steps) => setActivationSteps(steps));
+
+      setIsActivating(null);
       setCurrentMode('LIVE');
       setCurrentView('LIVE');
     }
@@ -192,7 +211,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
   // LIVE Mode: Real Processing & Execution
   useEffect(() => {
     if (currentMode === 'LIVE') {
-      const { executeTrade } = require('../services/executionService.ts');
+      const { executeTrade } = require('../services/executionService');
 
       const updateLiveData = async () => {
         try {
@@ -345,7 +364,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
                 <button
                   onClick={handleStartSim}
                   disabled={!preflightPassed || currentMode === 'SIM'}
-                  className={`px-4 py-2 rounded font-bold text-sm uppercase tracking-wider transition-all ${currentMode === 'SIM'
+                  className={`px-3 py-1.5 rounded font-bold text-xs uppercase tracking-wide transition-all ${currentMode === 'SIM'
                     ? 'bg-white/20 text-white border border-white'
                     : preflightPassed && (currentMode as string) !== 'SIM'
                       ? 'bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.6)] animate-pulse'
@@ -358,7 +377,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
                 <button
                   onClick={handleStartLive}
                   disabled={(currentMode as string) !== 'SIM' || simConfidence < 85}
-                  className={`px-4 py-2 rounded font-bold text-sm uppercase tracking-wider transition-all ${currentMode === 'LIVE'
+                  className={`px-3 py-1.5 rounded font-bold text-xs uppercase tracking-wide transition-all ${currentMode === 'LIVE'
                     ? 'bg-emerald-900/50 text-emerald-400 border border-emerald-500'
                     : (currentMode === 'SIM' as string) && simConfidence >= 85
                       ? 'bg-emerald-600 hover:bg-emerald-500 text-white border border-transparent animate-pulse'
@@ -368,13 +387,14 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
                   {currentMode === 'LIVE' ? '● LIVE Active' : 'Start LIVE'}
                 </button>
 
-                {/* Stop Engine Button */}
-                {(currentMode === 'SIM' || currentMode === 'LIVE') && (
+                {/* Stop/Idle Engine Button */}
+                {(currentMode === 'SIM' || currentMode === 'LIVE' || currentMode === 'PREFLIGHT') && (
                   <button
                     onClick={handleStopEngine}
-                    className="px-4 py-2 rounded font-bold text-sm uppercase tracking-wider bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-500/30 transition-all"
+                    className="px-4 py-2 rounded font-bold text-sm uppercase tracking-wider bg-red-900/20 hover:bg-red-900/40 text-red-400 border border-red-500/30 transition-all flex items-center gap-2"
                   >
-                    Stop Engine
+                    <Power size={16} />
+                    RESET / IDLE
                   </button>
                 )}
               </div>
@@ -387,8 +407,18 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
               </div>
             </div>
 
-            {/* Controls */}
-            <div className="flex items-center gap-3 bg-slate-800 rounded p-1">
+          </div>
+
+          {/* Activation Overlay */}
+          <ActivationOverlay
+            isVisible={isActivating !== null}
+            title={isActivating === 'SIM' ? 'INITIALIZING SIMULATION ENVIRONMENT' : 'CONNECTING TO LIVE MAINNET'}
+            steps={activationSteps}
+          />
+
+          {/* Controls */}
+          <div className="flex items-center gap-3">
+            <div className="bg-slate-800 rounded p-1 flex gap-2">
               <button
                 onClick={() => setCurrency('ETH')}
                 className={`px-3 py-1 rounded text-xs font-bold transition-colors ${currency === 'ETH' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
@@ -417,25 +447,27 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
               </select>
             </div>
           </div>
-        </header>
 
-        {/* Scrollable Content */}
-        <main className="flex-1 overflow-y-auto p-6 bg-[#0b0c0e]">
-          {renderContent()}
+      </div>
+    </header>
 
-          {/* Trademark Footer */}
-          <div className="mt-12 mb-6 flex flex-col items-center justify-center opacity-50 hover:opacity-100 transition-opacity duration-500">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-              <span className="text-xs font-light tracking-[0.2em] text-slate-400 uppercase">Powered by</span>
-            </div>
-            <div className="text-sm font-bold text-slate-300 tracking-widest flex items-center gap-2">
-              AINEX <span className="font-light text-slate-500">LTD</span> <span className="text-xs text-slate-600">2026</span>
-            </div>
-          </div>
-        </main>
+        {/* Scrollable Content */ }
+  <main className="flex-1 overflow-y-auto p-6 bg-[#0b0c0e]">
+    {renderContent()}
+
+    {/* Trademark Footer */}
+    <div className="mt-12 mb-6 flex flex-col items-center justify-center opacity-50 hover:opacity-100 transition-opacity duration-500">
+      <div className="flex items-center gap-2 mb-2">
+        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+        <span className="text-xs font-light tracking-[0.2em] text-slate-400 uppercase">Powered by</span>
+      </div>
+      <div className="text-sm font-bold text-slate-300 tracking-widest flex items-center gap-2">
+        AINEX <span className="font-light text-slate-500">LTD</span> <span className="text-xs text-slate-600">2026</span>
       </div>
     </div>
+  </main>
+      </div >
+    </div >
   );
 };
 
