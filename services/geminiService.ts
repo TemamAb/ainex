@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AIStrategyResponse } from "../types";
 
 const parseJson = (text: string) => {
@@ -19,46 +19,37 @@ export const optimizeEngineStrategy = async (marketData: string): Promise<AIStra
       return getFallbackStrategy("Internal Heuristic Engine Active");
     }
 
-    const ai = new GoogleGenerativeAI(apiKey);
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const prompt = `
       You are the AINEX Engine AI Controller. High-Frequency Trading logic active.
       Analyze the current market context provided and output execution parameters for the Tri-Tier Bot System.
-      
+
       Context: ${marketData}
-      
+
       Requirements:
       1. Aggressive yield farming via Flash Loans.
       2. Gasless transaction routing preferences.
-      3. Output valid JSON.
+      3. Output valid JSON with the following structure:
+      {
+        "sentiment": "BULLISH" | "BEARISH" | "VOLATILE",
+        "recommendation": "string",
+        "activePairs": ["string"],
+        "riskAdjustment": "string",
+        "efficiencyScore": number
+      }
     `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            sentiment: { type: Type.STRING, enum: ['BULLISH', 'BEARISH', 'VOLATILE'] },
-            recommendation: { type: Type.STRING },
-            activePairs: { type: Type.ARRAY, items: { type: Type.STRING } },
-            riskAdjustment: { type: Type.STRING },
-            efficiencyScore: { type: Type.INTEGER },
-          },
-          required: ["sentiment", "recommendation", "activePairs", "riskAdjustment", "efficiencyScore"]
-        }
-      }
-    });
-
+    const result = await model.generateContent(prompt);
+    const response = result.response;
     const text = response.text();
     if (!text) throw new Error("No response from Gemini");
 
-    const result = parseJson(text);
-    if (!result) throw new Error("Invalid JSON response");
+    const parsedResult = parseJson(text);
+    if (!parsedResult) throw new Error("Invalid JSON response");
 
-    return result as AIStrategyResponse;
+    return parsedResult as AIStrategyResponse;
 
   } catch (error: any) {
     // Handle Rate Limiting (429) specifically to keep the console clean
