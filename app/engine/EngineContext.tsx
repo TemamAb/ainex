@@ -11,6 +11,14 @@ export type ProfitMode = 'ADAPTIVE' | 'FIXED';
 export type TargetTimeframe = 'EXECUTION' | 'HOUR' | 'DAY';
 export type TargetCurrency = 'ETH' | 'USD';
 
+interface SmartWallet {
+  address: string;
+  owner: string;
+  balance: string;
+  nonce: number;
+  isDeployed: boolean;
+}
+
 interface EngineContextType {
   state: EngineState;
   bootStage: BootStage;
@@ -32,6 +40,12 @@ interface EngineContextType {
   };
   confidence: number;
   aiState: OptimizerState | null;
+
+  // Smart Wallet
+  smartWallet: SmartWallet | null;
+  generateSmartWallet: () => Promise<void>;
+  deploySmartWallet: () => Promise<void>;
+  executeGaslessTransaction: (target: string, value: string, data: string) => Promise<string>;
 
   // Admin / Config
   riskProfile: RiskProfile;
@@ -78,6 +92,10 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
 
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
 
+  // Smart Wallet State
+  const [smartWallet, setSmartWallet] = useState<SmartWallet | null>(null);
+  const [smartWalletService, setSmartWalletService] = useState<any>(null);
+
   const [metrics, setMetrics] = useState({
     balance: 0,
     latencyMs: 0,
@@ -108,6 +126,11 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
     if (typeof window !== 'undefined' && (window as any).ethereum) {
       const eth = (window as any).ethereum;
       setProvider(new ethers.BrowserProvider(eth));
+
+      // Initialize Smart Wallet Service
+      const rpcUrl = import.meta.env.VITE_RPC_URL || 'https://eth-mainnet.g.alchemy.com/v2/demo';
+      const smartWalletSvc = createSmartWalletService(rpcUrl);
+      setSmartWalletService(smartWalletSvc);
     }
 
     // Load wallet address from environment variable
@@ -221,10 +244,14 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }, 5000);
 
-    return () => {
+    // Store cleanup function for later use
+    const cleanup = () => {
       simEngine.current?.stop();
       clearInterval(aiInterval);
     };
+
+    // Store cleanup reference (in production, this would be managed differently)
+    (window as any).__simulationCleanup = cleanup;
   };
 
   const confirmLive = () => {
@@ -248,6 +275,86 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Smart Wallet Functions
+  const generateSmartWallet = async () => {
+    if (!smartWalletService) {
+      throw new Error('Smart wallet service not initialized');
+    }
+
+    try {
+      // Generate a new private key for the wallet owner
+      const ownerPrivateKey = walletUtils.generatePrivateKey();
+
+      // Generate smart wallet
+      const wallet = await smartWalletService.generateSmartWallet(ownerPrivateKey);
+
+      // Check if deployed
+      const code = await smartWalletService.provider.getCode(wallet.address);
+      const isDeployed = code !== '0x';
+
+      setSmartWallet({
+        address: wallet.address,
+        owner: wallet.owner,
+        balance: wallet.balance,
+        nonce: wallet.nonce,
+        isDeployed
+      });
+
+      console.log('Smart wallet generated:', wallet.address);
+    } catch (error) {
+      console.error('Failed to generate smart wallet:', error);
+      throw error;
+    }
+  };
+
+  const deploySmartWallet = async () => {
+    if (!smartWallet || !smartWalletService) {
+      throw new Error('Smart wallet not generated or service not available');
+    }
+
+    try {
+      // Generate owner private key (in production, this would be securely stored)
+      const ownerPrivateKey = walletUtils.generatePrivateKey();
+
+      const deployedAddress = await smartWalletService.deploySmartWallet(ownerPrivateKey);
+
+      setSmartWallet(prev => prev ? {
+        ...prev,
+        address: deployedAddress,
+        isDeployed: true
+      } : null);
+
+      console.log('Smart wallet deployed:', deployedAddress);
+    } catch (error) {
+      console.error('Failed to deploy smart wallet:', error);
+      throw error;
+    }
+  };
+
+  const executeGaslessTransaction = async (target: string, value: string, data: string) => {
+    if (!smartWallet || !smartWalletService) {
+      throw new Error('Smart wallet not available');
+    }
+
+    try {
+      // Generate owner private key (in production, this would be retrieved securely)
+      const ownerPrivateKey = walletUtils.generatePrivateKey();
+
+      const txHash = await smartWalletService.executeTransaction(
+        ownerPrivateKey,
+        target,
+        value,
+        data
+      );
+
+      console.log('Gasless transaction executed:', txHash);
+      return txHash;
+    } catch (error) {
+      console.error('Failed to execute gasless transaction:', error);
+      throw error;
+    }
+  };
+
   const withdrawFunds = async (amount: number) => {
     // Mock withdrawal for now, would be a real tx in production
     await new Promise(r => setTimeout(r, 1500));
@@ -257,6 +364,7 @@ export const EngineProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <EngineContext.Provider value={{
       state, bootStage, metrics, confidence, aiState,
+      smartWallet, generateSmartWallet, deploySmartWallet, executeGaslessTransaction,
       startEngine, startSimulation, confirmLive, withdrawFunds, engineAddress,
       riskProfile, setRiskProfile, profitMode, setProfitMode,
       fixedTarget, setFixedTarget, targetTimeframe, setTargetTimeframe, targetCurrency, setTargetCurrency, effectiveTargetPerBlock,
