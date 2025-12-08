@@ -1,5 +1,4 @@
 import { ModuleStatus } from '../types';
-import { getModulesByType } from './moduleRegistry';
 
 export interface ActivationStep {
     id: string;
@@ -94,7 +93,8 @@ export const getLiveActivationSteps = (): ActivationStep[] => [
 
 export const runActivationSequence = async (
     steps: ActivationStep[],
-    onProgress: (steps: ActivationStep[]) => void
+    onProgress: (steps: ActivationStep[]) => void,
+    mode: 'SIM' | 'LIVE' = 'LIVE'
 ): Promise<boolean> => {
     const currentSteps = [...steps];
 
@@ -106,6 +106,9 @@ export const runActivationSequence = async (
         // Simulate work (1.5s per step for visual clarity)
         await new Promise(resolve => setTimeout(resolve, 1500));
 
+        // Actually activate modules based on mode
+        await activateModulesForMode(mode);
+
         // Complete step
         currentSteps[i] = { ...currentSteps[i], status: 'COMPLETED' };
         onProgress([...currentSteps]);
@@ -113,3 +116,30 @@ export const runActivationSequence = async (
 
     return true;
 };
+
+// Module registry functions imported at top
+
+const activateModulesForMode = async (mode: 'SIM' | 'LIVE') => {
+    if (mode === 'LIVE') {
+        // Activate ALL modules for LIVE
+        await activateAllModules();
+    } else if (mode === 'SIM') {
+        // Activate all modules EXCEPT real fund execution related for SIM
+        const allModules = [
+            ...getModulesByType('STRATEGY'),
+            ...getModulesByType('INFRA'),
+            ...getModulesByType('SECURITY'),
+            ...getModulesByType('MONITORING'),
+            ...getModulesByType('AI'),
+            ...getModulesByType('BLOCKCHAIN'),
+            ...getModulesByType('SERVICES')
+            // Exclude EXECUTION modules (real fund execution)
+        ];
+
+        for (const module of allModules) {
+            await activateModule(module.id);
+        }
+    }
+};
+
+// Module registry functions imported at top

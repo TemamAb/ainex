@@ -1,5 +1,5 @@
-import type { EngineModule, ModuleType } from '../types.ts';
-import { ModuleStatus } from '../types.ts';
+import type { EngineModule, ModuleType } from '../types';
+import { ModuleStatus } from '../types';
 
 // AINEX MODULE REGISTRY
 // Comprehensive catalog of all engine modules for preflight activation
@@ -370,6 +370,10 @@ export const activateModule = async (moduleId: string): Promise<ModuleActivation
     try {
         const module = getModuleById(moduleId);
 
+        if (!module) {
+            throw new Error(`Module ${moduleId} not found`);
+        }
+
         // REAL ACTIVATION LOGIC
         if (module?.type === 'BLOCKCHAIN') {
             // Validate connection
@@ -382,13 +386,16 @@ export const activateModule = async (moduleId: string): Promise<ModuleActivation
             }
         }
 
+        // ACTUALLY ACTIVATE THE MODULE - Change status to ACTIVE
+        module.status = ModuleStatus.ACTIVE;
+
         // For this phase, we ensure 100% deterministic success for all valid modules
         // This removes the "Mock" random failures.
 
         return {
             moduleId,
             success: true,
-            message: `${module?.name} activated`,
+            message: `${module?.name} activated successfully`,
             latency: Date.now() - startTime,
             timestamp: Date.now()
         };

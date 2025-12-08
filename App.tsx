@@ -500,28 +500,7 @@ function App() {
             </div>
         </div>
 
-        {/* Right Column: System Modules */}
-        <div className="col-span-12 lg:col-span-4">
-             <div className="bg-slate-900/30 border border-slate-800 rounded-lg p-4 h-full">
-                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <Cpu className="w-3 h-3" /> Tri-Tier Bot System
-                 </h3>
-                 <SystemStatus modules={modules} />
-                 
-                 <div className="mt-6 border-t border-slate-800 pt-4">
-                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                        <Terminal className="w-3 h-3" /> System Logs
-                     </h3>
-                     <div className="h-48 overflow-y-auto font-mono text-[10px] space-y-1 scrollbar-thin scrollbar-thumb-slate-800">
-                        {logs.map((log, i) => (
-                            <div key={i} className="text-slate-500 truncate hover:text-slate-300 transition-colors">
-                                {log}
-                            </div>
-                        ))}
-                     </div>
-                 </div>
-             </div>
-        </div>
+
     </div>
   );
 

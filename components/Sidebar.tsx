@@ -11,7 +11,9 @@ import {
     Radio,
     ChevronDown,
     Settings,
-    Save
+    Save,
+    CheckCircle,
+    AlertCircle
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -258,6 +260,55 @@ const Sidebar: React.FC<SidebarProps> = ({
                                     <span>1min</span>
                                     <span>60min</span>
                                 </div>
+                            </div>
+
+                            {/* Profit Withdrawal Wallet */}
+                            <div className="space-y-2 border-t border-slate-700 pt-3">
+                                <label className="text-xs text-slate-400 flex items-center gap-2">
+                                    <Wallet className="w-3 h-3" />
+                                    Profit Withdrawal Wallet
+                                </label>
+                                <div className="space-y-2">
+                                    <input
+                                        type="text"
+                                        value={withdrawalWallet}
+                                        onChange={(e) => handleWalletInput(e.target.value)}
+                                        placeholder="0x..."
+                                        className={`w-full bg-slate-800 border rounded px-2 py-1 text-xs text-white focus:outline-none ${
+                                            walletValidation === 'valid' ? 'border-emerald-500' :
+                                            walletValidation === 'invalid' ? 'border-red-500' :
+                                            'border-slate-700'
+                                        }`}
+                                    />
+                                    {withdrawalWallet && (
+                                        <div className="flex items-center gap-2">
+                                            {walletValidation === 'valid' ? (
+                                                <CheckCircle className="w-3 h-3 text-emerald-500" />
+                                            ) : (
+                                                <AlertCircle className="w-3 h-3 text-red-500" />
+                                            )}
+                                            <span className={`text-[10px] ${
+                                                walletValidation === 'valid' ? 'text-emerald-400' : 'text-red-400'
+                                            }`}>
+                                                {walletValidation === 'valid' ? formatAddress(withdrawalWallet) : 'Invalid Ethereum address'}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Withdrawal Threshold */}
+                            <div className="space-y-1">
+                                <label className="text-xs text-slate-400">Withdrawal Threshold (ETH)</label>
+                                <input
+                                    type="number"
+                                    step="0.1"
+                                    min="0.1"
+                                    value={withdrawalThreshold}
+                                    onChange={(e) => setWithdrawalThreshold(e.target.value)}
+                                    className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:border-emerald-500 outline-none"
+                                    placeholder="0.5"
+                                />
                             </div>
 
                             {/* Save Button */}

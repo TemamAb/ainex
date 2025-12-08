@@ -17,6 +17,7 @@ import { getLatestBlockNumber, getRecentTransactions } from '../blockchain/provi
 import { runActivationSequence, getSimActivationSteps, getLiveActivationSteps, ActivationStep } from '../services/activationService';
 import ActivationOverlay from './ActivationOverlay';
 type EngineMode = 'IDLE' | 'PREFLIGHT' | 'SIM' | 'LIVE';
+type ActivationMode = 'SIM' | 'LIVE' | null;
 type DashboardView = 'PREFLIGHT' | 'SIM' | 'LIVE' | 'MONITOR' | 'WITHDRAWAL' | 'EVENTS' | 'AI_CONSOLE' | 'SETTINGS' | 'DEPLOYMENT' | 'METRICS_VALIDATION';
 
 interface MasterDashboardProps {
@@ -51,7 +52,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
   const [preflightChecks, setPreflightChecks] = useState<any[]>([]);
   // Activation States
   const [activationSteps, setActivationSteps] = useState<ActivationStep[]>([]);
-  const [isActivating, setIsActivating] = useState<'SIM' | 'LIVE' | null>(null);
+  const [isActivating, setIsActivating] = useState<ActivationMode>(null);
   const [modules, setModules] = useState<any[]>([
     { id: '1', name: 'Blockchain Provider', type: 'BLOCKCHAIN', status: 'ACTIVE', details: 'Connected to Ethereum, Arbitrum, Base', metrics: '99.9% uptime' },
     { id: '2', name: 'AI Strategy Engine', type: 'AI', status: 'ACTIVE', details: 'Neural networks loaded', metrics: '87% accuracy' },
@@ -115,7 +116,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     setIsActivating('SIM');
     setActivationSteps(getSimActivationSteps());
 
-    await runActivationSequence(getSimActivationSteps(), (steps) => setActivationSteps(steps));
+    await runActivationSequence(getSimActivationSteps(), (steps) => setActivationSteps(steps), 'SIM');
 
     setIsActivating(null);
     setCurrentMode('SIM');
@@ -128,7 +129,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     setIsActivating('LIVE');
     setActivationSteps(getLiveActivationSteps());
 
-    await runActivationSequence(getLiveActivationSteps(), (steps) => setActivationSteps(steps));
+    await runActivationSequence(getLiveActivationSteps(), (steps) => setActivationSteps(steps), 'LIVE');
 
     setIsActivating(null);
     setCurrentMode('LIVE');
@@ -282,6 +283,9 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
             totalProfit={simProfitProjection.daily}
             flashMetrics={simFlashLoanMetrics}
             confidence={simConfidence}
+            isPaused={false}
+            onPauseTrading={() => {}}
+            onResumeTrading={() => {}}
           />
         );
       case 'LIVE':
@@ -291,6 +295,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
             signals={liveTradeSignals}
             totalProfit={liveProfitMetrics.total}
             flashMetrics={liveFlashLoanMetrics}
+            confidence={95}
             isPaused={isTradingPaused}
             onPauseTrading={() => setIsTradingPaused(true)}
             onResumeTrading={() => setIsTradingPaused(false)}
@@ -349,21 +354,14 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
             </div>
 
             <div className="flex items-center gap-4">
-              {/* Live Mode Status Badge */}
-              {currentMode === 'LIVE' && (
-                <div className="bg-emerald-900/30 border border-emerald-500/50 rounded px-3 py-1">
-                  <span className="text-emerald-400 font-bold text-sm">● Live mode running</span>
-                </div>
-              )}
-
               {/* Mode Control Buttons */}
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleStartSim}
-                  disabled={!preflightPassed || currentMode === 'SIM'}
+                  disabled={!preflightPassed || currentMode === 'SIM' || currentMode === 'LIVE'}
                   className={`px-3 py-1.5 rounded font-bold text-xs uppercase tracking-wide transition-all ${currentMode === 'SIM'
                     ? 'bg-white/20 text-white border border-white'
-                    : preflightPassed && (currentMode as string) !== 'SIM'
+                    : preflightPassed && currentMode !== 'SIM' && currentMode !== 'LIVE'
                       ? 'bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.6)] animate-pulse'
                       : 'bg-slate-800/50 text-slate-600 cursor-not-allowed border border-transparent'
                     }`}
