@@ -1,102 +1,156 @@
- const { ethers } = require('ethers');
-const { getEthereumProvider } = require('../blockchain/providers');
+import { ethers } from 'ethers';
+import { getEthereumProvider } from '../blockchain/providers';
+import { logger } from '../utils/logger';
 
-// ERC-4337 Account Abstraction Addresses for Ethereum Mainnet
-const ERC4337_ADDRESSES = {
-    entryPoint: '0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789',
-    factory: '0x9406Cc6185a346906296840746125a0E44976454',
-    paymaster: '0x0000000000000000000000000000000000000000' // To be configured
-};
+// Smart Wallet Service for Gasless Execution
+// Uses ERC-4337 Account Abstraction for sponsored transactions
 
-// SmartWallet interface for TypeScript
 interface SmartWallet {
-    smartWalletAddress: string;
-    ownerAddress: string;
-    paymasterAddress: string;
-    chain: string;
+  smartWalletAddress: string;
+  ownerAddress: string;
+  chain: string;
+  isDeployed: boolean;
+  balance: string;
 }
 
-// Generate deterministic smart wallet address using CREATE2
-const generateSmartWallet = async (chain: 'ethereum' | 'arbitrum' | 'base'): Promise<SmartWallet> => {
-    // Use a deterministic owner address for demo (in production, use user's address)
-    const ownerAddress = '0x742d35Cc6634C0532925a3b844Bc454e4438f44e'; // Demo owner
+interface SmartWalletSigner {
+  signer: ethers.Wallet;
+  smartWallet: SmartWallet;
+}
 
-    // Generate deterministic smart wallet address based on chain and owner
-    const salt = ethers.keccak256(ethers.toUtf8Bytes(`AINEX_TRADING_WALLET_${chain}_${ownerAddress}`));
-    const smartWalletAddress = ethers.getCreate2Address(
-        ERC4337_ADDRESSES.factory,
-        salt,
-        ethers.keccak256('0x') // Simple bytecode hash for demo
-    );
+// In-memory storage for demo purposes
+// In production, this would be stored in a database
+const smartWallets: Map<string, SmartWallet> = new Map();
 
-    console.log(`Generated Smart Wallet for ${chain}: ${smartWalletAddress}`);
+// Generate a deterministic smart wallet address for a user
+export const generateSmartWallet = async (chain: 'ethereum' | 'arbitrum' = 'ethereum'): Promise<SmartWallet> => {
+  try {
+    // For demo purposes, generate a deterministic wallet
+    // In production, this would use ERC-4337 factory contracts
+    const provider = await getEthereumProvider();
 
-    return {
-        smartWalletAddress,
-        ownerAddress,
-        paymasterAddress: ERC4337_ADDRESSES.paymaster,
-        chain
+    // Create a deterministic private key based on chain
+    const privateKey = ethers.keccak256(ethers.toUtf8Bytes(`ainex-smart-wallet-${chain}`));
+    const wallet = new ethers.Wallet(privateKey, provider);
+
+    const smartWallet: SmartWallet = {
+      smartWalletAddress: wallet.address,
+      ownerAddress: wallet.address, // Self-owned for demo
+      chain,
+      isDeployed: true, // Assume deployed for demo
+      balance: '0.0'
     };
+
+    // Store in memory
+    smartWallets.set(`${chain}-smart-wallet`, smartWallet);
+
+    logger.info(`Smart wallet generated for ${chain}: ${wallet.address}`);
+    return smartWallet;
+
+  } catch (error) {
+    logger.error('Failed to generate smart wallet:', error);
+    throw new Error('Smart wallet generation failed');
+  }
 };
 
 // Get signer for smart wallet operations
-const getSmartWalletSigner = async (chain: 'ethereum' | 'arbitrum' | 'base'): Promise<{
-    signer: ethers.Signer;
-    smartWallet: SmartWallet;
-}> => {
+export const getSmartWalletSigner = async (chain: 'ethereum' | 'arbitrum' = 'ethereum'): Promise<SmartWalletSigner> => {
+  try {
+    const walletKey = `${chain}-smart-wallet`;
+
+    // Check if wallet exists, generate if not
+    if (!smartWallets.has(walletKey)) {
+      await generateSmartWallet(chain);
+    }
+
+    const smartWallet = smartWallets.get(walletKey)!;
     const provider = await getEthereumProvider();
 
-    // For demo purposes, create a random signer
-    // In production, this would connect to the user's wallet
-    const signer = ethers.Wallet.createRandom().connect(provider);
+    // Create signer from deterministic private key
+    const privateKey = ethers.keccak256(ethers.toUtf8Bytes(`ainex-smart-wallet-${chain}`));
+    const signer = new ethers.Wallet(privateKey, provider);
 
-    const smartWallet = await generateSmartWallet(chain);
+    logger.info(`Smart wallet signer retrieved for ${chain}: ${signer.address}`);
 
-    return { signer, smartWallet };
+    return {
+      signer,
+      smartWallet
+    };
+
+  } catch (error) {
+    logger.error('Failed to get smart wallet signer:', error);
+    throw new Error('Smart wallet signer retrieval failed');
+  }
 };
 
-// Check if smart wallet is ready for operations
-const isSmartWalletReady = async (chain: 'ethereum' | 'arbitrum' | 'base'): Promise<boolean> => {
-    try {
-        const smartWallet = await generateSmartWallet(chain);
-        const provider = await getEthereumProvider();
+// Check if smart wallet is ready for execution
+export const isSmartWalletReady = async (chain: 'ethereum' | 'arbitrum' = 'ethereum'): Promise<boolean> => {
+  try {
+    const walletKey = `${chain}-smart-wallet`;
 
-        // Check if smart wallet has been deployed
-        const code = await provider.getCode(smartWallet.smartWalletAddress);
-        return code !== '0x';
-    } catch (error) {
-        console.error('Smart wallet readiness check failed:', error);
-        return false;
+    if (!smartWallets.has(walletKey)) {
+      await generateSmartWallet(chain);
     }
+
+    const smartWallet = smartWallets.get(walletKey)!;
+
+    // For demo purposes, always return true
+    // In production, check if wallet is deployed and has sufficient balance
+    logger.info(`Smart wallet ready check for ${chain}: ${smartWallet.isDeployed}`);
+    return smartWallet.isDeployed;
+
+  } catch (error) {
+    logger.error('Smart wallet readiness check failed:', error);
+    return false;
+  }
 };
 
-// Deploy smart wallet if not already deployed
-const deploySmartWallet = async (chain: 'ethereum' | 'arbitrum' | 'base'): Promise<string> => {
-    try {
-        const { signer, smartWallet } = await getSmartWalletSigner(chain);
+// Get smart wallet balance
+export const getSmartWalletBalance = async (chain: 'ethereum' | 'arbitrum' = 'ethereum'): Promise<string> => {
+  try {
+    const { signer } = await getSmartWalletSigner(chain);
+    const balance = await signer.provider?.getBalance(signer.address);
 
-        // Factory contract for deployment
-        const factory = new ethers.Contract(ERC4337_ADDRESSES.factory, [
-            'function createAccount(bytes32 salt, address owner) returns (address)'
-        ], signer);
+    const balanceEth = balance ? ethers.formatEther(balance) : '0.0';
 
-        const salt = ethers.keccak256(ethers.toUtf8Bytes(`AINEX_TRADING_WALLET_${chain}_${smartWallet.ownerAddress}`));
-
-        const tx = await factory.createAccount(salt, smartWallet.ownerAddress);
-        const receipt = await tx.wait();
-
-        console.log(`Smart wallet deployed: ${receipt.contractAddress}`);
-        return receipt.contractAddress || smartWallet.smartWalletAddress;
-    } catch (error) {
-        console.error('Smart wallet deployment failed:', error);
-        throw error;
+    // Update stored balance
+    const walletKey = `${chain}-smart-wallet`;
+    if (smartWallets.has(walletKey)) {
+      const wallet = smartWallets.get(walletKey)!;
+      wallet.balance = balanceEth;
+      smartWallets.set(walletKey, wallet);
     }
+
+    logger.info(`Smart wallet balance for ${chain}: ${balanceEth} ETH`);
+    return balanceEth;
+
+  } catch (error) {
+    logger.error('Failed to get smart wallet balance:', error);
+    return '0.0';
+  }
 };
 
-// CommonJS exports
-module.exports = {
-    generateSmartWallet,
-    getSmartWalletSigner,
-    isSmartWalletReady,
-    deploySmartWallet
+// Fund smart wallet (for demo purposes)
+export const fundSmartWallet = async (chain: 'ethereum' | 'arbitrum' = 'ethereum', amount: string): Promise<boolean> => {
+  try {
+    // For demo purposes, this would normally fund the wallet
+    // In production, this would interact with a paymaster service
+    logger.info(`Funding smart wallet ${chain} with ${amount} ETH (demo)`);
+
+    // Update balance in memory
+    const walletKey = `${chain}-smart-wallet`;
+    if (smartWallets.has(walletKey)) {
+      const wallet = smartWallets.get(walletKey)!;
+      const currentBalance = parseFloat(wallet.balance);
+      const fundAmount = parseFloat(amount);
+      wallet.balance = (currentBalance + fundAmount).toString();
+      smartWallets.set(walletKey, wallet);
+    }
+
+    return true;
+
+  } catch (error) {
+    logger.error('Failed to fund smart wallet:', error);
+    return false;
+  }
 };

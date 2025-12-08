@@ -15,7 +15,7 @@ import { getLatestBlockNumber, getRecentTransactions } from '../blockchain/provi
 import { runActivationSequence, getSimActivationSteps, getLiveActivationSteps, ActivationStep } from '../services/activationService';
 import { createContractDeploymentService, ContractDeployment, DeploymentReport } from '../services/contractDeploymentService';
 import ActivationOverlay from './ActivationOverlay';
-type EngineMode = 'IDLE' | 'PREFLIGHT' | 'SIM' | 'LIVE';
+type EngineMode = 'PREFLIGHT' | 'SIM' | 'LIVE';
 type ActivationMode = 'SIM' | 'LIVE' | null;
 type DashboardView = 'PREFLIGHT' | 'SIM' | 'LIVE' | 'MONITOR' | 'WITHDRAWAL' | 'EVENTS' | 'AI_CONSOLE' | 'SETTINGS' | 'DEPLOYMENT' | 'METRICS_VALIDATION';
 
@@ -70,6 +70,8 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
   const [simPerformanceMetrics, setSimPerformanceMetrics] = useState({
     avgProfitPerTrade: 0,
     tradesPerHour: 0,
+    profitPerHour: 0,
+    aiOptimizationRunsPerHour: 0,
     aiOptimizationAnalytics: {
       avgMinutesPerRun: 0,
       percentDelta: 0,
@@ -97,6 +99,8 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
   const [livePerformanceMetrics, setLivePerformanceMetrics] = useState({
     avgProfitPerTrade: 0,
     tradesPerHour: 0,
+    profitPerHour: 0,
+    aiOptimizationRunsPerHour: 0,
     aiOptimizationAnalytics: {
       avgMinutesPerRun: 0,
       percentDelta: 0,
@@ -157,6 +161,8 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     setSimPerformanceMetrics({
       avgProfitPerTrade: 0,
       tradesPerHour: 0,
+      profitPerHour: 0,
+      aiOptimizationRunsPerHour: 0,
       aiOptimizationAnalytics: {
         avgMinutesPerRun: 0,
         percentDelta: 0,
@@ -185,6 +191,8 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     setLivePerformanceMetrics({
       avgProfitPerTrade: 0,
       tradesPerHour: 0,
+      profitPerHour: 0,
+      aiOptimizationRunsPerHour: 0,
       aiOptimizationAnalytics: {
         avgMinutesPerRun: 0,
         percentDelta: 0,
@@ -337,70 +345,129 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     };
   }, [currentMode]);
 
-  // LIVE Mode: Real Processing & Execution
+  // LIVE Mode: Real Processing & Execution with Active Arbitrage Scanning
   useEffect(() => {
     if (currentMode === 'LIVE') {
       const { executeTrade } = require('../services/executionService');
+      const { arbitrageScanner, mevScanner, liquidationScanner } = require('../services/scannerService');
 
-      const updateLiveData = async () => {
+      let scannersActive = false;
+
+      const startLiveScanning = async () => {
         try {
-          // 1. Fetch Real Blockchain Data (Mempool/Past Blocks)
-          const transactions = await getRecentTransactions('ethereum', 5);
+          console.log('🔥 LIVE MODE: Starting real arbitrage scanning...');
 
-          // 2. Analyze for Opportunities (Real Logic Simulation)
-          // Mapping real txs to potential "Signals" for the dashboard
-          const signals: TradeSignal[] = transactions.map(tx => ({
-            id: tx.hash,
-            blockNumber: tx.blockNumber,
-            pair: 'ETH/USDC',
-            chain: 'Ethereum' as any,
-            action: 'FLASH_LOAN' as any,
-            confidence: 98, // High confidence for demo live mode
-            expectedProfit: '0.05',
-            route: ['Uniswap V3', 'Sushiswap'],
-            timestamp: Date.now(),
-            txHash: tx.hash,
-            status: 'EXECUTING'
-          }));
+          // Start all scanners for real opportunity detection
+          await Promise.all([
+            arbitrageScanner.startScanning((signal: TradeSignal) => {
+              console.log('🎯 ARBITRAGE OPPORTUNITY DETECTED:', signal);
+              setLiveTradeSignals(prev => [signal, ...prev].slice(0, 50));
 
-          setLiveTradeSignals(signals);
-
-          // 3. Auto-Execute High Confidence Signals
-          signals.forEach(async (signal) => {
-            if (signal.status === 'EXECUTING') {
-              const result = await executeTrade(signal);
-
-              if (result.success) {
-                // Log the "Real" Execution
-                setLiveTradeLogs(prev => [{
-                  id: result.txHash || '0x',
-                  timestamp: new Date().toISOString(),
-                  pair: signal.pair,
-                  dex: signal.route,
-                  profit: parseFloat(signal.expectedProfit),
-                  gas: 150000,
-                  status: 'SUCCESS' as const
-                }, ...prev].slice(0, 50));
-
-                // Update Profit Metrics
-                setLiveProfitMetrics(prev => ({
-                  daily: prev.daily + parseFloat(signal.expectedProfit),
-                  total: prev.total + parseFloat(signal.expectedProfit)
-                }));
+              // Auto-execute high confidence signals
+              if (signal.confidence >= 85 && !isTradingPaused) {
+                executeLiveTrade(signal);
               }
-            }
-          });
+            }),
+            mevScanner.startScanning((signal: TradeSignal) => {
+              console.log('⚡ MEV OPPORTUNITY DETECTED:', signal);
+              setLiveTradeSignals(prev => [signal, ...prev].slice(0, 50));
+
+              if (signal.confidence >= 90 && !isTradingPaused) {
+                executeLiveTrade(signal);
+              }
+            }),
+            liquidationScanner.startScanning((signal: TradeSignal) => {
+              console.log('💰 LIQUIDATION OPPORTUNITY DETECTED:', signal);
+              setLiveTradeSignals(prev => [signal, ...prev].slice(0, 50));
+
+              if (signal.confidence >= 80 && !isTradingPaused) {
+                executeLiveTrade(signal);
+              }
+            })
+          ]);
+
+          scannersActive = true;
+          console.log('✅ All arbitrage scanners active - hunting for real profits!');
 
         } catch (error) {
-          console.error('Error updating LIVE data:', error);
+          console.error('❌ Failed to start live scanners:', error);
         }
       };
 
-      updateLiveData();
-      const interval = setInterval(updateLiveData, 6000); // Slower interval for Live Execution safety
-      return () => clearInterval(interval);
+      const executeLiveTrade = async (signal: TradeSignal) => {
+        try {
+          console.log(`🚀 EXECUTING LIVE TRADE: ${signal.pair} - Expected: ${signal.expectedProfit}`);
+
+          const result = await executeTrade(signal);
+
+          if (result.success) {
+            console.log(`💰 TRADE SUCCESSFUL: +${result.actualProfit} ETH (Tx: ${result.txHash})`);
+
+            // Log successful execution
+            setLiveTradeLogs(prev => [{
+              id: result.txHash || signal.id,
+              timestamp: new Date().toISOString(),
+              pair: signal.pair,
+              dex: signal.route,
+              profit: result.actualProfit || parseFloat(signal.expectedProfit),
+              gas: parseInt(result.gasUsed || '150000'),
+              status: 'SUCCESS' as const
+            }, ...prev].slice(0, 50));
+
+            // Update real profit metrics
+            setLiveProfitMetrics(prev => ({
+              daily: prev.daily + (result.actualProfit || parseFloat(signal.expectedProfit)),
+              total: prev.total + (result.actualProfit || parseFloat(signal.expectedProfit))
+            }));
+
+            // Update lifetime profit
+            setLifetimeProfit(prev => prev + (result.actualProfit || parseFloat(signal.expectedProfit)));
+
+          } else {
+            console.log(`❌ TRADE FAILED: ${result.error}`);
+
+            // Log failed execution
+            setLiveTradeLogs(prev => [{
+              id: signal.id,
+              timestamp: new Date().toISOString(),
+              pair: signal.pair,
+              dex: signal.route,
+              profit: 0,
+              gas: 0,
+              status: 'FAILED' as const
+            }, ...prev].slice(0, 50));
+          }
+        } catch (error) {
+          console.error('💥 Live trade execution error:', error);
+        }
+      };
+
+      // Start live scanning
+      startLiveScanning();
+
+      // Periodic status update (less frequent than scanning)
+      const statusInterval = setInterval(async () => {
+        try {
+          // Update flash loan metrics for live mode
+          const metrics = await import('../services/simulationService');
+          setLiveFlashLoanMetrics(metrics.getFlashLoanMetrics());
+        } catch (error) {
+          console.error('Error updating live metrics:', error);
+        }
+      }, 30000); // Every 30 seconds
+
+      return () => {
+        // Cleanup: Stop all scanners
+        if (scannersActive) {
+          arbitrageScanner.stopScanning();
+          mevScanner.stopScanning();
+          liquidationScanner.stopScanning();
+          console.log('🛑 Live scanners stopped');
+        }
+        clearInterval(statusInterval);
+      };
     }
-  }, [currentMode]);
+  }, [currentMode, isTradingPaused]);
 
   const renderContent = () => {
     switch (currentView) {
@@ -417,6 +484,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
             isPaused={false}
             onPauseTrading={() => {}}
             onResumeTrading={() => {}}
+            performanceMetrics={simPerformanceMetrics}
           />
         );
       case 'LIVE':
@@ -430,6 +498,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
             isPaused={isTradingPaused}
             onPauseTrading={() => setIsTradingPaused(true)}
             onResumeTrading={() => setIsTradingPaused(false)}
+            performanceMetrics={livePerformanceMetrics}
           />
         );
       case 'WITHDRAWAL':
