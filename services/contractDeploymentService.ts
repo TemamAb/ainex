@@ -95,19 +95,47 @@ export class ContractDeploymentService {
       metadata?: ContractDeployment['metadata'];
     } = {}
   ): Promise<ContractDeployment> {
+    const startTime = Date.now();
+
     try {
-      // Get transaction details
-      const tx = await this.provider.getTransaction(txHash);
+      // Check circuit breaker
+      if (this.circuitBreaker.isOpen) {
+        throw new Error('Circuit breaker is open - deployment recording temporarily disabled');
+      }
+
+      // Check cache first
+      const cacheKey = `${txHash}_${contractAddress}`;
+      const cached = this.getCachedDeployment(cacheKey);
+      if (cached) {
+        console.log(`📋 Using cached deployment data for ${contractName}`);
+        return cached;
+      }
+
+      // Validate inputs
+      const validationErrors = deploymentUtils.validateDeploymentData({
+        contractName,
+        contractAddress,
+        deployerAddress,
+        network,
+        txHash
+      });
+
+      if (validationErrors.length > 0) {
+        throw new Error(`Validation failed: ${validationErrors.join(', ')}`);
+      }
+
+      // Get transaction details with retry logic
+      const tx = await this.retryWithBackoff(() => this.provider.getTransaction(txHash));
       if (!tx) {
         throw new Error(`Transaction ${txHash} not found`);
       }
 
-      const receipt = await this.provider.getTransactionReceipt(txHash);
+      const receipt = await this.retryWithBackoff(() => this.provider.getTransactionReceipt(txHash));
       if (!receipt) {
         throw new Error(`Transaction receipt for ${txHash} not found`);
       }
 
-      const block = await this.provider.getBlock(receipt.blockNumber);
+      const block = await this.retryWithBackoff(() => this.provider.getBlock(receipt.blockNumber));
       const networkInfo = await this.provider.getNetwork();
 
       // Calculate deployment cost
@@ -118,7 +146,7 @@ export class ContractDeploymentService {
       );
 
       // Get bytecode size
-      const code = await this.provider.getCode(contractAddress);
+      const code = await this.retryWithBackoff(() => this.provider.getCode(contractAddress));
       const bytecodeSize = Math.floor((code.length - 2) / 2); // Remove 0x prefix and convert to bytes
 
       const deployment: ContractDeployment = {
@@ -144,12 +172,125 @@ export class ContractDeploymentService {
       // Store deployment
       this.deployments.set(deployment.id, deployment);
 
-      console.log(`Contract deployment recorded: ${contractName} (#${deployment.deploymentNumber})`);
+      // Cache the deployment
+      this.setCachedDeployment(cacheKey, deployment);
+
+      // Update metrics
+      this.updateMetrics(deployment, Date.now() - startTime);
+
+      // Reset circuit breaker on success
+      this.circuitBreaker.failureCount = 0;
+      this.circuitBreaker.isOpen = false;
+
+      console.log(`✅ Contract deployment recorded: ${contractName} (#${deployment.deploymentNumber})`);
       return deployment;
 
     } catch (error) {
-      console.error('Failed to record deployment:', error);
+      const deploymentTime = Date.now() - startTime;
+
+      // Update metrics for failure
+      this.updateMetricsForFailure(deploymentTime);
+
+      // Update circuit breaker
+      this.updateCircuitBreaker();
+
+      console.error('❌ Failed to record deployment:', error);
       throw error;
+    }
+  }
+
+  private async retryWithBackoff<T>(operation: () => Promise<T>, maxRetries: number = 3): Promise<T> {
+    let lastError: Error;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+
+        if (attempt < maxRetries) {
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000); // Exponential backoff, max 10s
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    throw lastError!;
+  }
+
+  private getCachedDeployment(cacheKey: string): ContractDeployment | null {
+    const cached = this.deploymentCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+      this.metrics.cacheHitRate = (this.metrics.cacheHitRate + 1) / 2; // Running average
+      return cached.deployment;
+    }
+
+    // Remove expired cache entry
+    if (cached) {
+      this.deploymentCache.delete(cacheKey);
+    }
+
+    return null;
+  }
+
+  private setCachedDeployment(cacheKey: string, deployment: ContractDeployment): void {
+    // Manage cache size
+    if (this.deploymentCache.size >= this.MAX_CACHE_SIZE) {
+      const firstKey = this.deploymentCache.keys().next().value;
+      this.deploymentCache.delete(firstKey);
+    }
+
+    this.deploymentCache.set(cacheKey, {
+      deployment,
+      timestamp: Date.now()
+    });
+  }
+
+  private updateMetrics(deployment: ContractDeployment, deploymentTime: number): void {
+    this.metrics.totalDeployments++;
+
+    if (deployment.status === 'SUCCESS') {
+      this.metrics.successfulDeployments++;
+      this.metrics.totalGasUsed = this.metrics.totalGasUsed + BigInt(deployment.gasUsed);
+      this.metrics.totalCost += parseFloat(deployment.deploymentCost);
+    } else {
+      this.metrics.failedDeployments++;
+    }
+
+    // Update averages
+    const totalCompleted = this.metrics.successfulDeployments + this.metrics.failedDeployments;
+    if (totalCompleted > 0) {
+      this.metrics.averageDeploymentTime = (
+        (this.metrics.averageDeploymentTime * (totalCompleted - 1)) + deploymentTime
+      ) / totalCompleted;
+
+      if (this.metrics.successfulDeployments > 0) {
+        this.metrics.averageGasPrice = (
+          (this.metrics.averageGasPrice * (this.metrics.successfulDeployments - 1)) +
+          parseFloat(deployment.gasPrice)
+        ) / this.metrics.successfulDeployments;
+      }
+    }
+  }
+
+  private updateMetricsForFailure(deploymentTime: number): void {
+    this.metrics.totalDeployments++;
+    this.metrics.failedDeployments++;
+
+    const totalCompleted = this.metrics.successfulDeployments + this.metrics.failedDeployments;
+    this.metrics.averageDeploymentTime = (
+      (this.metrics.averageDeploymentTime * (totalCompleted - 1)) + deploymentTime
+    ) / totalCompleted;
+  }
+
+  private updateCircuitBreaker(): void {
+    this.circuitBreaker.failureCount++;
+    this.circuitBreaker.lastFailureTime = Date.now();
+
+    if (this.circuitBreaker.failureCount >= this.CIRCUIT_BREAKER_THRESHOLD) {
+      this.circuitBreaker.isOpen = true;
+      this.circuitBreaker.nextRetryTime = Date.now() + this.CIRCUIT_BREAKER_TIMEOUT;
+      console.warn('🚫 Circuit breaker opened due to consecutive failures');
     }
   }
 

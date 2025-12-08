@@ -363,7 +363,58 @@ export const getModuleById = (id: string): EngineModule | undefined => {
     return getAllModules().find(module => module.id === id);
 };
 
-// MODULE ACTIVATION SIMULATION
+// MODULE DEPENDENCY MANAGEMENT
+export const getModuleDependencies = (moduleId: string): string[] => {
+    const dependencies: Record<string, string[]> = {
+        // Execution modules depend on infrastructure
+        'atomic-cross-chain': ['wallet-connector', 'zero-trust-gateway'],
+        'bundle-executor': ['wallet-connector', 'paymaster-core'],
+        'flash-aggregator': ['wallet-connector', 'ethereum-provider'],
+        'liquidity-optimizer': ['price-service', 'ethereum-provider'],
+        'mev-protector': ['security-manager', 'threat-intelligence'],
+
+        // Strategy modules depend on blockchain connectivity
+        'scanner-arb': ['price-service', 'ethereum-provider'],
+        'scanner-liquidation': ['price-service', 'ethereum-provider'],
+        'scanner-mev': ['mempool-monitor', 'ethereum-provider'],
+        'strategy-optimizer': ['ai-engine', 'performance-tracker'],
+
+        // AI modules depend on services
+        'gemini-integration': ['preflight-service'],
+        'ai-engine': ['price-service', 'performance-tracker'],
+
+        // Security modules depend on wallet management
+        'security-manager': ['wallet-manager'],
+        'threat-intelligence': ['wallet-manager'],
+        'capital-allocator': ['wallet-manager', 'performance-tracker'],
+
+        // Monitoring modules depend on basic services
+        'performance-tracker': ['price-service'],
+        'profit-tracker': ['price-service', 'ethereum-provider'],
+        'deposit-handler': ['wallet-manager', 'ethereum-provider'],
+        'withdrawal-manager': ['wallet-manager', 'security-manager'],
+
+        // Infrastructure modules have minimal dependencies
+        'paymaster-core': [],
+        'wallet-connector': [],
+        'zero-trust-gateway': [],
+
+        // Blockchain modules are independent
+        'ethereum-provider': [],
+        'arbitrum-provider': [],
+        'base-provider': [],
+        'mempool-monitor': ['ethereum-provider'],
+
+        // Services are independent
+        'price-service': [],
+        'preflight-service': [],
+        'rpc-service': []
+    };
+
+    return dependencies[moduleId] || [];
+};
+
+// MODULE ACTIVATION WITH ENHANCED VALIDATION
 export const activateModule = async (moduleId: string): Promise<ModuleActivationResult> => {
     const startTime = Date.now();
 
@@ -371,39 +422,109 @@ export const activateModule = async (moduleId: string): Promise<ModuleActivation
         const module = getModuleById(moduleId);
 
         if (!module) {
-            throw new Error(`Module ${moduleId} not found`);
+            throw new Error(`Module ${moduleId} not found in registry`);
         }
 
-        // REAL ACTIVATION LOGIC
-        if (module?.type === 'BLOCKCHAIN') {
-            // Validate connection
-            try {
-                // Dynamic import to avoid circular dependencies if any, or just use the logic from moduleRegistry if mapped
-                // For now, we assume success if the module exists, as proper health checks are in preflightService
-                // But we add a small realistic network latency simulation if we were actually connecting
-            } catch (e) {
-                throw new Error(`Connection failed for ${module.name}`);
+        // Prevent double activation
+        if (module.status === ModuleStatus.ACTIVE) {
+            return {
+                moduleId,
+                success: true,
+                message: `${module.name} already active`,
+                latency: Date.now() - startTime,
+                timestamp: Date.now()
+            };
+        }
+
+        // TYPE-SPECIFIC ACTIVATION VALIDATION
+        switch (module.type) {
+            case 'BLOCKCHAIN':
+                // Validate blockchain connectivity
+                try {
+                    // Import blockchain providers dynamically to avoid circular deps
+                    const { getEthereumProvider } = await import('../blockchain/providers');
+                    const provider = await getEthereumProvider();
+
+                    // Test connection with a lightweight call
+                    await provider.getBlockNumber();
+                } catch (e) {
+                    throw new Error(`Blockchain connection failed for ${module.name}: ${e}`);
+                }
+                break;
+
+            case 'AI':
+                // Validate AI service connectivity
+                try {
+                    // Basic connectivity check - in production would validate API keys
+                    if (module.id === 'gemini-integration') {
+                        // Validate Gemini API key exists (placeholder)
+                        const apiKey = process.env.GEMINI_API_KEY;
+                        if (!apiKey) {
+                            throw new Error('Gemini API key not configured');
+                        }
+                    }
+                } catch (e) {
+                    throw new Error(`AI service validation failed for ${module.name}: ${e}`);
+                }
+                break;
+
+            case 'EXECUTION':
+                // Validate execution prerequisites
+                try {
+                    // Check if required infrastructure modules are active
+                    const infraModules = getModulesByType('INFRA');
+                    const activeInfra = infraModules.filter(m => m.status === ModuleStatus.ACTIVE);
+
+                    if (activeInfra.length === 0) {
+                        throw new Error('Infrastructure modules must be activated before execution modules');
+                    }
+                } catch (e) {
+                    throw new Error(`Execution module validation failed for ${module.name}: ${e}`);
+                }
+                break;
+
+            case 'SECURITY':
+                // Validate security module dependencies
+                try {
+                    // Ensure wallet manager is available for security operations
+                    const walletModule = getModuleById('wallet-manager');
+                    if (!walletModule) {
+                        throw new Error('Wallet manager module required for security operations');
+                    }
+                } catch (e) {
+                    throw new Error(`Security module validation failed for ${module.name}: ${e}`);
+                }
+                break;
+        }
+
+        // DEPENDENCY CHECKING
+        const dependencies = getModuleDependencies(moduleId);
+        for (const depId of dependencies) {
+            const depModule = getModuleById(depId);
+            if (!depModule || depModule.status !== ModuleStatus.ACTIVE) {
+                throw new Error(`Dependency ${depId} not active for module ${moduleId}`);
             }
         }
 
-        // ACTUALLY ACTIVATE THE MODULE - Change status to ACTIVE
+        // ACTIVATE THE MODULE
         module.status = ModuleStatus.ACTIVE;
-
-        // For this phase, we ensure 100% deterministic success for all valid modules
-        // This removes the "Mock" random failures.
 
         return {
             moduleId,
             success: true,
-            message: `${module?.name} activated successfully`,
+            message: `${module.name} activated successfully`,
             latency: Date.now() - startTime,
             timestamp: Date.now()
         };
-    } catch (error) {
+
+    } catch (error: any) {
+        // Log activation failure for monitoring
+        console.error(`Module activation failed for ${moduleId}:`, error.message);
+
         return {
             moduleId,
             success: false,
-            message: `Activation error: ${error}`,
+            message: `Activation failed: ${error.message}`,
             latency: Date.now() - startTime,
             timestamp: Date.now()
         };

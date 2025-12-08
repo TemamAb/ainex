@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     LayoutDashboard,
     PlayCircle,
@@ -13,8 +13,15 @@ import {
     Settings,
     Save,
     CheckCircle,
-    AlertCircle
+    AlertCircle,
+    Brain,
+    Shield,
+    TrendingUp,
+    RefreshCw,
+    Eye,
+    EyeOff
 } from 'lucide-react';
+import { AIOptimizerService } from '../services/aiOptimizerService';
 
 interface SidebarProps {
     currentView: string;
@@ -50,6 +57,52 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
     const [isModeDropdownOpen, setIsModeDropdownOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(true); // Default open for visibility
+
+    // AI Optimization State
+    const [aiOptimizer] = useState(() => new AIOptimizerService());
+    const [aiSuggestions, setAiSuggestions] = useState<any>(null);
+    const [isAISuggestionsVisible, setIsAISuggestionsVisible] = useState(false);
+    const [lastOptimizationTime, setLastOptimizationTime] = useState<Date | null>(null);
+
+    // Wallet State
+    const [withdrawalWallet, setWithdrawalWallet] = useState('');
+    const [walletValidation, setWalletValidation] = useState<'valid' | 'invalid' | null>(null);
+    const [withdrawalThreshold, setWithdrawalThreshold] = useState('0.5');
+
+    // AI Optimization Effects
+    useEffect(() => {
+        const fetchAISuggestions = async () => {
+            try {
+                const suggestions = await aiOptimizer.getAIStrategySuggestions();
+                setAiSuggestions(suggestions);
+            } catch (error) {
+                console.error('Failed to fetch AI suggestions:', error);
+            }
+        };
+
+        if (tradeSettings.isAIConfigured) {
+            fetchAISuggestions();
+        }
+    }, [tradeSettings.isAIConfigured, aiOptimizer]);
+
+    // Wallet validation
+    const validateWallet = (address: string) => {
+        const ethRegex = /^0x[a-fA-F0-9]{40}$/;
+        return ethRegex.test(address);
+    };
+
+    const handleWalletInput = (value: string) => {
+        setWithdrawalWallet(value);
+        if (value.length === 0) {
+            setWalletValidation(null);
+        } else {
+            setWalletValidation(validateWallet(value) ? 'valid' : 'invalid');
+        }
+    };
+
+    const formatAddress = (address: string) => {
+        return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    };
 
     // Helper to update settings - Automatically disables AI Config mode
     const updateSetting = (key: string, value: any) => {
@@ -259,6 +312,144 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 <div className="flex justify-between text-[10px] text-slate-500">
                                     <span>1min</span>
                                     <span>60min</span>
+                                </div>
+                            </div>
+
+                            {/* AI Optimization Controls */}
+                            <div className="space-y-3 border-t border-slate-700 pt-3">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-xs text-slate-400 flex items-center gap-2">
+                                        <Brain className="w-3 h-3 text-emerald-500" />
+                                        AI Strategy Optimization
+                                    </label>
+                                    <button
+                                        onClick={() => setIsAISuggestionsVisible(!isAISuggestionsVisible)}
+                                        className={`p-1 rounded transition-colors ${isAISuggestionsVisible ? 'bg-emerald-500/20 text-emerald-400' : 'text-slate-500 hover:text-slate-300'}`}
+                                    >
+                                        {isAISuggestionsVisible ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                                    </button>
+                                </div>
+
+                                {/* AI Suggestions Panel */}
+                                {isAISuggestionsVisible && aiSuggestions && (
+                                    <div className="bg-slate-800/50 rounded p-3 space-y-2 border border-slate-700">
+                                        <div className="flex items-center gap-2 text-[10px] text-emerald-400">
+                                            <TrendingUp className="w-3 h-3" />
+                                            AI Recommendations
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between text-[10px]">
+                                                <span className="text-slate-400">Suggested Target:</span>
+                                                <span className="text-emerald-400 font-bold">{aiSuggestions.profitTarget} ETH</span>
+                                            </div>
+                                            <div className="flex justify-between text-[10px]">
+                                                <span className="text-slate-400">Risk Profile:</span>
+                                                <span className="text-emerald-400 font-bold">{aiSuggestions.riskProfile}</span>
+                                            </div>
+                                            <div className="flex justify-between text-[10px]">
+                                                <span className="text-slate-400">Reinvestment:</span>
+                                                <span className="text-emerald-400 font-bold">{aiSuggestions.reinvestmentRate}%</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-2 pt-2 border-t border-slate-700">
+                                            <button
+                                                onClick={() => {
+                                                    onSettingsChange({
+                                                        ...tradeSettings,
+                                                        profitTarget: { ...tradeSettings.profitTarget, daily: aiSuggestions.profitTarget },
+                                                        riskProfile: aiSuggestions.riskProfile,
+                                                        reinvestmentRate: aiSuggestions.reinvestmentRate,
+                                                        isAIConfigured: true
+                                                    });
+                                                    setLastOptimizationTime(new Date());
+                                                }}
+                                                className="flex-1 flex items-center justify-center gap-1 px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-semibold rounded transition-colors"
+                                            >
+                                                <Brain className="w-3 h-3" />
+                                                Apply AI
+                                            </button>
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        await aiOptimizer.optimizeStrategy(tradeSettings);
+                                                        setLastOptimizationTime(new Date());
+                                                        // Refresh suggestions
+                                                        const newSuggestions = await aiOptimizer.getAIStrategySuggestions();
+                                                        setAiSuggestions(newSuggestions);
+                                                    } catch (error) {
+                                                        console.error('AI optimization failed:', error);
+                                                    }
+                                                }}
+                                                className="flex items-center justify-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-semibold rounded transition-colors"
+                                            >
+                                                <RefreshCw className="w-3 h-3" />
+                                                Optimize
+                                            </button>
+                                        </div>
+
+                                        {lastOptimizationTime && (
+                                            <div className="text-[9px] text-slate-500 text-center pt-1">
+                                                Last optimized: {lastOptimizationTime.toLocaleTimeString()}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* AI Mode Toggle */}
+                                <div className="flex items-center justify-between bg-slate-800/30 rounded p-2">
+                                    <div className="flex items-center gap-2">
+                                        <Shield className="w-3 h-3 text-emerald-500" />
+                                        <span className="text-[10px] text-slate-400">AI Auto-Mode</span>
+                                    </div>
+                                    <button
+                                        onClick={() => onSettingsChange({
+                                            ...tradeSettings,
+                                            isAIConfigured: !tradeSettings.isAIConfigured
+                                        })}
+                                        className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${tradeSettings.isAIConfigured ? 'bg-emerald-500' : 'bg-slate-600'}`}
+                                    >
+                                        <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${tradeSettings.isAIConfigured ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                                    </button>
+                                </div>
+
+                                {/* Audit & Enhance */}
+                                <div className="space-y-2">
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                const auditResult = await aiOptimizer.auditStrategy(tradeSettings);
+                                                console.log('Strategy audit result:', auditResult);
+                                                // Could show audit results in a modal or toast
+                                            } catch (error) {
+                                                console.error('Strategy audit failed:', error);
+                                            }
+                                        }}
+                                        className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs font-semibold rounded transition-colors border border-slate-600"
+                                    >
+                                        <Shield className="w-3 h-3" />
+                                        Audit Strategy
+                                    </button>
+
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                const enhancedSettings = await aiOptimizer.enhanceStrategy(tradeSettings);
+                                                onSettingsChange({
+                                                    ...enhancedSettings,
+                                                    isAIConfigured: true
+                                                });
+                                                setLastOptimizationTime(new Date());
+                                            } catch (error) {
+                                                console.error('Strategy enhancement failed:', error);
+                                            }
+                                        }}
+                                        className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-500 hover:to-blue-500 text-white text-xs font-semibold rounded transition-colors shadow-lg"
+                                    >
+                                        <TrendingUp className="w-3 h-3" />
+                                        Enhance Strategy
+                                    </button>
                                 </div>
                             </div>
 

@@ -1,4 +1,4 @@
-import type { TradeSignal, FlashLoanMetric } from '../types.ts';
+import type { TradeSignal, FlashLoanMetric } from '../types';
 import { getRealPrices } from './priceService';
 import { getCurrentGasPrice, getRecentTransactions } from '../blockchain/providers';
 import { ethers } from 'ethers';

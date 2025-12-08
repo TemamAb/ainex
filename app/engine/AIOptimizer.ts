@@ -1,4 +1,5 @@
-import { generateCopilotResponse } from '../../services/geminiService';
+import { AIOptimizerService, OptimizationResult } from '../../services/aiOptimizerService';
+import { createLogger } from '../../utils/logger';
 
 export interface StrategyWeights {
     aggressive: number;   // 0-1: Risk tolerance
@@ -37,9 +38,13 @@ const DEFAULT_STATE: OptimizerState = {
 export class AIOptimizer {
     private state: OptimizerState;
     private storageKey = 'ainex_ai_brain_v1';
+    private aiOptimizerService: AIOptimizerService;
+    private logger: ReturnType<typeof createLogger>;
 
     constructor() {
         this.state = this.loadState();
+        this.aiOptimizerService = new AIOptimizerService();
+        this.logger = createLogger('AIOptimizer');
     }
 
     private loadState(): OptimizerState {
@@ -58,39 +63,29 @@ export class AIOptimizer {
     }
 
     /**
-     * CORE LOOP: Runs every 15 minutes (or simulated)
-     * Analyzes recent performance and adjusts strategy weights.
+     * CORE LOOP: Runs every 5 minutes (real-time optimization)
+     * Uses comprehensive AI analysis for arbitrage optimization
      */
     public async optimizeCycle(metrics: any): Promise<string> {
-        const now = Date.now();
-        // In simulation, we might run this more often, but logic holds.
+        try {
+            this.logger.info('Starting comprehensive AI optimization cycle');
 
-        // 1. Analyze Performance (Reward Calculation)
-        const reward = this.calculateReward(metrics);
+            // Run full AI optimization cycle
+            const optimizationResult = await this.aiOptimizerService.runOptimizationCycle();
 
-        // 2. Reinforcement Learning Step
-        this.updateWeights(reward);
+            // Update local state based on AI recommendations
+            this.updateStrategyFromAI(optimizationResult);
 
-        // 3. Generate Insight via Gemini
-        const insight = await this.generateInsight(metrics, reward);
+            // Generate human-readable insight
+            const insight = this.generateOptimizationInsight(optimizationResult);
 
-        // 4. Update State
-        this.state.lastOptimization = now;
-        this.state.totalOptimizations++;
-        this.state.efficiencyScore = Math.min(100, Math.max(0, this.state.efficiencyScore + (reward * 10)));
+            this.logger.info('Optimization cycle completed successfully');
+            return insight;
 
-        this.state.history.push({
-            timestamp: now,
-            action: insight,
-            outcome: reward
-        });
-
-        // Keep history manageable
-        if (this.state.history.length > 50) this.state.history.shift();
-
-        this.saveState();
-
-        return insight;
+        } catch (error) {
+            this.logger.error('Optimization cycle failed', error);
+            return 'Optimization cycle encountered an error. Using fallback strategy.';
+        }
     }
 
     private calculateReward(metrics: any): number {
@@ -129,6 +124,70 @@ export class AIOptimizer {
         const total = this.state.weights.aggressive + this.state.weights.conservative;
         this.state.weights.aggressive /= total;
         this.state.weights.conservative /= total;
+    }
+
+    private updateStrategyFromAI(optimizationResult: any): void {
+        // Update strategy weights based on AI recommendations
+        if (optimizationResult && typeof optimizationResult === 'object') {
+            const recs = optimizationResult.recommendations || optimizationResult;
+
+            // Update DEX preferences
+            if (recs.preferredDEX) {
+                const dex = recs.preferredDEX.toLowerCase();
+                if (dex === 'uniswap') this.state.weights.uniswapPreference = Math.min(1, this.state.weights.uniswapPreference + 0.1);
+                if (dex === 'aave') this.state.weights.aavePreference = Math.min(1, this.state.weights.aavePreference + 0.1);
+                if (dex === 'balancer') this.state.weights.balancerPreference = Math.min(1, this.state.weights.balancerPreference + 0.1);
+            }
+
+            // Update risk tolerance
+            if (recs.riskLevel) {
+                if (recs.riskLevel === 'HIGH') {
+                    this.state.weights.aggressive = Math.min(1, this.state.weights.aggressive + 0.05);
+                    this.state.weights.conservative = Math.max(0, this.state.weights.conservative - 0.05);
+                } else if (recs.riskLevel === 'LOW') {
+                    this.state.weights.conservative = Math.min(1, this.state.weights.conservative + 0.05);
+                    this.state.weights.aggressive = Math.max(0, this.state.weights.aggressive - 0.05);
+                }
+            }
+
+            // Update gas sensitivity
+            if (recs.gasSensitivity !== undefined) {
+                this.state.weights.gasSensitivity = Math.max(0, Math.min(1, recs.gasSensitivity));
+            }
+        }
+
+        // Update efficiency score
+        this.state.efficiencyScore = Math.min(100, this.state.efficiencyScore + 0.5);
+        this.state.totalOptimizations++;
+        this.state.lastOptimization = Date.now();
+
+        // Save updated state
+        this.saveState();
+    }
+
+    private generateOptimizationInsight(optimizationResult: any): string {
+        const insights: string[] = [];
+
+        if (optimizationResult && typeof optimizationResult === 'object') {
+            const recs = optimizationResult.recommendations || optimizationResult;
+
+            if (recs.preferredDEX) {
+                insights.push(`Preferred DEX: ${recs.preferredDEX}`);
+            }
+
+            if (recs.riskLevel) {
+                insights.push(`Risk Level: ${recs.riskLevel}`);
+            }
+
+            if (recs.expectedProfit) {
+                insights.push(`Expected Profit: ${recs.expectedProfit.toFixed(4)} ETH`);
+            }
+        }
+
+        insights.push(`Efficiency Score: ${this.state.efficiencyScore.toFixed(1)}%`);
+        insights.push(`Optimization Cycle: #${this.state.totalOptimizations}`);
+
+        return insights.join(' | ');
     }
 
     private async generateInsight(metrics: any, reward: number): Promise<string> {

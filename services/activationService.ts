@@ -1,10 +1,14 @@
 import { ModuleStatus } from '../types';
+import { getModulesByType, activateModule, activateAllModules } from './moduleRegistry';
 
 export interface ActivationStep {
     id: string;
     label: string;
     status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
     details?: string;
+    error?: string;
+    startTime?: number;
+    endTime?: number;
 }
 
 export const getSimActivationSteps = (): ActivationStep[] => [
@@ -97,27 +101,51 @@ export const runActivationSequence = async (
     mode: 'SIM' | 'LIVE' = 'LIVE'
 ): Promise<boolean> => {
     const currentSteps = [...steps];
+    let hasErrors = false;
 
     for (let i = 0; i < currentSteps.length; i++) {
-        // Set current step to IN_PROGRESS
-        currentSteps[i] = { ...currentSteps[i], status: 'IN_PROGRESS' };
-        onProgress([...currentSteps]);
+        const step = currentSteps[i];
 
-        // Simulate work (1.5s per step for visual clarity)
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        try {
+            // Set current step to IN_PROGRESS with timestamp
+            currentSteps[i] = {
+                ...step,
+                status: 'IN_PROGRESS',
+                startTime: Date.now()
+            };
+            onProgress([...currentSteps]);
 
-        // Actually activate modules based on mode
-        await activateModulesForMode(mode);
+            // Actually activate modules based on step type
+            await activateStepModules(step.id, mode);
 
-        // Complete step
-        currentSteps[i] = { ...currentSteps[i], status: 'COMPLETED' };
+            // Complete step with success
+            currentSteps[i] = {
+                ...currentSteps[i],
+                status: 'COMPLETED',
+                endTime: Date.now()
+            };
+
+        } catch (error: any) {
+            console.error(`Activation failed for step ${step.id}:`, error);
+
+            // Mark step as failed
+            currentSteps[i] = {
+                ...currentSteps[i],
+                status: 'FAILED',
+                error: error.message,
+                endTime: Date.now()
+            };
+
+            hasErrors = true;
+
+            // Continue with other steps but mark overall failure
+        }
+
         onProgress([...currentSteps]);
     }
 
-    return true;
+    return !hasErrors;
 };
-
-// Module registry functions imported at top
 
 const activateModulesForMode = async (mode: 'SIM' | 'LIVE') => {
     if (mode === 'LIVE') {
@@ -141,5 +169,3 @@ const activateModulesForMode = async (mode: 'SIM' | 'LIVE') => {
         }
     }
 };
-
-// Module registry functions imported at top

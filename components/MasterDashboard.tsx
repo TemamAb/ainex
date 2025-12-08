@@ -1,18 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, Zap, AlertTriangle, CheckCircle, Clock, TrendingUp, Power, RefreshCw, DollarSign, Calendar, Rocket, Shield, Target, BarChart3, XCircle } from 'lucide-react';
 import PreflightPanel from './PreflightPanel';
-import ConfidenceReport from './ConfidenceReport';
-import SystemStatus from './RpcList';
 import LiveModeDashboard from './LiveModeDashboard';
 import ProfitWithdrawal from './ProfitWithdrawal';
 import Sidebar from './Sidebar';
-import AiConsole from './AiConsole';
 import LiveBlockchainEvents from './LiveBlockchainEvents';
+import AiConsole from './AiConsole';
 import SettingsPanel from './SettingsPanel';
 import MetricsValidation from './MetricsValidation';
 import { TradeSignal, FlashLoanMetric, BotStatus, TradeLog, ProfitWithdrawalConfig } from '../types';
 import { getFlashLoanMetrics, runSimulationLoop } from '../services/simulationService';
-import { scheduleWithdrawal, executeWithdrawal, checkWithdrawalConditions, saveWithdrawalHistory } from '../services/withdrawalService';
+import { withdrawalService } from '../services/withdrawalService';
 import { getLatestBlockNumber, getRecentTransactions } from '../blockchain/providers';
 import { runActivationSequence, getSimActivationSteps, getLiveActivationSteps, ActivationStep } from '../services/activationService';
 import { createContractDeploymentService, ContractDeployment, DeploymentReport } from '../services/contractDeploymentService';
@@ -69,6 +67,25 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
   const [simTradeLogs, setSimTradeLogs] = useState<TradeLog[]>([]);
   const [simLatencyMetrics, setSimLatencyMetrics] = useState({ avgLatency: 0, mevOpportunities: 0 });
   const [simProfitProjection, setSimProfitProjection] = useState({ hourly: 0, daily: 0, weekly: 0 });
+  const [simPerformanceMetrics, setSimPerformanceMetrics] = useState({
+    avgProfitPerTrade: 0,
+    tradesPerHour: 0,
+    aiOptimizationAnalytics: {
+      avgMinutesPerRun: 0,
+      percentDelta: 0,
+      totalRuns: 0,
+      totalDeltaPercent: 0,
+      aiLearningGainedPercent: 0
+    },
+    arbitrageStrategyAnalytics: {
+      arbitragesExecutedDetectedPercent: 0,
+      profitSourcesByType: { flashLoan: 0, triangular: 0, crossDex: 0 },
+      profitSourcesByChain: { ethereum: 0, arbitrum: 0, polygon: 0 },
+      profitSourcesByPair: { 'ETH/USDC': 0, 'WBTC/ETH': 0, 'USDT/USDC': 0 },
+      latency: 0,
+      mevAttacksDefendedAttemptedPercent: 0
+    }
+  });
 
   // LIVE Mode State - Real blockchain data
   const [liveTradeSignals, setLiveTradeSignals] = useState<TradeSignal[]>([]);
@@ -77,6 +94,25 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
   const [liveTradeLogs, setLiveTradeLogs] = useState<TradeLog[]>([]);
   const [liveProfitMetrics, setLiveProfitMetrics] = useState({ daily: 0, total: 0 });
   const [isTradingPaused, setIsTradingPaused] = useState(false);
+  const [livePerformanceMetrics, setLivePerformanceMetrics] = useState({
+    avgProfitPerTrade: 0,
+    tradesPerHour: 0,
+    aiOptimizationAnalytics: {
+      avgMinutesPerRun: 0,
+      percentDelta: 0,
+      totalRuns: 0,
+      totalDeltaPercent: 0,
+      aiLearningGainedPercent: 0
+    },
+    arbitrageStrategyAnalytics: {
+      arbitragesExecutedDetectedPercent: 0,
+      profitSourcesByType: { flashLoan: 0, triangular: 0, crossDex: 0 },
+      profitSourcesByChain: { ethereum: 0, arbitrum: 0, polygon: 0 },
+      profitSourcesByPair: { 'ETH/USDC': 0, 'WBTC/ETH': 0, 'USDT/USDC': 0 },
+      latency: 0,
+      mevAttacksDefendedAttemptedPercent: 0
+    }
+  });
 
   // Profit Withdrawal state
   const [withdrawalConfig, setWithdrawalConfig] = useState<ProfitWithdrawalConfig>({
@@ -89,6 +125,12 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     totalWithdrawn: '0',
     nextScheduledTransfer: null
   });
+
+  // Contract Deployment state
+  const [contractDeploymentService, setContractDeploymentService] = useState<any>(null);
+  const [contractDeployments, setContractDeployments] = useState<ContractDeployment[]>([]);
+  const [deploymentReports, setDeploymentReports] = useState<DeploymentReport[]>([]);
+  const [currentDeploymentNumber, setCurrentDeploymentNumber] = useState(0);
 
   // Initialize contract deployment service
   useEffect(() => {
@@ -112,6 +154,25 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     setSimLatencyMetrics({ avgLatency: 0, mevOpportunities: 0 });
     setSimProfitProjection({ hourly: 0, daily: 0, weekly: 0 });
     setSimConfidence(0);
+    setSimPerformanceMetrics({
+      avgProfitPerTrade: 0,
+      tradesPerHour: 0,
+      aiOptimizationAnalytics: {
+        avgMinutesPerRun: 0,
+        percentDelta: 0,
+        totalRuns: 0,
+        totalDeltaPercent: 0,
+        aiLearningGainedPercent: 0
+      },
+      arbitrageStrategyAnalytics: {
+        arbitragesExecutedDetectedPercent: 0,
+        profitSourcesByType: { flashLoan: 0, triangular: 0, crossDex: 0 },
+        profitSourcesByChain: { ethereum: 0, arbitrum: 0, polygon: 0 },
+        profitSourcesByPair: { 'ETH/USDC': 0, 'WBTC/ETH': 0, 'USDT/USDC': 0 },
+        latency: 0,
+        mevAttacksDefendedAttemptedPercent: 0
+      }
+    });
     console.log('Protocol Enforcement: SIM Metrics reset.');
   };
 
@@ -121,6 +182,25 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     setLiveBotStatuses([]);
     setLiveTradeLogs([]);
     setLiveProfitMetrics({ daily: 0, total: 0 });
+    setLivePerformanceMetrics({
+      avgProfitPerTrade: 0,
+      tradesPerHour: 0,
+      aiOptimizationAnalytics: {
+        avgMinutesPerRun: 0,
+        percentDelta: 0,
+        totalRuns: 0,
+        totalDeltaPercent: 0,
+        aiLearningGainedPercent: 0
+      },
+      arbitrageStrategyAnalytics: {
+        arbitragesExecutedDetectedPercent: 0,
+        profitSourcesByType: { flashLoan: 0, triangular: 0, crossDex: 0 },
+        profitSourcesByChain: { ethereum: 0, arbitrum: 0, polygon: 0 },
+        profitSourcesByPair: { 'ETH/USDC': 0, 'WBTC/ETH': 0, 'USDT/USDC': 0 },
+        latency: 0,
+        mevAttacksDefendedAttemptedPercent: 0
+      }
+    });
     console.log('Protocol Enforcement: LIVE Metrics reset.');
   };
 

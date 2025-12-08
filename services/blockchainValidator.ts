@@ -12,13 +12,180 @@ export interface VerificationResult {
     verificationData?: TransactionVerification;
     error?: string;
     verifiedAt?: number;
+    responseTime?: number;
 }
 
 export interface ConsensusResult {
     consensus: boolean;
     verifications: TransactionVerification[];
     discrepancies: string[];
+    consensusConfidence?: number;
+    validationTime?: number;
 }
+
+export interface BlockchainValidatorMetrics {
+    totalVerifications: number;
+    successfulVerifications: number;
+    failedVerifications: number;
+    averageResponseTime: number;
+    cacheHitRate: number;
+    lastVerificationTime: number;
+}
+
+export interface CircuitBreaker {
+    isOpen: boolean;
+    failureCount: number;
+    lastFailureTime: number;
+    nextRetryTime: number;
+}
+
+export interface CachedVerificationResult extends VerificationResult {
+    cachedAt: number;
+}
+
+// Enhanced Blockchain Validator with circuit breaker, caching, and metrics
+export class BlockchainValidator {
+    private verificationCache: Map<string, CachedVerificationResult> = new Map();
+    private readonly CACHE_DURATION = 300000; // 5 minutes
+    private readonly MAX_CACHE_SIZE = 1000;
+    private readonly CIRCUIT_BREAKER_THRESHOLD = 5;
+    private readonly CIRCUIT_BREAKER_TIMEOUT = 300000; // 5 minutes
+
+    private circuitBreaker: CircuitBreaker = {
+        isOpen: false,
+        failureCount: 0,
+        lastFailureTime: 0,
+        nextRetryTime: 0
+    };
+
+    private metrics: BlockchainValidatorMetrics = {
+        totalVerifications: 0,
+        successfulVerifications: 0,
+        failedVerifications: 0,
+        averageResponseTime: 0,
+        cacheHitRate: 0,
+        lastVerificationTime: 0
+    };
+
+    // Get circuit breaker status
+    getCircuitBreakerStatus(): CircuitBreaker {
+        return { ...this.circuitBreaker };
+    }
+
+    // Get current metrics
+    getMetrics(): BlockchainValidatorMetrics {
+        return { ...this.metrics };
+    }
+
+    // Retry with exponential backoff
+    private async retryWithBackoff<T>(
+        operation: () => Promise<T>,
+        maxRetries: number = 3
+    ): Promise<T> {
+        let lastError: Error;
+
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                return await operation();
+            } catch (error) {
+                lastError = error instanceof Error ? error : new Error('Unknown error');
+
+                if (attempt < maxRetries) {
+                    const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000); // Exponential backoff, max 10s
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+
+        throw lastError!;
+    }
+
+    // Get cached verification result
+    private getCachedResult(txHash: string): CachedVerificationResult | null {
+        const cached = this.verificationCache.get(txHash);
+        if (cached && Date.now() - cached.cachedAt < this.CACHE_DURATION) {
+            this.metrics.cacheHitRate = (this.metrics.cacheHitRate + 1) / 2; // Running average
+            return cached;
+        }
+
+        // Remove expired cache entry
+        if (cached) {
+            this.verificationCache.delete(txHash);
+        }
+
+        return null;
+    }
+
+    // Set cached verification result
+    private setCachedResult(txHash: string, result: VerificationResult): void {
+        // Manage cache size
+        if (this.verificationCache.size >= this.MAX_CACHE_SIZE) {
+            const firstKey = this.verificationCache.keys().next().value;
+            this.verificationCache.delete(firstKey);
+        }
+
+        this.verificationCache.set(txHash, {
+            ...result,
+            cachedAt: Date.now()
+        });
+    }
+
+    // Update metrics
+    private updateMetrics(success: boolean, responseTime: number): void {
+        this.metrics.totalVerifications++;
+        this.metrics.lastVerificationTime = Date.now();
+
+        if (success) {
+            this.metrics.successfulVerifications++;
+        } else {
+            this.metrics.failedVerifications++;
+        }
+
+        // Update average response time
+        const totalCompleted = this.metrics.successfulVerifications + this.metrics.failedVerifications;
+        this.metrics.averageResponseTime = (
+            (this.metrics.averageResponseTime * (totalCompleted - 1)) + responseTime
+        ) / totalCompleted;
+    }
+
+    // Update circuit breaker
+    private updateCircuitBreaker(success: boolean): void {
+        if (success) {
+            this.circuitBreaker.failureCount = 0;
+            this.circuitBreaker.isOpen = false;
+            return;
+        }
+
+        this.circuitBreaker.failureCount++;
+        this.circuitBreaker.lastFailureTime = Date.now();
+
+        if (this.circuitBreaker.failureCount >= this.CIRCUIT_BREAKER_THRESHOLD) {
+            this.circuitBreaker.isOpen = true;
+            this.circuitBreaker.nextRetryTime = Date.now() + this.CIRCUIT_BREAKER_TIMEOUT;
+            console.warn('🚫 Circuit breaker opened due to consecutive verification failures');
+        }
+    }
+
+    // Clear all cached data
+    clearCache(): void {
+        this.verificationCache.clear();
+        console.log('🧹 Blockchain validator cache cleared');
+    }
+
+    // Reset circuit breaker
+    resetCircuitBreaker(): void {
+        this.circuitBreaker = {
+            isOpen: false,
+            failureCount: 0,
+            lastFailureTime: 0,
+            nextRetryTime: 0
+        };
+        console.log('🔄 Circuit breaker reset');
+    }
+}
+
+// Create singleton instance
+const validator = new BlockchainValidator();
 
 /**
  * Verify transaction across multiple sources
@@ -27,9 +194,30 @@ export const crossValidateTransaction = async (
     txHash: string,
     chain: 'ethereum' | 'arbitrum' | 'base' = 'ethereum'
 ): Promise<ConsensusResult> => {
+    const startTime = Date.now();
+
     try {
-        // Verify via Etherscan API
-        const etherscanVerification = await verifyTransactionOnChain(txHash, chain);
+        // Check circuit breaker
+        if (validator.getCircuitBreakerStatus().isOpen) {
+            throw new Error('Circuit breaker is open - validation temporarily disabled');
+        }
+
+        // Check cache first
+        const cachedResult = validator['getCachedResult'](txHash);
+        if (cachedResult) {
+            return {
+                consensus: cachedResult.verified,
+                verifications: cachedResult.verificationData ? [cachedResult.verificationData] : [],
+                discrepancies: [],
+                consensusConfidence: cachedResult.verified ? 1.0 : 0.0,
+                validationTime: Date.now() - startTime
+            };
+        }
+
+        // Verify via Etherscan API with retry logic
+        const etherscanVerification = await validator['retryWithBackoff'](
+            () => verifyTransactionOnChain(txHash, chain)
+        );
 
         // TODO: Add verification from other RPC providers (Infura, Alchemy, etc.)
         // For now, we'll use Etherscan as the primary source
@@ -44,16 +232,44 @@ export const crossValidateTransaction = async (
             v.status === etherscanVerification.status
         );
 
+        const consensusConfidence = consensus ? 1.0 : 0.0;
+        const validationTime = Date.now() - startTime;
+
+        // Update metrics
+        validator['updateMetrics'](consensus, validationTime);
+        validator['updateCircuitBreaker'](consensus);
+
+        // Cache result
+        const result: VerificationResult = {
+            status: consensus ? 'VERIFIED' : 'FAILED',
+            txHash,
+            verified: consensus,
+            verificationData: etherscanVerification,
+            verifiedAt: Date.now(),
+            responseTime: validationTime
+        };
+        validator['setCachedResult'](txHash, result);
+
         return {
             consensus,
             verifications,
-            discrepancies
+            discrepancies,
+            consensusConfidence,
+            validationTime
         };
     } catch (error: any) {
+        const validationTime = Date.now() - startTime;
+
+        // Update metrics for failure
+        validator['updateMetrics'](false, validationTime);
+        validator['updateCircuitBreaker'](false);
+
         return {
             consensus: false,
             verifications: [],
-            discrepancies: [error.message]
+            discrepancies: [error.message],
+            consensusConfidence: 0.0,
+            validationTime
         };
     }
 };

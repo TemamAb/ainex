@@ -1,11 +1,14 @@
 /**
  * AI TERMINAL ENGINE
  * Intelligent terminal assistant with NLP, strategy analysis, and continuous learning
+ * Integrated with real-time AI optimization service for live arbitrage intelligence
  * Inspired by Bloomberg Terminal, Citadel, and Renaissance Technologies
- * 
+ *
  * SECURITY: Implements role-based access control to prevent exposure of proprietary code,
  * directory structures, and sensitive information to non-admin users.
  */
+
+import { AIOptimizerService, ArbitrageOpportunity, MarketAnalysis } from '../../services/aiOptimizerService';
 
 export enum UserRole {
     USER = 'user',
@@ -69,6 +72,7 @@ class AITerminalEngine {
     private conversationHistory: string[] = [];
     private context: ConversationContext;
     private userRole: UserRole = UserRole.USER;
+    private aiOptimizerService: AIOptimizerService;
 
     // Sensitive patterns that should never be exposed to non-admin users
     private readonly SENSITIVE_PATTERNS = [
@@ -93,6 +97,7 @@ class AITerminalEngine {
 
     constructor(userRole: UserRole = UserRole.USER) {
         this.userRole = userRole;
+        this.aiOptimizerService = new AIOptimizerService();
         this.context = {
             previousQueries: [],
             currentMode: 'SIM',
@@ -327,51 +332,67 @@ class AITerminalEngine {
      * Handle find opportunity queries
      */
     private async handleFindOpportunity(parsed: ParsedCommand): Promise<AIResponse> {
-        // Simulate opportunity detection (would integrate with real scanner)
-        const opportunities = this.getMockOpportunities(parsed.entities);
+        try {
+            // Get real-time arbitrage opportunities from AI optimizer service
+            const opportunities = await this.aiOptimizerService.findArbitrageOpportunities(parsed.entities);
 
-        if (opportunities.length === 0) {
+            if (!opportunities || opportunities.length === 0) {
+                return {
+                    type: 'text',
+                    content: '❌ No profitable opportunities found matching your criteria. Market conditions may be unfavorable or gas prices too high.'
+                };
+            }
+
+            const best = opportunities[0];
+
+            // Filter sensitive content from response
+            const content = this.filterSensitiveContent(
+                `🎯 Top Arbitrage Opportunity:\n\nPair: ${best.pair}\nRoute: ${best.route.join(' → ')}\nExpected Profit: ${best.expectedProfit.toFixed(4)} ETH ($${(best.expectedProfit * 3500).toFixed(2)})\nConfidence: ${best.confidence}%\nRisk: ${best.riskLevel}\n\nExecution Plan:\n1. Flash loan from Aave\n2. Buy on ${best.route[0]}\n3. Sell on ${best.route[1]}\n4. Repay loan + profit\n\nEstimated Gas: ${best.gasEstimate.toFixed(4)} ETH\nNet Profit: ${best.netProfit.toFixed(4)} ETH`
+            );
+
+            return {
+                type: 'opportunity',
+                content,
+                data: best,
+                confidence: best.confidence / 100,
+                actions: [
+                    { label: 'Execute Now', action: 'execute', params: { opportunity: best } },
+                    { label: 'More Details', action: 'details', params: { opportunity: best } },
+                    { label: 'Similar Opportunities', action: 'similar', params: { pair: best.pair } }
+                ]
+            };
+        } catch (error) {
+            console.error('Error finding opportunities:', error);
             return {
                 type: 'text',
-                content: '❌ No profitable opportunities found matching your criteria. Market conditions may be unfavorable or gas prices too high.'
+                content: '❌ Error occurred while scanning for opportunities. Please try again later.'
             };
         }
-
-        const best = opportunities[0];
-
-        // Filter sensitive content from response
-        const content = this.filterSensitiveContent(
-            `🎯 Top Arbitrage Opportunity:\n\nPair: ${best.pair}\nRoute: ${best.route.join(' → ')}\nExpected Profit: ${best.expectedProfit.toFixed(4)} ETH ($${(best.expectedProfit * 3500).toFixed(2)})\nConfidence: ${best.confidence}%\nRisk: ${best.riskLevel}\n\nExecution Plan:\n1. Flash loan from Aave\n2. Buy on ${best.route[0]}\n3. Sell on ${best.route[1]}\n4. Repay loan + profit\n\nEstimated Gas: ${best.gasEstimate.toFixed(4)} ETH\nNet Profit: ${best.netProfit.toFixed(4)} ETH`
-        );
-
-        return {
-            type: 'opportunity',
-            content,
-            data: best,
-            confidence: best.confidence / 100,
-            actions: [
-                { label: 'Execute Now', action: 'execute', params: { opportunity: best } },
-                { label: 'More Details', action: 'details', params: { opportunity: best } },
-                { label: 'Similar Opportunities', action: 'similar', params: { pair: best.pair } }
-            ]
-        };
     }
 
     /**
      * Handle performance analysis queries
      */
     private async handleAnalyzePerformance(parsed: ParsedCommand): Promise<AIResponse> {
-        const stats = this.getMockPerformanceStats(parsed.entities.timeframe);
+        try {
+            const stats = await this.aiOptimizerService.getPerformanceStatistics(parsed.entities.timeframe);
 
-        return {
-            type: 'analysis',
-            content: `📊 Performance Summary (${stats.timeframe}):\n\nTotal Trades: ${stats.totalTrades}\nSuccessful: ${stats.successful} (${stats.successRate}%)\nFailed: ${stats.failed} (${stats.failureRate}%)\n\nTotal Profit: ${stats.totalProfit.toFixed(4)} ETH ($${(stats.totalProfit * 3500).toFixed(2)})\nTotal Gas: ${stats.totalGas.toFixed(4)} ETH\nNet Profit: ${stats.netProfit.toFixed(4)} ETH ($${(stats.netProfit * 3500).toFixed(2)})\n\nBest Strategy: ${stats.bestStrategy} (${stats.bestStrategyRate}% success)\nWorst Strategy: ${stats.worstStrategy} (${stats.worstStrategyRate}% success)\n\n💡 Insight: ${stats.insight}`,
-            data: stats,
-            actions: [
-                { label: 'Detailed Report', action: 'report' },
-                { label: 'Strategy Breakdown', action: 'strategies' }
-            ]
-        };
+            return {
+                type: 'analysis',
+                content: `📊 Performance Summary (${stats.timeframe}):\n\nTotal Trades: ${stats.totalTrades}\nSuccessful: ${stats.successful} (${stats.successRate}%)\nFailed: ${stats.failed} (${stats.failureRate}%)\n\nTotal Profit: ${stats.totalProfit.toFixed(4)} ETH ($${(stats.totalProfit * 3500).toFixed(2)})\nTotal Gas: ${stats.totalGas.toFixed(4)} ETH\nNet Profit: ${stats.netProfit.toFixed(4)} ETH ($${(stats.netProfit * 3500).toFixed(2)})\n\nBest Strategy: ${stats.bestStrategy} (${stats.bestStrategyRate}% success)\nWorst Strategy: ${stats.worstStrategy} (${stats.worstStrategyRate}% success)\n\n💡 Insight: ${stats.insight}`,
+                data: stats,
+                actions: [
+                    { label: 'Detailed Report', action: 'report' },
+                    { label: 'Strategy Breakdown', action: 'strategies' }
+                ]
+            };
+        } catch (error) {
+            console.error('Error analyzing performance:', error);
+            return {
+                type: 'text',
+                content: '❌ Error occurred while analyzing performance. Please try again later.'
+            };
+        }
     }
 
     /**

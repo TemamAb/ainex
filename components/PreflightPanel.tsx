@@ -89,7 +89,7 @@ export const PreflightPanel: React.FC<PreflightPanelProps> = ({
                         </div>
                     )}
                     {checks.map((check) => (
-                        <div key={check.id} className={`flex items-center justify-between p-2 rounded border hover:border-slate-700 transition-colors ${check.status === 'failed' ? 'bg-red-900/30 border-red-500 border-l-4 text-white' : 'bg-black/20 border-slate-800/50'}`}>>>
+                        <div key={check.id} className={`flex items-center justify-between p-2 rounded border hover:border-slate-700 transition-colors ${check.status === 'failed' ? 'bg-red-900/30 border-red-500 border-l-4 text-white' : 'bg-black/20 border-slate-800/50'}`}>
                             <div className="flex items-center gap-2">
                                 {getStatusIcon(check.status)}
                                 <div>

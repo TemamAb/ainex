@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Wallet, Clock, TrendingUp, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { ProfitWithdrawalConfig, WithdrawalHistory } from '../types';
-import { validateWalletAddress, formatTimeRemaining, getWithdrawalHistory } from '../services/withdrawalService';
+import { withdrawalService } from '../services/withdrawalService';
 
 interface ProfitWithdrawalProps {
     config: ProfitWithdrawalConfig;
@@ -15,13 +15,13 @@ const ProfitWithdrawal: React.FC<ProfitWithdrawalProps> = ({ config, onConfigCha
 
     useEffect(() => {
         // Load withdrawal history
-        setHistory(getWithdrawalHistory());
+        setHistory(withdrawalService.getWithdrawalHistory());
     }, []);
 
     useEffect(() => {
         // Update countdown timer
         const interval = setInterval(() => {
-            setTimeRemaining(formatTimeRemaining(config.nextScheduledTransfer));
+            setTimeRemaining(withdrawalService.formatTimeRemaining(config.nextScheduledTransfer));
         }, 1000);
 
         return () => clearInterval(interval);
@@ -30,7 +30,7 @@ const ProfitWithdrawal: React.FC<ProfitWithdrawalProps> = ({ config, onConfigCha
     const handleWalletChange = (address: string) => {
         onConfigChange({ ...config, walletAddress: address });
 
-        if (address && !validateWalletAddress(address)) {
+        if (address && !withdrawalService.validateWalletAddress(address)) {
             setWalletError('Invalid Ethereum address');
         } else {
             setWalletError('');
