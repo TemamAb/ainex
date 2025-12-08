@@ -15,6 +15,7 @@ import { getFlashLoanMetrics, runSimulationLoop } from '../services/simulationSe
 import { scheduleWithdrawal, executeWithdrawal, checkWithdrawalConditions, saveWithdrawalHistory } from '../services/withdrawalService';
 import { getLatestBlockNumber, getRecentTransactions } from '../blockchain/providers';
 import { runActivationSequence, getSimActivationSteps, getLiveActivationSteps, ActivationStep } from '../services/activationService';
+import { createContractDeploymentService, ContractDeployment, DeploymentReport } from '../services/contractDeploymentService';
 import ActivationOverlay from './ActivationOverlay';
 type EngineMode = 'IDLE' | 'PREFLIGHT' | 'SIM' | 'LIVE';
 type ActivationMode = 'SIM' | 'LIVE' | null;
@@ -89,6 +90,19 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     nextScheduledTransfer: null
   });
 
+  // Initialize contract deployment service
+  useEffect(() => {
+    const deploymentService = createContractDeploymentService();
+    setContractDeploymentService(deploymentService);
+
+    // Load existing deployments and reports
+    setContractDeployments(deploymentService.getAllDeployments());
+    setDeploymentReports(deploymentService.getAllDeploymentReports());
+    setCurrentDeploymentNumber(deploymentService.getDeploymentStatistics().totalDeployments);
+
+    console.log('Contract deployment service initialized');
+  }, []);
+
   // Protocol Enforcement: Reset metrics when entering SIM or LIVE mode
   const resetSimMetrics = () => {
     setSimTradeSignals([]);
@@ -141,6 +155,43 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     setCurrentView('PREFLIGHT');
     resetSimMetrics();
     resetLiveMetrics();
+  };
+
+  // Contract Deployment functions
+  const handleRecordDeployment = async (deploymentData: {
+    contractName: string;
+    contractAddress: string;
+    deployerAddress: string;
+    network: string;
+    txHash: string;
+  }) => {
+    if (!contractDeploymentService) return;
+
+    try {
+      const deployment = await contractDeploymentService.recordDeployment(
+        deploymentData.contractName,
+        deploymentData.contractAddress,
+        deploymentData.deployerAddress,
+        deploymentData.network,
+        deploymentData.txHash
+      );
+
+      setContractDeployments(prev => [deployment, ...prev]);
+      setCurrentDeploymentNumber(prev => prev + 1);
+
+      console.log('Contract deployment recorded:', deployment.deploymentNumber);
+    } catch (error) {
+      console.error('Failed to record deployment:', error);
+    }
+  };
+
+  const handleGenerateReport = () => {
+    if (!contractDeploymentService) return;
+
+    const report = contractDeploymentService.generateDeploymentReport();
+    setDeploymentReports(prev => [report, ...prev]);
+
+    console.log('Deployment report generated:', report.reportId);
   };
 
   const handleRunPreflight = async () => {
@@ -311,6 +362,119 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
         return <SettingsPanel onSettingsChange={(settings) => console.log('Settings changed:', settings)} />;
       case 'METRICS_VALIDATION':
         return <MetricsValidation events={currentMode === 'SIM' ? simTradeLogs.map(l => ({ id: l.id, type: 'VALIDATION', timestamp: new Date(l.timestamp).getTime(), status: 'SUCCESS', details: `Simulated: ${l.pair}`, hash: l.id })) : liveTradeLogs.map(l => ({ id: l.id, type: 'TRANSACTION', timestamp: new Date(l.timestamp).getTime(), status: l.status, details: `Executed: ${l.pair}`, hash: l.id }))} />;
+      case 'DEPLOYMENT':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Contract Deployments</h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleGenerateReport}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded font-medium"
+                >
+                  Generate Report
+                </button>
+                <button
+                  onClick={() => {
+                    // Mock deployment recording for demo
+                    handleRecordDeployment({
+                      contractName: 'AINEXSmartWallet',
+                      contractAddress: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
+                      deployerAddress: '0x1234567890123456789012345678901234567890',
+                      network: 'Ethereum',
+                      txHash: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'
+                    });
+                  }}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded font-medium"
+                >
+                  Record Deployment
+                </button>
+              </div>
+            </div>
+
+            {/* Deployment Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-slate-800/50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-blue-400">{currentDeploymentNumber}</div>
+                <div className="text-sm text-slate-400">Total Deployments</div>
+              </div>
+              <div className="bg-slate-800/50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-green-400">{contractDeployments.filter(d => d.status === 'SUCCESS').length}</div>
+                <div className="text-sm text-slate-400">Successful</div>
+              </div>
+              <div className="bg-slate-800/50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-red-400">{contractDeployments.filter(d => d.status === 'FAILED').length}</div>
+                <div className="text-sm text-slate-400">Failed</div>
+              </div>
+              <div className="bg-slate-800/50 rounded-lg p-4">
+                <div className="text-2xl font-bold text-purple-400">{deploymentReports.length}</div>
+                <div className="text-sm text-slate-400">Reports Generated</div>
+              </div>
+            </div>
+
+            {/* Recent Deployments */}
+            <div className="bg-slate-800/50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold mb-4">Recent Deployments</h3>
+              <div className="space-y-3">
+                {contractDeployments.slice(0, 10).map((deployment) => (
+                  <div key={deployment.id} className="flex items-center justify-between p-3 bg-slate-700/30 rounded">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${deployment.status === 'SUCCESS' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <div>
+                        <div className="font-medium">#{deployment.deploymentNumber.toString().padStart(6, '0')} - {deployment.contractName}</div>
+                        <div className="text-sm text-slate-400">{deployment.network} • {new Date(deployment.timestamp).toLocaleString()}</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-mono text-sm">{deployment.contractAddress.slice(0, 10)}...</div>
+                      <div className="text-sm text-slate-400">{deployment.deploymentCost} ETH</div>
+                    </div>
+                  </div>
+                ))}
+                {contractDeployments.length === 0 && (
+                  <div className="text-center text-slate-500 py-8">
+                    No deployments recorded yet
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Deployment Reports */}
+            {deploymentReports.length > 0 && (
+              <div className="bg-slate-800/50 rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-4">Deployment Reports</h3>
+                <div className="space-y-3">
+                  {deploymentReports.slice(0, 5).map((report) => (
+                    <div key={report.reportId} className="p-4 bg-slate-700/30 rounded">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="font-medium">Report #{report.reportId.slice(-8)}</div>
+                        <div className="text-sm text-slate-400">{new Date(report.timestamp).toLocaleString()}</div>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div>
+                          <div className="text-slate-400">Deployments</div>
+                          <div className="font-medium">{report.totalDeployments}</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400">Success Rate</div>
+                          <div className="font-medium">{report.summary.successRate.toFixed(1)}%</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400">Total Cost</div>
+                          <div className="font-medium">{report.totalDeploymentCost} ETH</div>
+                        </div>
+                        <div>
+                          <div className="text-slate-400">Networks</div>
+                          <div className="font-medium">{report.networks.length}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
       default:
         return <PreflightPanel checks={preflightChecks} isRunning={isPreflightRunning} allPassed={preflightPassed} criticalPassed={preflightPassed} onRunPreflight={handleRunPreflight} onStartSim={handleStartSim} isIdle={currentMode === 'IDLE'} />;
     }
