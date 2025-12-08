@@ -19,7 +19,7 @@ export const optimizeEngineStrategy = async (marketData: string): Promise<AIStra
       return getFallbackStrategy("Internal Heuristic Engine Active");
     }
 
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = new GoogleGenerativeAI(apiKey);
 
     const prompt = `
       You are the AINEX Engine AI Controller. High-Frequency Trading logic active.
@@ -52,7 +52,7 @@ export const optimizeEngineStrategy = async (marketData: string): Promise<AIStra
       }
     });
 
-    const text = response.text;
+    const text = response.text();
     if (!text) throw new Error("No response from Gemini");
 
     const result = parseJson(text);
