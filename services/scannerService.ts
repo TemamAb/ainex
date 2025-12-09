@@ -61,7 +61,7 @@ export class ArbitrageScanner {
             const bestSell = Math.max(...dexPrices.map(p => p.price));
             const spread = (bestSell - bestBuy) / bestBuy;
 
-            if (spread > 0.003) { // 0.3% minimum spread
+            if (spread > 0.0001) { // 0.01% minimum spread for demo
                 const signal: TradeSignal = {
                     id: `arb-${pair.replace('/', '-')}-${Date.now()}`,
                     blockNumber: await this.getCurrentBlockNumber(),
@@ -221,26 +221,9 @@ export class LiquidationScanner {
         const signals: TradeSignal[] = [];
 
         try {
-            // Simulate liquidation opportunity detection
             // In production, this would query protocol contracts for positions near liquidation
-            const liquidationRisk = Math.random();
-
-            if (liquidationRisk > 0.85) { // High liquidation risk
-                const signal: TradeSignal = {
-                    id: `liq-${protocol}-${Date.now()}`,
-                    blockNumber: await this.getCurrentBlockNumber(),
-                    pair: `${protocol}_LIQUIDATION`,
-                    chain: 'Ethereum',
-                    action: 'FLASH_LOAN', // Using FLASH_LOAN as closest match for liquidation
-                    confidence: Math.floor(liquidationRisk * 100),
-                    expectedProfit: '2-5%', // Typical liquidation bonus
-                    route: [protocol],
-                    timestamp: Date.now(),
-                    status: 'DETECTED'
-                };
-
-                signals.push(signal);
-            }
+            // For now, return empty signals as real liquidation detection is not implemented
+            // TODO: Implement real liquidation opportunity detection by querying protocol contracts
         } catch (error) {
             console.error(`Liquidation Scanner: Error checking ${protocol}:`, error);
         }
@@ -383,44 +366,13 @@ export class MEVScanner {
     private async detectSandwichOpportunity(tx: any): Promise<TradeSignal | null> {
         // Analyze DEX transaction for sandwich attack potential
         // This would require decoding the transaction data and analyzing the trade
-
-        // For demo purposes, create realistic sandwich opportunities
-        if (Math.random() > 0.85) { // 15% chance for demo
-            return {
-                id: `mev-sandwich-${Date.now()}`,
-                blockNumber: await this.getCurrentBlockNumber(),
-                pair: 'SANDWICH_OPPORTUNITY',
-                chain: 'Ethereum',
-                action: 'MEV_BUNDLE',
-                confidence: Math.floor(Math.random() * 20) + 80, // 80-100%
-                expectedProfit: '2-5%',
-                route: ['Flashbots', 'Sandwich'],
-                timestamp: Date.now(),
-                status: 'DETECTED'
-            };
-        }
-
+        // For now, return null as we don't have real sandwich detection implemented
         return null;
     }
 
     private async detectArbitrageFromLargeTransfer(tx: any): Promise<TradeSignal | null> {
         // Large transfers can create temporary price impacts that enable arbitrage
-
-        if (Math.random() > 0.90) { // 10% chance for demo
-            return {
-                id: `mev-arbitrage-${Date.now()}`,
-                blockNumber: await this.getCurrentBlockNumber(),
-                pair: 'LARGE_TRANSFER_ARB',
-                chain: 'Ethereum',
-                action: 'FLASH_LOAN',
-                confidence: Math.floor(Math.random() * 15) + 85, // 85-100%
-                expectedProfit: '1-3%',
-                route: ['Cross-DEX', 'Arbitrage'],
-                timestamp: Date.now(),
-                status: 'DETECTED'
-            };
-        }
-
+        // For now, return null as we don't have real arbitrage detection from large transfers implemented
         return null;
     }
 
@@ -480,11 +432,13 @@ export class StrategyOptimizer {
 
     private async analyzeMarketConditions(): Promise<any> {
         // Analyze volatility, liquidity, gas prices, etc.
+        // For now, return default values as real market analysis is not implemented
+        // TODO: Implement real market condition analysis using on-chain data
         return {
-            volatility: Math.random() * 0.5 + 0.1, // 10-60%
-            liquidity: Math.random() * 0.8 + 0.2, // 20-100%
-            gasPrice: Math.random() * 100 + 20, // 20-120 gwei
-            marketTrend: Math.random() > 0.5 ? 'bullish' : 'bearish'
+            volatility: 0.2, // Default 20%
+            liquidity: 0.7, // Default 70%
+            gasPrice: 50, // Default 50 gwei
+            marketTrend: 'neutral'
         };
     }
 

@@ -14,8 +14,12 @@ import { withdrawalService } from '../services/withdrawalService';
 import { getLatestBlockNumber, getRecentTransactions } from '../blockchain/providers';
 import { runActivationSequence, getSimActivationSteps, getLiveActivationSteps, ActivationStep } from '../services/activationService';
 import { createContractDeploymentService, ContractDeployment, DeploymentReport } from '../services/contractDeploymentService';
+import { selfHealingService } from '../services/selfHealingService';
 import ActivationOverlay from './ActivationOverlay';
-type EngineMode = 'PREFLIGHT' | 'SIM' | 'LIVE';
+
+// Three-Tier Bot System Integration
+const { threeTierBotSystem } = require('../core-logic/bots/tier-system');
+type EngineMode = 'PREFLIGHT' | 'SIM' | 'LIVE' | 'IDLE';
 type ActivationMode = 'SIM' | 'LIVE' | null;
 type DashboardView = 'PREFLIGHT' | 'SIM' | 'LIVE' | 'MONITOR' | 'WITHDRAWAL' | 'EVENTS' | 'AI_CONSOLE' | 'SETTINGS' | 'DEPLOYMENT' | 'METRICS_VALIDATION';
 
@@ -94,6 +98,7 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
   const [liveFlashLoanMetrics, setLiveFlashLoanMetrics] = useState<FlashLoanMetric[]>([]);
   const [liveBotStatuses, setLiveBotStatuses] = useState<BotStatus[]>([]);
   const [liveTradeLogs, setLiveTradeLogs] = useState<TradeLog[]>([]);
+  const [liveTrades, setLiveTrades] = useState<any[]>([]);
   const [liveProfitMetrics, setLiveProfitMetrics] = useState({ daily: 0, total: 0 });
   const [isTradingPaused, setIsTradingPaused] = useState(false);
   const [livePerformanceMetrics, setLivePerformanceMetrics] = useState({
@@ -236,6 +241,10 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     setIsActivating(null);
     setCurrentMode('LIVE');
     setCurrentView('LIVE');
+
+    // Start Self-Healing Service for Live Mode
+    await selfHealingService.startSelfHealing();
+    console.log('🩺 Self-healing service activated for LIVE mode');
   };
 
   const handleStopEngine = () => {
@@ -243,6 +252,12 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
     setCurrentView('PREFLIGHT');
     resetSimMetrics();
     resetLiveMetrics();
+
+    // Stop Three-Tier Bot System
+    if (threeTierBotSystem.isActive) {
+      threeTierBotSystem.stop();
+      console.log('🛑 Three-Tier Bot System stopped');
+    }
   };
 
   // Contract Deployment functions
@@ -400,8 +415,21 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
 
           const result = await executeTrade(signal);
 
+          const tradeData = {
+            id: result.txHash || signal.id,
+            signal: signal,
+            status: result.success ? 'CONFIRMED' as const : 'FAILED' as const,
+            executionTime: Date.now(),
+            gasUsed: result.gasUsed,
+            actualProfit: result.actualProfit,
+            txHash: result.txHash
+          };
+
           if (result.success) {
             console.log(`💰 TRADE SUCCESSFUL: +${result.actualProfit} ETH (Tx: ${result.txHash})`);
+
+            // Add to live trades for dashboard display
+            setLiveTrades(prev => [tradeData, ...prev].slice(0, 50));
 
             // Log successful execution
             setLiveTradeLogs(prev => [{
@@ -425,6 +453,9 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
 
           } else {
             console.log(`❌ TRADE FAILED: ${result.error}`);
+
+            // Add failed trade to live trades
+            setLiveTrades(prev => [tradeData, ...prev].slice(0, 50));
 
             // Log failed execution
             setLiveTradeLogs(prev => [{
@@ -499,12 +530,11 @@ const MasterDashboard: React.FC<MasterDashboardProps> = () => {
             onPauseTrading={() => setIsTradingPaused(true)}
             onResumeTrading={() => setIsTradingPaused(false)}
             performanceMetrics={livePerformanceMetrics}
+            liveTrades={liveTrades}
           />
         );
       case 'WITHDRAWAL':
         return <ProfitWithdrawal config={withdrawalConfig} onConfigChange={setWithdrawalConfig} />;
-      case 'EVENTS':
-        return <LiveBlockchainEvents isLive={currentMode === 'LIVE'} />;
       case 'AI_CONSOLE':
         return <AiConsole />;
       case 'SETTINGS':

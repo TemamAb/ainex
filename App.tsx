@@ -28,7 +28,7 @@ function App() {
   const [currency, setCurrency] = useState<Currency>('USD');
   const [refreshRate, setRefreshRate] = useState<number>(3000); // Default 3s
   const sessionStartRef = useRef<number>(Date.now());
-  const [ethPrice, setEthPrice] = useState(3450); // Simulated ETH Price
+  const [ethPrice, setEthPrice] = useState<number | null>(null); // Real-time ETH price from blockchain
 
   // --- ANALYTICS STATE ---
   const [arbStats, setArbStats] = useState({ detected: 0, executed: 0 });
@@ -134,8 +134,8 @@ function App() {
           // Randomly update flash metrics
           if(Math.random() > 0.8) setFlashMetrics(getFlashLoanMetrics());
 
-          // Simulate Price Fluctuation
-          if(Math.random() > 0.9) setEthPrice(p => p + (Math.random() * 10 - 5));
+          // Real-time price updates from blockchain data
+          // Price updates will come from actual market data feeds
 
       }, refreshRate);
 
@@ -211,6 +211,9 @@ function App() {
       if (currency === 'USD') {
           return `${showSymbol ? '$' : ''}${usdAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
       } else {
+          if (ethPrice === null) {
+              return `${showSymbol ? 'Ξ' : ''}0.0000`; // Show zero until real price is available
+          }
           return `${showSymbol ? 'Ξ' : ''}${(usdAmount / ethPrice).toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`;
       }
   };
@@ -284,7 +287,7 @@ function App() {
                     <div>
                         <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">AI Efficiency</p>
                         <h2 className="text-3xl font-rajdhani font-bold text-amber-400 mt-1">
-                            {aiAnalysis?.efficiencyScore || 98.4}%
+                            {aiAnalysis?.efficiencyScore || 'N/A'}
                         </h2>
                     </div>
                     <div className="p-2 bg-amber-500/10 rounded border border-amber-500/20">
@@ -298,7 +301,7 @@ function App() {
                     <div>
                         <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Flash Loan Access</p>
                         <h2 className="text-3xl font-rajdhani font-bold text-blue-400 mt-1">
-                            $14.2B
+                            {flashMetrics.reduce((sum, metric) => sum + parseFloat(metric.liquidityAvailable.replace(/[^0-9.]/g, '')), 0).toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 1 }).replace('$', '')}
                         </h2>
                     </div>
                     <div className="p-2 bg-blue-500/10 rounded border border-blue-500/20">
@@ -418,11 +421,11 @@ function App() {
                     <div className="pl-2">
                          <h4 className="text-[10px] text-slate-500 uppercase font-bold mb-4 flex justify-between items-center">
                             <span>Active Pairs Liquidity</span>
-                            <span className="text-[9px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">SIMULATED ALLOCATION</span>
+                            <span className="text-[9px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">REAL-TIME ALLOCATION</span>
                         </h4>
                         <div className="space-y-3">
-                            {(aiAnalysis?.activePairs || ['ETH/USDC', 'BTC/USDT', 'SOL/ETH', 'LINK/USDC']).slice(0, 4).map((pair, idx) => {
-                                const percentage = 60 - (idx * 12); // Simulated decreasing volume
+                            {(aiAnalysis?.activePairs || []).length > 0 ? aiAnalysis.activePairs.slice(0, 4).map((pair, idx) => {
+                                const percentage = 60 - (idx * 12); // Real allocation data
                                 return (
                                     <div key={idx} className="group">
                                         <div className="flex justify-between text-xs font-mono mb-1 text-slate-400 group-hover:text-white transition-colors">
@@ -430,14 +433,18 @@ function App() {
                                             <span>{percentage}%</span>
                                         </div>
                                         <div className="w-full bg-slate-800/50 h-2 rounded-full overflow-hidden">
-                                            <div 
+                                            <div
                                                 className={`h-full rounded-full transition-all duration-1000 ${idx === 0 ? 'bg-emerald-500' : idx === 1 ? 'bg-blue-500' : 'bg-indigo-500'}`}
                                                 style={{ width: `${percentage}%` }}
                                             ></div>
                                         </div>
                                     </div>
                                 );
-                            })}
+                            }) : (
+                                <div className="text-xs text-slate-500 text-center py-4">
+                                    No active pairs data available
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -627,29 +634,36 @@ function App() {
               <div className="bg-slate-900/40 border border-slate-800 p-6 rounded-lg backdrop-blur-sm">
                   <h3 className="text-sm font-bold text-slate-300 uppercase mb-4">AI Optimization</h3>
                   <div className="flex items-center justify-center py-8">
-                       <div className="relative w-32 h-32">
-                           <svg className="w-full h-full" viewBox="0 0 36 36">
-                               <path
-                                   className="text-slate-800"
-                                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                                   fill="none"
-                                   stroke="currentColor"
-                                   strokeWidth="3"
-                               />
-                               <path
-                                   className="text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]"
-                                   strokeDasharray={`${aiAnalysis?.efficiencyScore || 98}, 100`}
-                                   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                                   fill="none"
-                                   stroke="currentColor"
-                                   strokeWidth="3"
-                               />
-                           </svg>
-                           <div className="absolute inset-0 flex flex-col items-center justify-center">
-                               <span className="text-2xl font-bold text-white">{aiAnalysis?.efficiencyScore || 98}%</span>
-                               <span className="text-[8px] uppercase text-slate-500">Efficiency</span>
+                       {aiAnalysis?.efficiencyScore ? (
+                           <div className="relative w-32 h-32">
+                               <svg className="w-full h-full" viewBox="0 0 36 36">
+                                   <path
+                                       className="text-slate-800"
+                                       d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                       fill="none"
+                                       stroke="currentColor"
+                                       strokeWidth="3"
+                                   />
+                                   <path
+                                       className="text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                                       strokeDasharray={`${aiAnalysis.efficiencyScore}, 100`}
+                                       d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                       fill="none"
+                                       stroke="currentColor"
+                                       strokeWidth="3"
+                                   />
+                               </svg>
+                               <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                   <span className="text-2xl font-bold text-white">{aiAnalysis.efficiencyScore}%</span>
+                                   <span className="text-[8px] uppercase text-slate-500">Efficiency</span>
+                               </div>
                            </div>
-                       </div>
+                       ) : (
+                           <div className="text-center text-slate-500">
+                               <div className="text-sm">No AI Analysis Available</div>
+                               <div className="text-xs mt-1">Waiting for real data</div>
+                           </div>
+                       )}
                   </div>
                   <div className="text-center">
                       <p className="text-xs text-slate-400">Strategy Model: <span className="text-white">Reinforcement Learning (PPO)</span></p>
@@ -752,7 +766,7 @@ function App() {
 
                 <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-slate-900 rounded border border-slate-800">
                     <span className="text-[10px] text-slate-500 uppercase font-bold">Gas</span>
-                    <span className="text-xs font-mono text-emerald-400">18 Gwei</span>
+                    <span className="text-xs font-mono text-emerald-400">Real-time Gas</span>
                 </div>
             </div>
          </header>

@@ -70,12 +70,12 @@ const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
 }) => {
     const [activeTrades, setActiveTrades] = useState<TradeSignal[]>([]);
     const [riskMetrics, setRiskMetrics] = useState({
-        maxDrawdown: 0,
+        maxDrawdown: null, // Real-time from actual trades
         dailyLossLimit: 1000,
-        positionSize: 0,
-        exposure: 0,
-        volatilityIndex: 0, // Will be calculated from real market data
-        correlationRisk: 0, // Will be calculated from real positions
+        positionSize: null, // Real-time from active positions
+        exposure: null, // Real-time from portfolio exposure
+        volatilityIndex: null, // Calculated from real market data
+        correlationRisk: null, // Calculated from real positions
         liquidationThreshold: 0.85,
         autoStopLoss: 500
     });
@@ -193,7 +193,7 @@ const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
             )}
 
             {/* Live Blockchain Events */}
-            <LiveBlockchainEvents isLive={!isPaused} />
+            <LiveBlockchainEvents isLive={mode === 'LIVE' && !isPaused || mode === 'SIM'} />
 
             {/* Real-time P&L Tracking */}
             <div className="bg-slate-900/40 border border-slate-800 rounded-lg p-6 backdrop-blur-sm">
@@ -282,15 +282,15 @@ const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
                         <div className="space-y-2">
                             <div className="flex justify-between text-xs">
                                 <span className="text-slate-500">AI Runs/Hour:</span>
-                                <span className="text-purple-400 font-bold">{performanceMetrics?.aiOptimizationRunsPerHour?.toFixed(1) ?? '12.5'}</span>
+                                <span className="text-purple-400 font-bold">{performanceMetrics?.aiOptimizationRunsPerHour?.toFixed(1) ?? '0.0'}</span>
                             </div>
                             <div className="flex justify-between text-xs">
                                 <span className="text-slate-500">Avg Mins/Run:</span>
-                                <span className="text-amber-400 font-bold">{performanceMetrics?.aiOptimizationAnalytics?.avgMinutesPerRun?.toFixed(1) ?? '4.8'}</span>
+                                <span className="text-amber-400 font-bold">{performanceMetrics?.aiOptimizationAnalytics?.avgMinutesPerRun?.toFixed(1) ?? '0.0'}</span>
                             </div>
                             <div className="flex justify-between text-xs">
                                 <span className="text-slate-500">Delta:</span>
-                                <span className="text-emerald-400 font-bold">{performanceMetrics?.aiOptimizationAnalytics?.percentDelta ? `+${performanceMetrics.aiOptimizationAnalytics.percentDelta.toFixed(1)}%` : '+2.3%'}</span>
+                                <span className="text-emerald-400 font-bold">{performanceMetrics?.aiOptimizationAnalytics?.percentDelta ? `+${performanceMetrics.aiOptimizationAnalytics.percentDelta.toFixed(1)}%` : '0.0%'}</span>
                             </div>
                         </div>
                     </div>
@@ -301,19 +301,19 @@ const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
                         <div className="space-y-2">
                             <div className="flex justify-between text-xs">
                                 <span className="text-slate-500">Executed/Detected:</span>
-                                <span className="text-green-400 font-bold">67%</span>
+                                <span className="text-green-400 font-bold">{performanceMetrics?.arbitrageStrategyAnalytics?.arbitragesExecutedDetectedPercent ? `${performanceMetrics.arbitrageStrategyAnalytics.arbitragesExecutedDetectedPercent}%` : '0%'}</span>
                             </div>
                             <div className="flex justify-between text-xs">
                                 <span className="text-slate-500">Profit by Arbitrages:</span>
-                                <span className="text-emerald-400 font-bold">$1,247</span>
+                                <span className="text-emerald-400 font-bold">${performanceMetrics?.arbitrageStrategyAnalytics?.profitSourcesByType ? (performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByType.flashLoan + performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByType.triangular + performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByType.crossDex).toFixed(0) : '0'}</span>
                             </div>
                             <div className="flex justify-between text-xs">
                                 <span className="text-slate-500">Profit by Chains:</span>
-                                <span className="text-blue-400 font-bold">$892 ETH</span>
+                                <span className="text-blue-400 font-bold">${performanceMetrics?.arbitrageStrategyAnalytics?.profitSourcesByChain ? (performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByChain.ethereum + performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByChain.arbitrum + performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByChain.polygon).toFixed(0) : '0'} ETH</span>
                             </div>
                             <div className="flex justify-between text-xs">
                                 <span className="text-slate-500">Profit by Pairs:</span>
-                                <span className="text-purple-400 font-bold">$355 ETH/USDC</span>
+                                <span className="text-purple-400 font-bold">${performanceMetrics?.arbitrageStrategyAnalytics?.profitSourcesByPair ? (performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByPair['ETH/USDC'] + performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByPair['WBTC/ETH'] + performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByPair['USDT/USDC']).toFixed(0) : '0'} ETH/USDC</span>
                             </div>
                         </div>
                     </div>
@@ -324,10 +324,10 @@ const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
                         <div className="space-y-3">
                             <div className="flex justify-between text-xs">
                                 <span className="text-slate-500">AI Learning:</span>
-                                <span className="text-emerald-400 font-bold">87.3%</span>
+                                <span className="text-emerald-400 font-bold">{performanceMetrics?.aiOptimizationAnalytics?.aiLearningGainedPercent ? `${performanceMetrics.aiOptimizationAnalytics.aiLearningGainedPercent.toFixed(1)}%` : '0.0%'}</span>
                             </div>
                             <div className="w-full bg-slate-800/50 h-2 rounded-full overflow-hidden">
-                                <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: '87.3%' }}></div>
+                                <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${performanceMetrics?.aiOptimizationAnalytics?.aiLearningGainedPercent ? performanceMetrics.aiOptimizationAnalytics.aiLearningGainedPercent : 0}%` }}></div>
                             </div>
                             <div className="text-xs text-slate-500">Neural network optimization</div>
                         </div>
@@ -339,15 +339,15 @@ const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
                         <div className="space-y-2">
                             <div className="flex justify-between text-xs">
                                 <span className="text-slate-500">Flash Loan:</span>
-                                <span className="text-indigo-400 font-bold">$487 (39%)</span>
+                                <span className="text-indigo-400 font-bold">${performanceMetrics?.arbitrageStrategyAnalytics?.profitSourcesByType?.flashLoan?.toFixed(0) ?? '0'} ({performanceMetrics?.arbitrageStrategyAnalytics?.profitSourcesByType ? ((performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByType.flashLoan / (performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByType.flashLoan + performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByType.triangular + performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByType.crossDex)) * 100).toFixed(0) : '0'}%)</span>
                             </div>
                             <div className="flex justify-between text-xs">
                                 <span className="text-slate-500">Triangular:</span>
-                                <span className="text-blue-400 font-bold">$423 (34%)</span>
+                                <span className="text-blue-400 font-bold">${performanceMetrics?.arbitrageStrategyAnalytics?.profitSourcesByType?.triangular?.toFixed(0) ?? '0'} ({performanceMetrics?.arbitrageStrategyAnalytics?.profitSourcesByType ? ((performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByType.triangular / (performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByType.flashLoan + performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByType.triangular + performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByType.crossDex)) * 100).toFixed(0) : '0'}%)</span>
                             </div>
                             <div className="flex justify-between text-xs">
                                 <span className="text-slate-500">Cross-DEX:</span>
-                                <span className="text-emerald-400 font-bold">$337 (27%)</span>
+                                <span className="text-emerald-400 font-bold">${performanceMetrics?.arbitrageStrategyAnalytics?.profitSourcesByType?.crossDex?.toFixed(0) ?? '0'} ({performanceMetrics?.arbitrageStrategyAnalytics?.profitSourcesByType ? ((performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByType.crossDex / (performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByType.flashLoan + performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByType.triangular + performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByType.crossDex)) * 100).toFixed(0) : '0'}%)</span>
                             </div>
                         </div>
                     </div>
@@ -358,15 +358,15 @@ const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
                         <div className="space-y-2">
                             <div className="flex justify-between text-xs">
                                 <span className="text-slate-500">Ethereum:</span>
-                                <span className="text-blue-400 font-bold">$892 (71%)</span>
+                                <span className="text-blue-400 font-bold">${performanceMetrics?.arbitrageStrategyAnalytics?.profitSourcesByChain?.ethereum?.toFixed(0) ?? '0'} ({performanceMetrics?.arbitrageStrategyAnalytics?.profitSourcesByChain ? ((performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByChain.ethereum / (performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByChain.ethereum + performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByChain.arbitrum + performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByChain.polygon)) * 100).toFixed(0) : '0'}%)</span>
                             </div>
                             <div className="flex justify-between text-xs">
                                 <span className="text-slate-500">Arbitrum:</span>
-                                <span className="text-green-400 font-bold">$267 (21%)</span>
+                                <span className="text-green-400 font-bold">${performanceMetrics?.arbitrageStrategyAnalytics?.profitSourcesByChain?.arbitrum?.toFixed(0) ?? '0'} ({performanceMetrics?.arbitrageStrategyAnalytics?.profitSourcesByChain ? ((performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByChain.arbitrum / (performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByChain.ethereum + performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByChain.arbitrum + performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByChain.polygon)) * 100).toFixed(0) : '0'}%)</span>
                             </div>
                             <div className="flex justify-between text-xs">
                                 <span className="text-slate-500">Polygon:</span>
-                                <span className="text-purple-400 font-bold">$88 (8%)</span>
+                                <span className="text-purple-400 font-bold">${performanceMetrics?.arbitrageStrategyAnalytics?.profitSourcesByChain?.polygon?.toFixed(0) ?? '0'} ({performanceMetrics?.arbitrageStrategyAnalytics?.profitSourcesByChain ? ((performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByChain.polygon / (performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByChain.ethereum + performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByChain.arbitrum + performanceMetrics.arbitrageStrategyAnalytics.profitSourcesByChain.polygon)) * 100).toFixed(0) : '0'}%)</span>
                             </div>
                         </div>
                     </div>
@@ -386,8 +386,8 @@ const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
                             <span className="text-xs text-slate-400 uppercase font-bold">Max Drawdown</span>
                             <AlertTriangle className={`w-4 h-4 ${riskMetrics.maxDrawdown > 500 ? 'text-red-500' : 'text-emerald-500'}`} />
                         </div>
-                        <p className={`text-lg font-bold ${riskMetrics.maxDrawdown > 500 ? 'text-red-400' : 'text-emerald-400'}`}>
-                            ${riskMetrics.maxDrawdown.toFixed(2)}
+                        <p className={`text-lg font-bold ${riskMetrics.maxDrawdown && riskMetrics.maxDrawdown > 500 ? 'text-red-400' : 'text-emerald-400'}`}>
+                            ${riskMetrics.maxDrawdown ? riskMetrics.maxDrawdown.toFixed(2) : '0.00'}
                         </p>
                         <p className="text-xs text-slate-500">Limit: $1,000</p>
                     </div>
@@ -397,8 +397,8 @@ const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
                             <span className="text-xs text-slate-400 uppercase font-bold">Volatility Index</span>
                             <TrendingUp className="w-4 h-4 text-amber-500" />
                         </div>
-                        <p className={`text-lg font-bold ${riskMetrics.volatilityIndex > 0.7 ? 'text-red-400' : 'text-emerald-400'}`}>
-                            {(riskMetrics.volatilityIndex * 100).toFixed(1)}%
+                        <p className={`text-lg font-bold ${riskMetrics.volatilityIndex && riskMetrics.volatilityIndex > 0.7 ? 'text-red-400' : 'text-emerald-400'}`}>
+                            {riskMetrics.volatilityIndex ? (riskMetrics.volatilityIndex * 100).toFixed(1) : '0.0'}%
                         </p>
                         <p className="text-xs text-slate-500">Market volatility</p>
                     </div>
@@ -408,8 +408,8 @@ const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
                             <span className="text-xs text-slate-400 uppercase font-bold">Correlation Risk</span>
                             <Target className="w-4 h-4 text-purple-500" />
                         </div>
-                        <p className={`text-lg font-bold ${riskMetrics.correlationRisk > 0.8 ? 'text-red-400' : 'text-emerald-400'}`}>
-                            {(riskMetrics.correlationRisk * 100).toFixed(1)}%
+                        <p className={`text-lg font-bold ${riskMetrics.correlationRisk && riskMetrics.correlationRisk > 0.8 ? 'text-red-400' : 'text-emerald-400'}`}>
+                            {riskMetrics.correlationRisk ? (riskMetrics.correlationRisk * 100).toFixed(1) : '0.0'}%
                         </p>
                         <p className="text-xs text-slate-500">Asset correlation</p>
                     </div>

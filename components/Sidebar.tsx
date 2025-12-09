@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+te the commit with the above identityimport React, { useState, useEffect } from 'react';
 import {
     LayoutDashboard,
     PlayCircle,
@@ -124,7 +124,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     const menuItems = [
         { id: 'MONITOR', label: 'Live Monitor', icon: <LayoutDashboard className="w-5 h-5" /> },
         { id: 'WITHDRAWAL', label: 'Profit Withdrawal', icon: <Wallet className="w-5 h-5" /> },
-        { id: 'EVENTS', label: 'Blockchain Events', icon: <Radio className="w-5 h-5" /> },
         { id: 'AI_CONSOLE', label: 'AI Terminal', icon: <Terminal className="w-5 h-5" /> },
     ];
 
