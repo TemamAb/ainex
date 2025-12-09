@@ -14,9 +14,18 @@ interface BlockchainEvent {
 
 interface LiveBlockchainEventsProps {
     isLive: boolean;
+    liveTrades?: Array<{
+        id: string;
+        signal: any;
+        status: 'EXECUTING' | 'CONFIRMED' | 'FAILED';
+        executionTime: number;
+        gasUsed?: string;
+        actualProfit?: number;
+        txHash?: string;
+    }>;
 }
 
-const LiveBlockchainEvents: React.FC<LiveBlockchainEventsProps> = ({ isLive }) => {
+const LiveBlockchainEvents: React.FC<LiveBlockchainEventsProps> = ({ isLive, liveTrades = [] }) => {
     const [events, setEvents] = useState<BlockchainEvent[]>([]);
     const [latestBlock, setLatestBlock] = useState<number>(0);
 
@@ -39,46 +48,33 @@ const LiveBlockchainEvents: React.FC<LiveBlockchainEventsProps> = ({ isLive }) =
         return () => clearInterval(interval);
     }, [isLive]);
 
+    // Convert real live trades to blockchain events
     useEffect(() => {
-        if (!isLive || latestBlock === 0) return;
+        if (!isLive) return;
 
-        // Simulate live blockchain events with real block numbers
-        const generateEvent = (): BlockchainEvent => {
-            const types: BlockchainEvent['type'][] = ['TRADE', 'BLOCK', 'MEV', 'FLASH_LOAN'];
-            const chains: BlockchainEvent['chain'][] = ['Ethereum', 'Arbitrum', 'Base'];
-            const type = types[Math.floor(Math.random() * types.length)];
-            const chain = chains[Math.floor(Math.random() * chains.length)];
+        const tradeEvents: BlockchainEvent[] = liveTrades.map(trade => ({
+            id: trade.id,
+            timestamp: trade.executionTime,
+            type: trade.signal.action === 'FLASH_LOAN' ? 'FLASH_LOAN' : trade.signal.action === 'MEV_BUNDLE' ? 'MEV' : 'TRADE',
+            chain: trade.signal.chain || 'Ethereum',
+            description: `${trade.signal.action.replace('_', ' ')} executed: ${trade.signal.pair}`,
+            value: trade.actualProfit ? `${trade.actualProfit.toFixed(4)} ETH` : undefined,
+            txHash: trade.txHash,
+            status: trade.status === 'CONFIRMED' ? 'SUCCESS' : trade.status === 'EXECUTING' ? 'PENDING' : 'FAILED'
+        }));
 
-            // Use real block number with slight variation for different chains
-            const blockOffset = chain === 'Ethereum' ? 0 : Math.floor(Math.random() * 5);
-            const eventBlock = latestBlock - blockOffset;
+        // Add block mining events
+        const blockEvents: BlockchainEvent[] = latestBlock > 0 ? [{
+            id: `block-${latestBlock}`,
+            timestamp: Date.now(),
+            type: 'BLOCK',
+            chain: 'Ethereum',
+            description: `Block #${latestBlock} mined`,
+            status: 'SUCCESS'
+        }] : [];
 
-            const descriptions = {
-                TRADE: `Arbitrage executed on ${chain} (Block #${eventBlock})`,
-                BLOCK: `New block #${eventBlock} mined on ${chain}`,
-                MEV: `MEV opportunity detected on ${chain} (Block #${eventBlock})`,
-                FLASH_LOAN: `Flash loan executed on ${chain} (Block #${eventBlock})`
-            };
-
-            return {
-                id: `event-${Date.now()}-${Math.random()}`,
-                timestamp: Date.now(),
-                type,
-                chain,
-                description: descriptions[type],
-                value: type === 'TRADE' || type === 'FLASH_LOAN' ? `${(Math.random() * 2).toFixed(4)} ETH` : undefined,
-                txHash: `0x${Array.from({ length: 10 }, () => Math.floor(Math.random() * 16).toString(16)).join('')}...`,
-                status: Math.random() > 0.1 ? 'SUCCESS' : Math.random() > 0.5 ? 'PENDING' : 'FAILED'
-            };
-        };
-
-        const interval = setInterval(() => {
-            const newEvent = generateEvent();
-            setEvents(prev => [newEvent, ...prev].slice(0, 20)); // Keep last 20 events
-        }, 3000); // New event every 3 seconds
-
-        return () => clearInterval(interval);
-    }, [isLive, latestBlock]);
+        setEvents([...tradeEvents, ...blockEvents].slice(0, 20));
+    }, [isLive, liveTrades, latestBlock]);
 
     const getEventIcon = (type: BlockchainEvent['type']) => {
         switch (type) {

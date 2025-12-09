@@ -31,6 +31,16 @@ interface PerformanceMetrics {
     };
 }
 
+interface LiveTrade {
+    id: string;
+    signal: TradeSignal;
+    status: 'EXECUTING' | 'CONFIRMED' | 'FAILED';
+    executionTime: number;
+    gasUsed?: string;
+    actualProfit?: number;
+    txHash?: string;
+}
+
 interface LiveModeDashboardProps {
     signals: TradeSignal[];
     totalProfit: number;
@@ -42,16 +52,7 @@ interface LiveModeDashboardProps {
     mode: 'SIM' | 'LIVE';
     confidence?: number;
     performanceMetrics?: PerformanceMetrics;
-}
-
-interface LiveTrade {
-    id: string;
-    signal: TradeSignal;
-    status: 'EXECUTING' | 'CONFIRMED' | 'FAILED';
-    executionTime: number;
-    gasUsed?: string;
-    actualProfit?: number;
-    txHash?: string;
+    liveTrades?: LiveTrade[];
 }
 
 const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
@@ -64,9 +65,9 @@ const LiveModeDashboard: React.FC<LiveModeDashboardProps> = ({
     isPaused = false,
     mode,
     confidence = 0,
-    performanceMetrics
+    performanceMetrics,
+    liveTrades = []
 }) => {
-    const [liveTrades, setLiveTrades] = useState<LiveTrade[]>([]);
     const [activeTrades, setActiveTrades] = useState<TradeSignal[]>([]);
     const [riskMetrics, setRiskMetrics] = useState({
         maxDrawdown: 0,
