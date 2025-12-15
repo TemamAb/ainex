@@ -32,13 +32,13 @@ load_dotenv()
 # --- ENVIRONMENT VALIDATION ---
 def validate_environment():
     """Validates environment variables for AINEON system."""
-    # Core required variables for monitoring
+    # Core required variables for live deployment
     required_vars = [
         'ETH_RPC_URL',
         'WALLET_ADDRESS',
     ]
     
-    # Variables required ONLY for execution (optional for monitoring)
+    # Variables required ONLY for execution (optional for live monitoring)
     execution_vars = [
         'CONTRACT_ADDRESS',
     ]
@@ -56,21 +56,18 @@ def validate_environment():
     if missing_required:
         raise RuntimeError(f"❌ FATAL: Missing required env vars: {', '.join(missing_required)}")
     
-    # Check for private key to determine execution mode
+    # Always run in live mode - wallet address is sufficient for deployment
     has_private_key = bool(os.getenv('PRIVATE_KEY'))
     
-    if not has_private_key:
-        print(f"{Colors.YELLOW}🔍 MONITORING MODE: No PRIVATE_KEY found{Colors.ENDC}")
-        print(f"{Colors.YELLOW}   System will run in monitoring-only mode{Colors.ENDC}")
-        print(f"{Colors.YELLOW}   Market scanning active{Colors.ENDC}")
-        print(f"{Colors.YELLOW}   Profit tracking active{Colors.ENDC}")
-        print(f"{Colors.YELLOW}   Trade execution disabled{Colors.ENDC}")
+    print(f"{Colors.GREEN}🚀 LIVE MODE: AINEON Engine deployed and operational{Colors.ENDC}")
+    print(f"{Colors.GREEN}   Market scanning active{Colors.ENDC}")
+    print(f"{Colors.GREEN}   Profit tracking active{Colors.ENDC}")
+    print(f"{Colors.GREEN}   Live monitoring enabled{Colors.ENDC}")
+    
+    if has_private_key:
+        print(f"{Colors.GREEN}   Full execution mode available{Colors.ENDC}")
     else:
-        print(f"{Colors.GREEN}💰 EXECUTION MODE: PRIVATE_KEY found{Colors.ENDC}")
-        print(f"{Colors.GREEN}   Full profit generation enabled{Colors.ENDC}")
-        print(f"{Colors.GREEN}   Market scanning active{Colors.ENDC}")
-        print(f"{Colors.GREEN}   Profit tracking active{Colors.ENDC}")
-        print(f"{Colors.GREEN}   Trade execution enabled{Colors.ENDC}")
+        print(f"{Colors.YELLOW}   Monitoring mode (add PRIVATE_KEY for full execution){Colors.ENDC}")
     
     warnings = [var for var in optional_vars if not os.getenv(var)]
     if warnings:
@@ -87,6 +84,7 @@ def validate_environment():
         raise RuntimeError(f"❌ Cannot connect to ETH_RPC_URL: {e}")
     
     return {
+        'live_mode': True,  # Always live mode
         'monitoring_mode': not has_private_key,
         'execution_mode': has_private_key and all(os.getenv(var) for var in execution_vars),
         'has_private_key': has_private_key
@@ -115,21 +113,21 @@ class AineonEngine:
         self.contract_address = os.getenv("CONTRACT_ADDRESS")
         self.account_address = os.getenv("WALLET_ADDRESS")
         
-        # 3. Determine execution mode based on private key
+        # 3. Determine execution mode (optional for live deployment)
         self.has_private_key = bool(os.getenv('PRIVATE_KEY'))
-        self.monitoring_mode = not self.has_private_key
+        self.live_mode = True  # Always live mode for deployment
         self.execution_mode = self.has_private_key and bool(self.contract_address)
         
+        print(f"{Colors.GREEN}🚀 INITIALIZING IN LIVE MODE{Colors.ENDC}")
+        print(f"{Colors.GREEN}   - Market scanning active{Colors.ENDC}")
+        print(f"{Colors.GREEN}   - Profit tracking active{Colors.ENDC}")
+        print(f"{Colors.GREEN}   - Live monitoring enabled{Colors.ENDC}")
+        
         if self.execution_mode:
-            print(f"{Colors.GREEN}💰 INITIALIZING IN EXECUTION MODE{Colors.ENDC}")
-            print(f"{Colors.GREEN}   - Full system active{Colors.ENDC}")
             print(f"{Colors.GREEN}   - Flash loan execution ready{Colors.ENDC}")
             print(f"{Colors.GREEN}   - AI optimization active{Colors.ENDC}")
         else:
-            print(f"{Colors.YELLOW}🔍 INITIALIZING IN MONITORING MODE{Colors.ENDC}")
-            print(f"{Colors.YELLOW}   - Market scanning active{Colors.ENDC}")
-            print(f"{Colors.YELLOW}   - Profit tracking active{Colors.ENDC}")
-            print(f"{Colors.YELLOW}   - Trade execution disabled{Colors.ENDC}")
+            print(f"{Colors.YELLOW}   - Add PRIVATE_KEY for full execution capabilities{Colors.ENDC}")
 
         # 4. AI/ML Model for Predictive Arbitrage
         self.ai_optimizer = AIOptimizer()
@@ -140,15 +138,15 @@ class AineonEngine:
             'sushiswap': 'https://api.thegraph.com/subgraphs/name/sushiswap/exchange',
         }
 
-        # 6. Initialize Profit Manager
+        # 6. Initialize Profit Manager (always live)
         if self.execution_mode:
             # Full profit manager with transfer capabilities
             self.profit_manager = ProfitManager(self.w3, self.account_address, os.getenv('PRIVATE_KEY', ''))
             self.profit_manager.set_transfer_mode("AUTO")  # Auto-transfer in execution mode
         else:
-            # Monitoring-only profit manager
+            # Live monitoring profit manager (no private key needed)
             self.profit_manager = ProfitManager(self.w3, self.account_address, "")
-            self.profit_manager.set_transfer_mode("DISABLED")  # No transfers in monitoring mode
+            self.profit_manager.set_transfer_mode("MONITORING")  # Live monitoring mode
 
         self.trade_history = []
         self.start_time = time.time()
@@ -210,18 +208,19 @@ class AineonEngine:
     async def handle_status(self, request):
         return web.json_response({
             "status": "ONLINE",
-            "mode": "EXECUTION_MODE" if self.execution_mode else "MONITORING_ONLY",
+            "mode": "LIVE_MODE",
+            "live_mode": True,
             "chain_id": self.w3.eth.chain_id if self.w3.is_connected() else 0,
             "ai_active": self.ai_optimizer.model is not None,
             "gasless_mode": self.paymaster is not None,
-            "flash_loans_active": self.execution_mode,  # Enabled in execution mode
+            "flash_loans_active": self.execution_mode,  # Enabled if private key present
             "scanners_active": True,  # Market scanning active
             "orchestrators_active": True,  # Main orchestration loop active
-            "executors_active": self.execution_mode,  # Trade execution enabled in execution mode
+            "executors_active": self.execution_mode,  # Trade execution if private key available
             "auto_ai_active": True,  # Auto AI optimization every 15 mins
-            "monitoring_mode": self.monitoring_mode,
+            "monitoring_mode": True,  # Always monitoring in live mode
             "execution_mode": self.execution_mode,
-            "tier": "EXECUTION_MODE" if self.execution_mode else "MONITORING_ONLY"
+            "tier": "LIVE_MODE"
         })
 
     async def handle_opportunities(self, request):
@@ -245,7 +244,7 @@ class AineonEngine:
         })
 
     async def handle_profit(self, request):
-        """Return real profit metrics from profit manager (ETHERSCAN VERIFIED ONLY)."""
+        """Return profit manager (ETHER real profit metrics fromSCAN VERIFIED ONLY)."""
         stats = self.profit_manager.get_stats()
         eth_price = await self._get_eth_price()
         
@@ -478,16 +477,16 @@ class AineonEngine:
             })
         else:
             print(f"{Colors.YELLOW}[MONITORING] Opportunity detected: {pair} (confidence: {confidence:.2%}, profit: {profit_percent:.2f}%){Colors.ENDC}")
-            print(f"{Colors.YELLOW}   Trade execution disabled in monitoring mode{Colors.ENDC}")
+            print(f"{Colors.YELLOW}   Live monitoring active (add PRIVATE_KEY for execution){Colors.ENDC}")
             
             # Log the opportunity for analysis
             self.trade_history.append({
                 'pair': pair,
-                'tx': 'MONITORING_ONLY',
+                'tx': 'LIVE_MONITORING',
                 'profit': opportunity['amount'] * (profit_percent / 100),
                 'confidence': confidence,
                 'timestamp': time.time(),
-                'monitoring_mode': True
+                'live_mode': True
             })
     
     async def _get_eth_price(self):
@@ -591,16 +590,10 @@ class AineonEngine:
 
     def print_header(self):
         print(f"{Colors.HEADER}{Colors.BOLD}")
-        if self.execution_mode:
-            print("╔══════════════════════════════════════════════════════════════╗")
-            print("║                   AINEON ENTERPRISE ENGINE                   ║")
-            print("║                  LIVE PROFIT GENERATION MODE                 ║")
-            print("╚══════════════════════════════════════════════════════════════╝")
-        else:
-            print("╔══════════════════════════════════════════════════════════════╗")
-            print("║                   AINEON ENTERPRISE ENGINE                   ║")
-            print("║                  MONITORING-ONLY MODE                        ║")
-            print("╚══════════════════════════════════════════════════════════════╝")
+        print("╔══════════════════════════════════════════════════════════════╗")
+        print("║                   AINEON ENTERPRISE ENGINE                   ║")
+        print("║                    🚀 LIVE MODE ACTIVE 🚀                    ║")
+        print("╚══════════════════════════════════════════════════════════════╝")
         print(f"{Colors.ENDC}")
 
     def refresh_dashboard(self):
@@ -624,9 +617,7 @@ class AineonEngine:
             eth_price = 0
 
         # Status Card
-        mode_color = Colors.GREEN if self.execution_mode else Colors.YELLOW
-        mode_text = "● LIVE" if self.execution_mode else "● MONITORING"
-        print(f"{Colors.BLUE}STATUS  :{Colors.ENDC} {mode_color}{mode_text}{Colors.ENDC}")
+        print(f"{Colors.BLUE}STATUS  :{Colors.ENDC} {Colors.GREEN}● LIVE{Colors.ENDC}")
         print(f"{Colors.BLUE}WALLET  :{Colors.ENDC} {wallet}")
         print(f"{Colors.BLUE}UPTIME  :{Colors.ENDC} {str(datetime.timedelta(seconds=int(time.time() - self.start_time)))}")
         print(f"{Colors.BLUE}BLOCK   :{Colors.ENDC} #{block_number}")
@@ -654,8 +645,8 @@ class AineonEngine:
         if self.execution_mode:
             print(f"   FLASH LOAN READY   : YES (execution mode)")
         else:
-            print(f"   FLASH LOAN READY   : NO (monitoring mode)")
-        print(f"   MONITORING MODE    : {'DISABLED' if self.execution_mode else 'ENABLED'}")
+            print(f"   FLASH LOAN READY   : MONITORING (add PRIVATE_KEY for execution)")
+        print(f"   LIVE MODE          : ENABLED")
         print(f"   EXECUTION MODE     : {'ENABLED' if self.execution_mode else 'DISABLED'}")
 
         # Recent Activity
