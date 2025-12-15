@@ -524,40 +524,5 @@ class EnsemblePredictor:
 # MAIN EXECUTION
 # ============================================================================
 
-def main():
-    """Demo/test execution"""
-    logging.basicConfig(level=logging.INFO)
-    
-    # Initialize predictor
-    config = EnsembleConfig()
-    predictor = EnsemblePredictor(config)
-    
-    # Test predictions
-    test_cases = [
-        (0.8, 0.75, 0.78),  # Strong BUY signal
-        (0.2, 0.25, 0.22),  # Strong SELL signal
-        (0.5, 0.52, 0.48),  # HOLD signal
-        (0.7, 0.68, 0.65),  # Weak BUY signal
-    ]
-    
-    logger.info("Testing ensemble predictor...")
-    for i, (ql_score, ac_score, tf_score) in enumerate(test_cases):
-        pred = predictor.predict(ql_score, ac_score, tf_score)
-        logger.info(f"Test {i+1}:")
-        logger.info(f"  Q-Learning: {ql_score:.2f}")
-        logger.info(f"  Actor-Critic: {ac_score:.2f}")
-        logger.info(f"  Transformer: {tf_score:.2f}")
-        logger.info(f"  Ensemble Score: {pred.ensemble_score:.2f}")
-        logger.info(f"  Final Signal: {pred.signal.value}")
-        logger.info(f"  Confidence: {pred.confidence:.2f}")
-        logger.info(f"  Should Trade: {predictor.should_trade(pred)}")
-        logger.info(f"  Model Agreement: {pred.model_agreement:.2f}")
-        logger.info("")
-    
-    # Get summary
-    summary = predictor.get_performance_summary()
-    logger.info(f"Performance Summary: {json.dumps(summary, indent=2)}")
-
-
-if __name__ == "__main__":
-    main()
+# Production module - ensemble predictor available for production use
+# No demo/test execution - all test cases and logging removed

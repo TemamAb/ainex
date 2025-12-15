@@ -733,45 +733,5 @@ class MLModelTrainer:
 # MAIN EXECUTION
 # ============================================================================
 
-async def main():
-    """Demo/test execution"""
-    logging.basicConfig(level=logging.INFO)
-    
-    # Initialize trainer
-    trainer = MLModelTrainer(state_size=200, action_size=3)
-    
-    # Generate synthetic training data
-    n_samples = 1000
-    states = np.random.randn(n_samples, 200)
-    actions = np.random.randint(0, 3, n_samples)
-    rewards = np.random.randn(n_samples)
-    next_states = np.random.randn(n_samples, 200)
-    dones = np.random.rand(n_samples) > 0.9
-    
-    # Synthetic transformer data
-    X_transformer = np.random.randn(n_samples, 60, 200)
-    y_transformer = keras.utils.to_categorical(actions, 3) if TENSORFLOW_AVAILABLE else None
-    
-    # Train
-    logger.info("Starting model training...")
-    results = trainer.train(states, actions, rewards, next_states, dones, X_transformer, y_transformer)
-    logger.info(f"Training results: {results}")
-    
-    # Predict
-    logger.info("Making predictions...")
-    test_state = np.random.randn(200)
-    test_sequence = np.random.randn(60, 200)
-    
-    pred = trainer.predict(test_state, test_sequence)
-    logger.info(f"Prediction: {pred}")
-    
-    # Save models
-    trainer.save_all_models("demo")
-    
-    # Get report
-    report = trainer.get_training_report()
-    logger.info(f"Training report: {json.dumps(report, indent=2, default=str)}")
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+# Production module - ML model training available for production use
+# No demo/test execution - all synthetic data generation removed

@@ -522,37 +522,5 @@ class ABTestFramework:
 # MAIN EXECUTION
 # ============================================================================
 
-def main():
-    """Demo/test execution"""
-    logging.basicConfig(level=logging.INFO)
-    
-    # Initialize detector
-    config = DriftDetectorConfig()
-    detector = DriftDetector(config)
-    
-    # Create synthetic baseline
-    baseline_data = np.random.randn(1000, 20)
-    baseline_accuracy = 0.88
-    detector.set_baseline(baseline_data, baseline_accuracy)
-    
-    # Simulate predictions with drift
-    logger.info("Simulating predictions with drift...")
-    for i in range(500):
-        # Gradually shift distribution
-        shift = i / 500 * 0.5
-        new_data = np.random.randn(10, 20) + shift
-        predictions = np.random.randint(0, 3, 10)
-        actual = np.random.randint(0, 3, 10)
-        
-        drift = detector.detect(new_data, predictions, actual)
-        
-        if drift:
-            logger.info(f"Drift detected at step {i}: {drift.drift_type.value}")
-    
-    # Display summary
-    summary = detector.get_drift_summary()
-    logger.info(f"Drift Summary: {summary}")
-
-
-if __name__ == "__main__":
-    main()
+# Production module - drift detection available for production use
+# No demo/test execution - all synthetic data and drift simulation removed
