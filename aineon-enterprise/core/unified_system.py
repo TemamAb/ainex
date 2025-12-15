@@ -81,12 +81,16 @@ class AineonUnifiedSystem:
             circuit_breaker_failures=5
         )
         
-        # Profit tracking
+        # Profit tracking (monitoring mode)
         self.profit_manager = ProfitManager(
             self.w3,
-            os.getenv("WALLET_ADDRESS"),
-            os.getenv("PRIVATE_KEY")
+            os.getenv("WALLET_ADDRESS", ""),
+            ""  # No private key - monitoring mode
         )
+        
+        # Determine system mode
+        self.monitoring_mode = True
+        self.execution_mode = False
         
         # System statistics
         self.stats = {
@@ -98,7 +102,8 @@ class AineonUnifiedSystem:
             "ai_optimizations": 0,
             "last_ai_optimization": None,
             "uptime_seconds": 0,
-            "start_timestamp": self.start_time
+            "start_timestamp": self.start_time,
+            "monitoring_mode": self.monitoring_mode
         }
         
         # Connect tiers
@@ -127,14 +132,14 @@ class AineonUnifiedSystem:
         header = """
 ================================================================================
                                                                                 |
-                    AINEON UNIFIED SYSTEM - LIVE                              |
-               Enterprise Flash Loan Engine (Top 0.001% Tier)                  |
+                    AINEON UNIFIED SYSTEM - MONITORING                         |
+               Enterprise Market Scanner (Top 0.001% Tier)                     |
                                                                                 |
-  Status: OPERATIONAL                                                           |
+  Status: MONITORING MODE                                                       |
   Tier 1: Scanner (Market discovery)                                           |
   Tier 2: Orchestrator (Strategy & routing)                                    |
-  Tier 3: Executor (Transaction execution)                                     |
-  Mode: Gasless (Pimlico ERC-4337)                                             |
+  Tier 3: Executor (Disabled - monitoring only)                                |
+  Mode: Monitoring (No private key required)                                   |
   AI: 24/7 Optimization (15-min cycles)                                        |
                                                                                 |
 ================================================================================
@@ -188,12 +193,14 @@ class AineonUnifiedSystem:
         return web.json_response({
             "system_id": self.system_id,
             "status": "ONLINE",
-            "tier": "0.001% ELITE",
-            "mode": "Unified Three-Tier",
+            "tier": "MONITORING_ONLY",
+            "mode": "Unified Three-Tier (Monitoring)",
             "uptime_seconds": uptime,
             "uptime_human": str(timedelta(seconds=int(uptime))),
             "ai_optimization_active": True,
-            "gasless_mode": True,
+            "gasless_mode": False,
+            "execution_mode": False,
+            "monitoring_mode": True,
             "chain_id": self.w3.eth.chain_id,
             "block_number": self.w3.eth.block_number
         })
@@ -447,8 +454,8 @@ class AineonUnifiedSystem:
 async def main():
     """Main entry point"""
     try:
-        # Validate environment
-        required_vars = ['ETH_RPC_URL', 'CONTRACT_ADDRESS', 'WALLET_ADDRESS', 'PRIVATE_KEY']
+        # Validate environment (PRIVATE_KEY optional for monitoring mode)
+        required_vars = ['ETH_RPC_URL', 'WALLET_ADDRESS']
         missing = [var for var in required_vars if not os.getenv(var)]
         if missing:
             raise RuntimeError(f"Missing environment variables: {', '.join(missing)}")

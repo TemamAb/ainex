@@ -44,7 +44,6 @@ class ConfigEncryption:
         
         self._cipher_suite = self._initialize_cipher()
         self.sensitive_keys = [
-            'PRIVATE_KEY',
             'ENCRYPTION_PASSWORD',
             'ETHERSCAN_API_KEY',
             'ALCHEMY_API_KEY',
@@ -291,8 +290,8 @@ class SecureEnvironment:
         self.key_manager = SecureKeyManager(self.encryption)
         self.config = self.encryption.load_encrypted_env_file(env_path)
         
-        # Validate critical keys on load
-        if 'PRIVATE_KEY' in self.config:
+        # Validate critical keys on load (skip private key validation in monitoring mode)
+        if 'PRIVATE_KEY' in self.config and self.config['PRIVATE_KEY']:
             is_valid = self.key_manager.validate_private_key(
                 self.config['PRIVATE_KEY']
             )
@@ -302,6 +301,8 @@ class SecureEnvironment:
                 is_valid,
                 "Loaded private key validation"
             )
+        else:
+            logger.info("✓ No private key found - running in monitoring mode")
     
     def get(self, key: str, default: Any = None) -> Any:
         """Get config value"""

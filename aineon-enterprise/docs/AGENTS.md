@@ -3,8 +3,8 @@
 ## Build & Test Commands
 
 ```bash
-# Run all tests
-pytest tests/
+# Run all tests with coverage
+pytest tests/ --cov=core --cov=dashboard -v
 
 # Run single test file
 pytest tests/test_e2e.py -v
@@ -15,15 +15,22 @@ pytest tests/test_e2e.py::TestUserScenarios -v
 # Run single test method
 pytest tests/test_e2e.py::TestUserScenarios::test_user_sees_verified_profit_only -v
 
-# Run with short traceback
-pytest tests/ --tb=short
+# Run by marker (unit, integration, e2e, performance, enterprise, etc.)
+pytest -m enterprise -v
+pytest -m "not slow" -v
+
+# Linting & formatting
+black core/ dashboard/
+isort core/ dashboard/
+flake8 core/ dashboard/
+mypy core/ dashboard/
 
 # Start system
-START_AINEON.bat  # Windows
-bash START_AINEON.sh  # Linux/Mac
+python core/unified_system.py  # Main engine
+streamlit run dashboard/monitoring_dashboard.py  # Dashboard
 
 # Health check
-curl http://localhost:8082/health
+curl http://localhost:8081/status
 ```
 
 ## Architecture Overview
@@ -79,11 +86,19 @@ curl http://localhost:8082/health
 
 ## Important Files & APIs
 
-- `.env`: Configuration (ETH_RPC_URL, WALLET_ADDRESS, PRIVATE_KEY, PAYMASTER_URL, BUNDLER_URL)
-- `package.json`: Node.js deps (Express server for REST API)
-- `core/requirements.txt`: Python deps (web3.py, streamlit, pydantic, pytest)
-- `dashboard/requirements.txt`: Dashboard-specific deps
+- `.env`: Configuration (ETH_RPC_URL, WALLET_ADDRESS, PAYMASTER_URL, BUNDLER_URL, ETHERSCAN_API_KEY)
+- `pyproject.toml`: Poetry config with test markers, linting tools, coverage thresholds
+- `core/requirements.txt`: Python deps (web3.py, pydantic, pytest, tensorflow)
+- `dashboard/requirements.txt`: Dashboard-specific deps (streamlit)
+
+## Environment & Configuration
+
+- **Python**: 3.9+ (Poetry managed)
+- **Line Length**: 100 chars (black/isort config)
+- **Coverage Minimum**: 95% (fail under policy)
+- **Test Markers**: unit, integration, e2e, performance, enterprise, slow, chaos, security, compliance
+- **Async**: asyncio_mode="auto" in pytest config
 
 ---
 
-**Last Updated**: December 2025 | Version 1.0
+**Last Updated**: December 2025 | Version 1.1

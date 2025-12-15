@@ -142,6 +142,10 @@ class StrategyExecutor:
         self.account_address = os.getenv("WALLET_ADDRESS", "")
         self.private_key = os.getenv("PRIVATE_KEY", "")
         
+        # Determine execution mode
+        self.monitoring_mode = not bool(self.private_key)
+        self.execution_enabled = bool(self.private_key and self.contract_address)
+        
         self.execution_metrics: List[TransactionMetrics] = []
         self.execution_stats = {
             "total_executed": 0,
@@ -149,15 +153,47 @@ class StrategyExecutor:
             "failed": 0,
             "avg_execution_ms": 0,
             "total_gas_spent": Decimal('0'),
-            "total_profit": Decimal('0')
+            "total_profit": Decimal('0'),
+            "monitoring_mode": self.monitoring_mode
         }
         
-        logger.info(f"[EXECUTOR] Initialized {strategy_name}: {self.executor_id}")
+        if self.monitoring_mode:
+            logger.info(f"[EXECUTOR] {strategy_name}: MONITORING MODE - execution disabled")
+        else:
+            logger.info(f"[EXECUTOR] Initialized {strategy_name}: {self.executor_id}")
     
     async def execute(self, signal: 'ExecutionSignal') -> Optional[Dict]:
-        """Execute trade based on signal"""
+        """Execute trade based on signal (monitoring mode if no private key)"""
         start_time = time.time()
         execution_id = str(uuid.uuid4())
+        
+        # In monitoring mode, just log the signal without executing
+        if self.monitoring_mode:
+            logger.info(f"[EXECUTOR {self.strategy_name}] MONITORING: {signal.signal_id} (execution disabled)")
+            
+            # Create monitoring metrics
+            execution_time = (time.time() - start_time) * 1000
+            monitoring_metrics = TransactionMetrics(
+                signal_id=signal.signal_id,
+                tx_hash="MONITORING_ONLY",
+                gas_used=Decimal('0'),
+                gas_price=Decimal('0'),
+                execution_time_ms=execution_time,
+                slippage_pct=0.0,
+                mev_cost=Decimal('0'),
+                status=ExecutionStatus.PENDING
+            )
+            
+            self.execution_metrics.append(monitoring_metrics)
+            self.execution_stats["total_executed"] += 1
+            
+            return {
+                "tx_hash": "MONITORING_ONLY",
+                "status": "MONITORING",
+                "execution_time_ms": execution_time,
+                "metrics": monitoring_metrics,
+                "monitoring_mode": True
+            }
         
         try:
             logger.info(f"[EXECUTOR {self.strategy_name}] Executing {signal.signal_id}")
@@ -286,7 +322,9 @@ class StrategyExecutor:
             "success_rate": (self.execution_stats["successful"] / self.execution_stats["total_executed"] * 100) if self.execution_stats["total_executed"] > 0 else 0,
             "avg_execution_ms": avg_time,
             "total_gas_spent": float(self.execution_stats["total_gas_spent"]),
-            "total_profit": float(self.execution_stats["total_profit"])
+            "total_profit": float(self.execution_stats["total_profit"]),
+            "monitoring_mode": self.monitoring_mode,
+            "execution_enabled": self.execution_enabled
         }
 
 

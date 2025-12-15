@@ -98,7 +98,6 @@ class AineonConfig:
         self.rpc_url = os.getenv('ETH_RPC_URL')
         self.contract_address = os.getenv('CONTRACT_ADDRESS')
         self.wallet_address = os.getenv('WALLET_ADDRESS')
-        self.private_key = os.getenv('PRIVATE_KEY')
         self.etherscan_api_key = os.getenv('ETHERSCAN_API_KEY', '')
         self.paymaster_url = os.getenv('PAYMASTER_URL', '')
         self.bundler_url = os.getenv('BUNDLER_URL', '')
@@ -129,8 +128,8 @@ class AineonConfig:
             'etherscan': 5,
         }
         
-        # Monitoring
-        self.enable_monitoring = os.getenv('ENABLE_MONITORING', 'true').lower() == 'true'
+        # Monitoring (always enabled in monitoring-only mode)
+        self.enable_monitoring = True
         self.monitoring_port = int(os.getenv('MONITORING_PORT', '9090'))
         self.log_level = os.getenv('LOG_LEVEL', 'INFO')
     
@@ -140,7 +139,6 @@ class AineonConfig:
             ('rpc_url', 'ETH_RPC_URL'),
             ('contract_address', 'CONTRACT_ADDRESS'),
             ('wallet_address', 'WALLET_ADDRESS'),
-            ('private_key', 'PRIVATE_KEY'),
         ]
         
         missing = [env_var for attr, env_var in required if not getattr(self, attr)]
