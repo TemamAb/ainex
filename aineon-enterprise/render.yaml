@@ -1,15 +1,69 @@
 services:
   - type: web
-    name: aineon-dashboard
+    name: aineon-api
     env: docker
     region: oregon
-    plan: free
+    plan: standard
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    healthCheckPath: /_stcore/health
+    healthCheckPath: /health
     autoDeploy: true
     envVars:
-      - key: API_BASE_URL
-        value: http://localhost:8080
-      - key: STREAMLIT_SERVER_PORT
-        value: 8501
+      # Blockchain RPC (required)
+      - key: ETH_RPC_URL
+        sync: false
+      
+      # Smart Contract (required)
+      - key: CONTRACT_ADDRESS
+        sync: false
+      
+      # Wallet Configuration (required)
+      - key: WALLET_ADDRESS
+        sync: false
+      
+      - key: PRIVATE_KEY
+        sync: false
+      
+      # Paymaster Configuration (optional but recommended)
+      - key: PAYMASTER_URL
+        sync: false
+      
+      - key: BUNDLER_URL
+        sync: false
+      
+      # API & Monitoring
+      - key: PORT
+        value: "8081"
+      
+      - key: PROFIT_WALLET
+        sync: false
+      
+      - key: ETHERSCAN_API_KEY
+        sync: false
+
+    # Resource allocation
+    autoscaling:
+      enabled: false
+      minInstances: 1
+      maxInstances: 3
+
+    # Environment-specific build settings
+    buildCommand: pip install --no-cache-dir -r requirements.txt
+
+    # Restart policy
+    restartPolicy: on_failure
+    maxRestarts: 3
+
+# Optional: Separate Streamlit dashboard service
+# services:
+#   - type: web
+#     name: aineon-dashboard
+#     env: docker
+#     dockerfilePath: ./Dockerfile.dashboard
+#     region: oregon
+#     plan: free
+#     envVars:
+#       - key: STREAMLIT_SERVER_PORT
+#         value: "8501"
+#       - key: API_BASE_URL
+#         value: https://aineon-api.onrender.com

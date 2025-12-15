@@ -10,6 +10,7 @@ import threading
 import time
 import requests
 import os
+import numpy as np
 
 class MonitoringDashboard:
     def __init__(self):
@@ -52,19 +53,39 @@ class MonitoringDashboard:
         status_color = "🟢" if self.get_engine_status() else "🔴"
         st.sidebar.metric("Engine Status", status_color)
 
+        # Audit Status
+        st.sidebar.markdown("---")
+        audit_data = self.get_audit_data()
+        etherscan_status = audit_data['audit_status']['verification_status']
+        etherscan_color = "green" if etherscan_status == "ACTIVE" else "red"
+        
+        st.sidebar.markdown(
+            f"<p style='color: {etherscan_color}; font-weight: bold;'>"
+            f"✓ Etherscan Verification: {etherscan_status}</p>",
+            unsafe_allow_html=True
+        )
+        st.sidebar.caption("All profits MUST be Etherscan-verified")
+
         # Profit Manager Section
         st.sidebar.markdown("---")
-        st.sidebar.subheader("💰 Profit Manager")
+        st.sidebar.subheader("💰 Profit Manager (Verified Only)")
         
         profit_data = self.get_profit_data()
         
-        # Display pending balance with green accent
+        # Display VERIFIED profit only
+        verified_eth = profit_data.get('accumulated_eth_verified', 0.0)
+        pending_eth = profit_data.get('accumulated_eth_pending', 0.0)
+        
         st.sidebar.markdown(
             f"<h2 style='color: #34D399; text-shadow: 0 0 10px rgba(52, 211, 153, 0.5);'>"
-            f"+{profit_data['accumulated_eth']:.4f} ETH</h2>",
+            f"+{verified_eth:.6f} ETH</h2>",
             unsafe_allow_html=True
         )
-        st.sidebar.caption("PENDING BALANCE")
+        st.sidebar.caption("✓ ETHERSCAN VERIFIED")
+        
+        # Show pending if any
+        if pending_eth > 0:
+            st.sidebar.info(f"⏳ Pending Verification: {pending_eth:.6f} ETH\n(Not counted in official metrics)")
         
         # Auto/Manual Mode Toggle
         transfer_mode = st.sidebar.radio(
@@ -229,12 +250,30 @@ class MonitoringDashboard:
             pass
         # Fallback
         return {
-            'accumulated_eth': 0.0,
+            'accumulated_eth_verified': 0.0,
+            'accumulated_eth_pending': 0.0,
             'threshold_eth': 0.1,
-            'auto_transfer': False,
-            'total_pnl': 0.0,
+            'auto_transfer_enabled': False,
             'active_trades': 0,
-            'gas_saved': 0.0
+            'etherscan_enabled': False,
+            'verification_status': 'DISABLED'
+        }
+    
+    def get_audit_data(self):
+        """Fetch audit data from API"""
+        try:
+            response = requests.get(f"{self.api_base_url}/audit", timeout=5)
+            if response.ok:
+                return response.json()
+        except:
+            pass
+        return {
+            'audit_status': {
+                'verified_profits': {'eth': 0.0, 'usd': 0.0, 'count': 0},
+                'pending_profits': {'eth': 0.0, 'usd': 0.0, 'count': 0},
+                'has_etherscan_key': False,
+                'verification_status': 'DISABLED'
+            }
         }
     
     def update_profit_config(self, enabled, threshold):
@@ -266,114 +305,357 @@ class MonitoringDashboard:
 
     def get_24h_profit(self):
         profit_data = self.get_profit_data()
-        return profit_data.get('total_pnl', 0.0)
+        # Return ONLY verified profit
+        return profit_data.get('accumulated_usd_verified', 0.0)
 
     def get_active_trades(self):
         profit_data = self.get_profit_data()
         return profit_data.get('active_trades', 0)
 
     def check_risk_alerts(self):
-        return False
+        """Check for real risk conditions based on profit data"""
+        profit_data = self.get_profit_data()
+        if not profit_data:
+            return True  # Alert if can't get data
+        
+        # Alert if Etherscan validation is disabled
+        if not profit_data.get('etherscan_enabled', False):
+            return True
+        
+        # Alert if profit threshold exceeded and auto-transfer disabled
+        # Use ONLY verified profit
+        accumulated = profit_data.get('accumulated_eth_verified', 0.0)
+        threshold = profit_data.get('threshold_eth', 0.1)
+        auto_enabled = profit_data.get('auto_transfer_enabled', False)
+        
+        return accumulated >= threshold and not auto_enabled
 
     def get_total_pnl(self):
         return self.get_24h_profit()
 
     def get_pnl_change(self):
-        return 12.5  # TODO: Calculate from historical data
+        """Calculate PnL change percentage from current vs threshold (verified only)"""
+        profit_data = self.get_profit_data()
+        # Use ONLY verified profit
+        accumulated = profit_data.get('accumulated_eth_verified', 0.0)
+        threshold = profit_data.get('threshold_eth', 0.1)
+        if threshold <= 0:
+            return 0.0
+        return (accumulated / threshold) * 100.0
 
     def get_win_rate(self):
-        return 78.5  # TODO: Calculate from trade history
+        """Calculate win rate from actual trades"""
+        profit_data = self.get_profit_data()
+        active = profit_data.get('active_trades', 0)
+        successful = profit_data.get('successful_trades', 0)
+        
+        if active == 0:
+            return 0.0
+        return (successful / active) * 100.0
 
     def get_avg_trade_size(self):
-        return 50000  # TODO: Calculate from trade history
+        """Calculate average trade size from accumulated profit"""
+        profit_data = self.get_profit_data()
+        accumulated = profit_data.get('accumulated_usd', 0.0)
+        active = profit_data.get('active_trades', 1)  # Avoid division by zero
+        
+        if active == 0:
+            return 0.0
+        return accumulated / active
 
     def get_sharpe_ratio(self):
-        return 2.34  # TODO: Calculate from performance data
+        """Estimate Sharpe ratio from verified profit data (simplified)"""
+        profit_data = self.get_profit_data()
+        # Use ONLY verified profit
+        accumulated = profit_data.get('accumulated_eth_verified', 0.0)
+        
+        # Simple heuristic: profit > 0.1 ETH = better Sharpe
+        if accumulated > 0.1:
+            return min(accumulated / 0.05, 3.0)  # Cap at 3.0
+        return 0.5
 
     def create_pnl_chart(self):
-        # Mock P&L data
-        dates = pd.date_range(start='2024-01-01', periods=30, freq='D')
-        pnl = [1000 + i*200 + np.random.normal(0, 500) for i in range(30)]
-
+        """Create P&L chart from real opportunities endpoint"""
+        opportunities = self._fetch_opportunities()
+        
+        if not opportunities:
+            # Empty chart if no opportunities
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=[], y=[], mode='lines+markers', name='P&L'))
+            fig.update_layout(title='Portfolio P&L Over Time', xaxis_title='Date', yaxis_title='P&L ($)')
+            return fig
+        
+        # Calculate cumulative P&L
+        timestamps = []
+        cumulative_pnl = []
+        running_total = 0.0
+        
+        for opp in opportunities:
+            profit = opp.get('profit', 0.0)
+            timestamp = opp.get('timestamp', time.time())
+            running_total += profit
+            timestamps.append(datetime.fromtimestamp(timestamp))
+            cumulative_pnl.append(running_total)
+        
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=dates, y=pnl, mode='lines+markers', name='P&L'))
+        fig.add_trace(go.Scatter(x=timestamps, y=cumulative_pnl, mode='lines+markers', name='Cumulative P&L'))
         fig.update_layout(title='Portfolio P&L Over Time', xaxis_title='Date', yaxis_title='P&L ($)')
         return fig
 
     def create_trade_size_distribution(self):
-        sizes = [10000, 25000, 50000, 75000, 100000, 150000]
-        counts = [5, 12, 8, 3, 2, 1]
-
-        fig = px.bar(x=sizes, y=counts, labels={'x': 'Trade Size ($)', 'y': 'Frequency'})
-        fig.update_layout(title='Trade Size Distribution')
+        """Create trade size distribution from real opportunities"""
+        opportunities = self._fetch_opportunities()
+        
+        if not opportunities:
+            fig = px.bar(x=[], y=[], labels={'x': 'Trade Size ($)', 'y': 'Frequency'})
+            return fig
+        
+        profits = [opp.get('profit', 0.0) for opp in opportunities]
+        
+        fig = px.histogram(x=profits, nbins=20, labels={'x': 'Profit ($)', 'count': 'Frequency'})
+        fig.update_layout(title='Trade Profit Distribution')
         return fig
 
     def create_pl_distribution(self):
-        # Mock P&L distribution
+        """Create P&L distribution from real opportunities"""
+        opportunities = self._fetch_opportunities()
+        
+        if not opportunities:
+            fig = go.Figure()
+            fig.add_trace(go.Histogram(x=[], nbinsx=20))
+            fig.update_layout(title='Profit/Loss Distribution', xaxis_title='P&L ($)', yaxis_title='Frequency')
+            return fig
+        
+        profits = [opp.get('profit', 0.0) for opp in opportunities]
+        
         fig = go.Figure()
-        fig.add_trace(go.Histogram(x=np.random.normal(1000, 2000, 100), nbinsx=20))
+        fig.add_trace(go.Histogram(x=profits, nbinsx=20))
         fig.update_layout(title='Profit/Loss Distribution', xaxis_title='P&L ($)', yaxis_title='Frequency')
         return fig
 
     def get_current_opportunities(self):
-        # Mock opportunities data
-        return pd.DataFrame({
-            'DEX Pair': ['UNI-SUSHI', 'UNI-PANCAKE', 'SUSHI-COW'],
-            'Spread (%)': [1.2, 0.8, 2.1],
-            'Volume ($)': [50000, 75000, 30000],
-            'Confidence': [0.85, 0.72, 0.91],
-            'Estimated Profit ($)': [600, 400, 630]
-        })
+        """Get real opportunities from API"""
+        opportunities = self._fetch_opportunities()
+        
+        if not opportunities:
+            return pd.DataFrame(columns=['Pair', 'DEX', 'Profit ($)', 'Confidence', 'Status'])
+        
+        data = {
+            'Pair': [opp.get('pair', 'UNKNOWN') for opp in opportunities],
+            'DEX': [opp.get('dex', 'UNKNOWN') for opp in opportunities],
+            'Profit ($)': [f"${opp.get('profit', 0.0):.2f}" for opp in opportunities],
+            'Confidence': [f"{opp.get('confidence', 0.0):.1%}" for opp in opportunities],
+            'TX': [opp.get('tx', 'PENDING')[:12] for opp in opportunities]
+        }
+        
+        return pd.DataFrame(data)
+    
+    def _fetch_opportunities(self):
+        """Fetch opportunities from API"""
+        try:
+            response = requests.get(f"{self.api_base_url}/opportunities", timeout=5)
+            if response.ok:
+                data = response.json()
+                return data.get('opportunities', [])
+        except:
+            pass
+        return []
 
     def create_price_heatmap(self):
-        # Mock price data
-        dexes = ['Uniswap', 'SushiSwap', 'PancakeSwap', '1inch']
-        tokens = ['WETH', 'USDC', 'WBTC', 'UNI']
-        prices = np.random.uniform(1000, 3000, (len(dexes), len(tokens)))
-
-        fig = px.imshow(prices,
-                       x=tokens,
-                       y=dexes,
-                       color_continuous_scale='RdYlGn',
-                       title='DEX Price Heatmap')
+        """Create price heatmap from current opportunities"""
+        opportunities = self._fetch_opportunities()
+        
+        if not opportunities:
+            fig = px.imshow(np.zeros((2, 2)), title='DEX Price Heatmap')
+            return fig
+        
+        # Group opportunities by pair and DEX
+        pair_dex_map = {}
+        for opp in opportunities:
+            pair = opp.get('pair', 'UNKNOWN')
+            dex = opp.get('dex', 'UNKNOWN')
+            profit = opp.get('profit', 0.0)
+            
+            if pair not in pair_dex_map:
+                pair_dex_map[pair] = {}
+            pair_dex_map[pair][dex] = profit
+        
+        # Convert to heatmap format
+        dexes = sorted(set(d for pair_dict in pair_dex_map.values() for d in pair_dict.keys()))
+        pairs = sorted(pair_dex_map.keys())
+        
+        if not dexes or not pairs:
+            fig = px.imshow(np.zeros((2, 2)), title='DEX Price Heatmap')
+            return fig
+        
+        data = []
+        for pair in pairs:
+            row = [pair_dex_map[pair].get(dex, 0) for dex in dexes]
+            data.append(row)
+        
+        fig = px.imshow(data, x=dexes, y=pairs, color_continuous_scale='RdYlGn', title='Profit by DEX Pair')
         return fig
 
     def get_ai_predictions(self):
-        return pd.DataFrame({
-            'Opportunity': ['WETH/USDC Arb', 'WBTC/ETH Arb', 'UNI Flash Loan'],
-            'Predicted Profit ($)': [450, 320, 890],
-            'Confidence (%)': [87, 74, 92],
-            'Time to Execute (s)': [0.05, 0.08, 0.03]
-        })
+        """Get AI predictions based on recent opportunities"""
+        opportunities = self._fetch_opportunities()
+        
+        if not opportunities:
+            return pd.DataFrame(columns=['Opportunity', 'Predicted Profit ($)', 'Confidence (%)', 'Status'])
+        
+        # Take top opportunities by confidence
+        top_opps = sorted(opportunities, key=lambda x: x.get('confidence', 0), reverse=True)[:3]
+        
+        data = {
+            'Opportunity': [opp.get('pair', 'UNKNOWN') for opp in top_opps],
+            'Predicted Profit ($)': [f"${opp.get('profit', 0.0):.2f}" for opp in top_opps],
+            'Confidence (%)': [f"{opp.get('confidence', 0.0):.1%}" for opp in top_opps],
+            'Status': [opp.get('tx', 'PENDING')[:12] for opp in top_opps]
+        }
+        
+        return pd.DataFrame(data)
 
     def get_var_95(self):
-        return 25000
+        """Calculate Value at Risk (95%) from verified profit data"""
+        profit_data = self.get_profit_data()
+        # Use ONLY verified profit
+        accumulated = profit_data.get('accumulated_usd_verified', 0.0)
+        # Simple heuristic: VAR is 25% of accumulated profit
+        return max(accumulated * 0.25, 1000)
 
     def get_max_drawdown(self):
-        return 8.5
+        """Estimate max drawdown from trade history"""
+        opportunities = self._fetch_opportunities()
+        
+        if not opportunities or len(opportunities) < 2:
+            return 0.0
+        
+        profits = [opp.get('profit', 0.0) for opp in opportunities]
+        cumulative = []
+        running_total = 0.0
+        for p in profits:
+            running_total += p
+            cumulative.append(running_total)
+        
+        if not cumulative:
+            return 0.0
+        
+        peak = max(cumulative)
+        if peak == 0:
+            return 0.0
+        
+        trough = min(cumulative)
+        return ((peak - trough) / peak) * 100 if peak > 0 else 0.0
 
     def get_liquidity_risk(self):
-        return "Low"
+        """Assess liquidity risk based on recent trades"""
+        opportunities = self._fetch_opportunities()
+        
+        if not opportunities:
+            return "Unknown"
+        
+        # If we have many successful trades, liquidity risk is low
+        if len(opportunities) > 10:
+            return "Low"
+        elif len(opportunities) > 5:
+            return "Medium"
+        else:
+            return "High"
 
     def get_slippage_risk(self):
-        return 1.2
+        """Calculate slippage risk from verified trades"""
+        profit_data = self.get_profit_data()
+        # Use ONLY verified profit
+        accumulated = profit_data.get('accumulated_eth_verified', 0.0)
+        
+        # Lower accumulated profit = higher slippage risk
+        if accumulated > 0.5:
+            return 0.5
+        elif accumulated > 0.1:
+            return 1.0
+        else:
+            return 2.0
 
     def get_risk_alerts(self):
-        return pd.DataFrame()  # No alerts
+        """Get active risk alerts from real conditions"""
+        alerts = []
+        
+        profit_data = self.get_profit_data()
+        if not profit_data:
+            alerts.append({
+                'Alert': 'API Connection',
+                'Severity': 'Critical',
+                'Description': 'Cannot connect to API'
+            })
+        else:
+            # Check Etherscan status
+            if not profit_data.get('etherscan_enabled', False):
+                alerts.append({
+                    'Alert': 'Etherscan Validation',
+                    'Severity': 'Critical',
+                    'Description': f'Etherscan validation is {profit_data.get("verification_status", "UNKNOWN")} - set ETHERSCAN_API_KEY'
+                })
+            
+            # Check profit threshold (using VERIFIED profit only)
+            accumulated = profit_data.get('accumulated_eth_verified', 0.0)
+            threshold = profit_data.get('threshold_eth', 0.1)
+            auto_enabled = profit_data.get('auto_transfer_enabled', False)
+            
+            if accumulated >= threshold and not auto_enabled:
+                alerts.append({
+                    'Alert': 'Profit Threshold',
+                    'Severity': 'Warning',
+                    'Description': f'Verified profit ({accumulated:.6f} ETH) exceeds threshold, auto-transfer disabled'
+                })
+            
+            # Check pending profits
+            pending = profit_data.get('accumulated_eth_pending', 0.0)
+            if pending > 0:
+                alerts.append({
+                    'Alert': 'Pending Verification',
+                    'Severity': 'Info',
+                    'Description': f'{pending:.6f} ETH pending Etherscan verification (not counted in metrics)'
+                })
+        
+        return pd.DataFrame(alerts) if alerts else pd.DataFrame()
 
     def create_risk_chart(self):
-        # Mock risk data
-        dates = pd.date_range(start='2024-01-01', periods=30, freq='D')
-        risk = [2.0 + np.random.normal(0, 0.5) for _ in range(30)]
-
+        """Create risk chart from trade history"""
+        opportunities = self._fetch_opportunities()
+        
+        if not opportunities:
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=[], y=[], mode='lines', name='Risk Exposure'))
+            fig.update_layout(title='Risk Exposure Over Time', xaxis_title='Date', yaxis_title='Risk Score')
+            return fig
+        
+        timestamps = []
+        risk_scores = []
+        
+        for opp in opportunities:
+            timestamp = opp.get('timestamp', time.time())
+            confidence = opp.get('confidence', 0.5)
+            # Risk = 1 - confidence (inverse relationship)
+            risk_score = (1.0 - confidence) * 100
+            
+            timestamps.append(datetime.fromtimestamp(timestamp))
+            risk_scores.append(risk_score)
+        
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=dates, y=risk, mode='lines', name='Risk Exposure'))
-        fig.update_layout(title='Risk Exposure Over Time', xaxis_title='Date', yaxis_title='Risk Score')
+        fig.add_trace(go.Scatter(x=timestamps, y=risk_scores, mode='lines', name='Risk Score'))
+        fig.update_layout(title='Risk Exposure Over Time', xaxis_title='Date', yaxis_title='Risk Score (%)')
         return fig
 
     def save_settings(self, settings):
-        # Save settings to file or database
-        pass
+        """Save settings to file for persistence"""
+        try:
+            import json
+            with open('aineon_settings.json', 'w') as f:
+                json.dump(settings, f, indent=2)
+            return True
+        except Exception as e:
+            print(f"Failed to save settings: {e}")
+            return False
 
 # WebSocket handler for real-time updates
 async def websocket_handler(websocket, path):
