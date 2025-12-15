@@ -4,7 +4,7 @@ services:
     env: docker
     region: oregon
     plan: standard
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./infrastructure/docker/Dockerfile
     dockerContext: .
     healthCheckPath: /health
     autoDeploy: true
