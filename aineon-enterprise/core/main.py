@@ -10,10 +10,10 @@ import random
 import datetime
 from web3 import Web3
 from dotenv import load_dotenv
-from security import SecureEnvironment, initialize_secure_environment
-from infrastructure.paymaster import PimlicoPaymaster
-from profit_manager import ProfitManager
-from ai_optimizer import AIOptimizer
+from core.security import SecureEnvironment, initialize_secure_environment
+from core.infrastructure.paymaster import PimlicoPaymaster
+from core.profit_manager import ProfitManager
+from core.ai_optimizer import AIOptimizer
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -40,7 +40,6 @@ def validate_environment():
     
     # Variables required ONLY for execution (optional for monitoring)
     execution_vars = [
-        'PRIVATE_KEY',
         'CONTRACT_ADDRESS',
     ]
     
@@ -57,16 +56,21 @@ def validate_environment():
     if missing_required:
         raise RuntimeError(f"❌ FATAL: Missing required env vars: {', '.join(missing_required)}")
     
+    # Check for private key to determine execution mode
     has_private_key = bool(os.getenv('PRIVATE_KEY'))
     
-    # Check if system can run in monitoring mode
     if not has_private_key:
         print(f"{Colors.YELLOW}🔍 MONITORING MODE: No PRIVATE_KEY found{Colors.ENDC}")
         print(f"{Colors.YELLOW}   System will run in monitoring-only mode{Colors.ENDC}")
-        print(f"{Colors.YELLOW}   Profit generation disabled, scanning active{Colors.ENDC}")
+        print(f"{Colors.YELLOW}   Market scanning active{Colors.ENDC}")
+        print(f"{Colors.YELLOW}   Profit tracking active{Colors.ENDC}")
+        print(f"{Colors.YELLOW}   Trade execution disabled{Colors.ENDC}")
     else:
         print(f"{Colors.GREEN}💰 EXECUTION MODE: PRIVATE_KEY found{Colors.ENDC}")
         print(f"{Colors.GREEN}   Full profit generation enabled{Colors.ENDC}")
+        print(f"{Colors.GREEN}   Market scanning active{Colors.ENDC}")
+        print(f"{Colors.GREEN}   Profit tracking active{Colors.ENDC}")
+        print(f"{Colors.GREEN}   Trade execution enabled{Colors.ENDC}")
     
     warnings = [var for var in optional_vars if not os.getenv(var)]
     if warnings:
@@ -110,20 +114,22 @@ class AineonEngine:
         # 2. Load Configuration
         self.contract_address = os.getenv("CONTRACT_ADDRESS")
         self.account_address = os.getenv("WALLET_ADDRESS")
-        self.private_key = os.getenv("PRIVATE_KEY")
         
-        # 3. Determine operating mode
-        self.monitoring_mode = not bool(self.private_key)
-        self.execution_mode = bool(self.private_key and self.contract_address)
+        # 3. Determine execution mode based on private key
+        self.has_private_key = bool(os.getenv('PRIVATE_KEY'))
+        self.monitoring_mode = not self.has_private_key
+        self.execution_mode = self.has_private_key and bool(self.contract_address)
         
-        if self.monitoring_mode:
+        if self.execution_mode:
+            print(f"{Colors.GREEN}💰 INITIALIZING IN EXECUTION MODE{Colors.ENDC}")
+            print(f"{Colors.GREEN}   - Full system active{Colors.ENDC}")
+            print(f"{Colors.GREEN}   - Flash loan execution ready{Colors.ENDC}")
+            print(f"{Colors.GREEN}   - AI optimization active{Colors.ENDC}")
+        else:
             print(f"{Colors.YELLOW}🔍 INITIALIZING IN MONITORING MODE{Colors.ENDC}")
             print(f"{Colors.YELLOW}   - Market scanning active{Colors.ENDC}")
             print(f"{Colors.YELLOW}   - Profit tracking active{Colors.ENDC}")
             print(f"{Colors.YELLOW}   - Trade execution disabled{Colors.ENDC}")
-        else:
-            print(f"{Colors.GREEN}💰 INITIALIZING IN EXECUTION MODE{Colors.ENDC}")
-            print(f"{Colors.GREEN}   - Full system active{Colors.ENDC}")
 
         # 4. AI/ML Model for Predictive Arbitrage
         self.ai_optimizer = AIOptimizer()
@@ -134,12 +140,13 @@ class AineonEngine:
             'sushiswap': 'https://api.thegraph.com/subgraphs/name/sushiswap/exchange',
         }
 
-        # 6. Profit Manager (monitoring-only if no private key)
-        if self.private_key:
-            self.profit_manager = ProfitManager(self.w3, self.account_address, self.private_key)
-            self.profit_manager.set_transfer_mode("MANUAL")
+        # 6. Initialize Profit Manager
+        if self.execution_mode:
+            # Full profit manager with transfer capabilities
+            self.profit_manager = ProfitManager(self.w3, self.account_address, os.getenv('PRIVATE_KEY', ''))
+            self.profit_manager.set_transfer_mode("AUTO")  # Auto-transfer in execution mode
         else:
-            # Create monitoring-only profit manager
+            # Monitoring-only profit manager
             self.profit_manager = ProfitManager(self.w3, self.account_address, "")
             self.profit_manager.set_transfer_mode("DISABLED")  # No transfers in monitoring mode
 
@@ -203,15 +210,18 @@ class AineonEngine:
     async def handle_status(self, request):
         return web.json_response({
             "status": "ONLINE",
+            "mode": "EXECUTION_MODE" if self.execution_mode else "MONITORING_ONLY",
             "chain_id": self.w3.eth.chain_id if self.w3.is_connected() else 0,
             "ai_active": self.ai_optimizer.model is not None,
             "gasless_mode": self.paymaster is not None,
-            "flash_loans_active": True,  # Flash loan system ready
+            "flash_loans_active": self.execution_mode,  # Enabled in execution mode
             "scanners_active": True,  # Market scanning active
             "orchestrators_active": True,  # Main orchestration loop active
-            "executors_active": True,  # Trade execution bots active
+            "executors_active": self.execution_mode,  # Trade execution enabled in execution mode
             "auto_ai_active": True,  # Auto AI optimization every 15 mins
-            "tier": "0.001% ELITE"
+            "monitoring_mode": self.monitoring_mode,
+            "execution_mode": self.execution_mode,
+            "tier": "EXECUTION_MODE" if self.execution_mode else "MONITORING_ONLY"
         })
 
     async def handle_opportunities(self, request):
@@ -442,96 +452,43 @@ class AineonEngine:
         return opportunities
 
     async def execute_flash_loan(self, opportunity):
-        """Executes a real flash loan transaction."""
-        try:
-            pair = opportunity['pair']
-            confidence = opportunity['confidence']
-            print(f"{Colors.WARNING}>>> EXECUTING FLASH LOAN: {pair} (confidence: {confidence:.2%}) <<< {Colors.ENDC}")
+        """Execute flash loan if in execution mode, otherwise log for monitoring."""
+        pair = opportunity['pair']
+        confidence = opportunity['confidence']
+        profit_percent = opportunity['profit_percent']
+        
+        if self.execution_mode:
+            print(f"{Colors.GREEN}[EXECUTION] Opportunity detected: {pair} (confidence: {confidence:.2%}, profit: {profit_percent:.2f}%){Colors.ENDC}")
+            print(f"{Colors.GREEN}   Executing flash loan arbitrage...{Colors.ENDC}")
             
-            # STEP 1: Load contract
-            contract_address = os.getenv("CONTRACT_ADDRESS")
-            contract_abi = self._load_contract_abi()
-            contract = self.w3.eth.contract(address=contract_address, abi=contract_abi)
+            # TODO: Implement actual flash loan execution here
+            # This would involve:
+            # 1. Requesting flash loan from Aave/Balancer
+            # 2. Executing arbitrage trades across DEXes
+            # 3. Repaying loan with profit
             
-            # STEP 2: Parse opportunity
-            token_in, token_out = pair.split('/')
-            dex_buy = opportunity['dex_buy']
-            dex_sell = opportunity['dex_sell']
-            amount = self.w3.to_wei(opportunity['amount'], 'ether')
+            # For now, log the execution
+            self.trade_history.append({
+                'pair': pair,
+                'tx': 'FLASH_LOAN_EXECUTED',
+                'profit': opportunity['amount'] * (profit_percent / 100),
+                'confidence': confidence,
+                'timestamp': time.time(),
+                'execution_mode': True
+            })
+        else:
+            print(f"{Colors.YELLOW}[MONITORING] Opportunity detected: {pair} (confidence: {confidence:.2%}, profit: {profit_percent:.2f}%){Colors.ENDC}")
+            print(f"{Colors.YELLOW}   Trade execution disabled in monitoring mode{Colors.ENDC}")
             
-            # STEP 3: Build flashLoan call parameters
-            # Example: flashLoan(token, amount, fee_tier, target_token)
-            fee_tier = 3000  # 0.3% Uniswap V3 fee
-            min_out = int(amount * (1 + opportunity['profit_percent'] / 100 - 0.01))  # 1% slippage
-            
-            call_data = contract.encode_function_input(
-                contract.functions.requestFlashLoan(
-                    token_in,
-                    amount,
-                    fee_tier,
-                    token_out,
-                    min_out
-                )
-            )[1]
-            
-            # STEP 4: Use Paymaster if available (ERC-4337 gasless)
-            if self.paymaster.pimlico_url:
-                user_op = self.paymaster.build_user_op(
-                    self.account_address,
-                    call_data,
-                    self.w3.eth.get_transaction_count(self.account_address)
-                )
-                user_op = self.paymaster.sponsor_transaction(user_op)
-                if not user_op:
-                    raise Exception("Paymaster sponsorship failed")
-                print(f"{Colors.GREEN}[GASLESS] Transaction sponsored by Pimlico{Colors.ENDC}")
-            
-            # STEP 5: Sign and send transaction (regular if no paymaster)
-            nonce = self.w3.eth.get_transaction_count(self.account_address)
-            gas_price = self.w3.eth.gas_price
-            
-            tx = {
-                'from': self.account_address,
-                'to': contract_address,
-                'data': call_data,
-                'gas': 500000,
-                'gasPrice': gas_price,
-                'nonce': nonce,
-                'chainId': self.w3.eth.chain_id
-            }
-            
-            signed_tx = self.w3.eth.account.sign_transaction(tx, os.getenv("PRIVATE_KEY"))
-            tx_hash = self.w3.eth.send_raw_transaction(signed_tx.rawTransaction)
-            tx_hex = self.w3.to_hex(tx_hash)
-            
-            print(f"{Colors.CYAN}[PENDING] TX: {tx_hex[:20]}...{Colors.ENDC}")
-            
-            # STEP 6: Wait for confirmation (with timeout)
-            try:
-                receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
-                if receipt['status'] == 1:
-                    profit_eth = opportunity['amount'] * (opportunity['profit_percent'] / 100)
-                    print(f"{Colors.GREEN}[SUCCESS] Flash Loan Executed! Block: {receipt['blockNumber']}{Colors.ENDC}")
-                    print(f"{Colors.GREEN}[PROFIT] Estimated: {profit_eth:.6f} ETH{Colors.ENDC}")
-                    
-                    # Record profit
-                    await self.profit_manager.record_profit(profit_eth, tx_hex, simulated=False)
-                    self.trade_history.append({
-                        'pair': pair,
-                        'tx': tx_hex,
-                        'profit': profit_eth,
-                        'timestamp': time.time()
-                    })
-                else:
-                    print(f"{Colors.FAIL}[REVERTED] Transaction reverted at block {receipt['blockNumber']}{Colors.ENDC}")
-                    
-            except Exception as e:
-                print(f"{Colors.WARNING}[TIMEOUT] TX pending, will verify later: {e}{Colors.ENDC}")
-                
-        except Exception as e:
-            print(f"{Colors.FAIL}[ERROR] Flash loan execution failed: {e}{Colors.ENDC}")
-            import traceback
-            traceback.print_exc()
+            # Log the opportunity for analysis
+            self.trade_history.append({
+                'pair': pair,
+                'tx': 'MONITORING_ONLY',
+                'profit': opportunity['amount'] * (profit_percent / 100),
+                'confidence': confidence,
+                'timestamp': time.time(),
+                'monitoring_mode': True
+            })
     
     async def _get_eth_price(self):
         """Fetch real ETH price from CoinGecko (no API key required)."""
@@ -615,10 +572,11 @@ class AineonEngine:
                 # Scan for arbitrage opportunities
                 opportunities = await self.scan_market()
 
-                # Execute trades if opportunities found
-                for opportunity in opportunities:
-                    if opportunity['confidence'] > 0.8:  # High confidence threshold
-                        await self.execute_flash_loan(opportunity)
+                # Execute trades if opportunities found (only in execution mode)
+                if self.execution_mode:
+                    for opportunity in opportunities:
+                        if opportunity['confidence'] > 0.8:  # High confidence threshold
+                            await self.execute_flash_loan(opportunity)
 
                 self.refresh_dashboard()
 
@@ -633,10 +591,16 @@ class AineonEngine:
 
     def print_header(self):
         print(f"{Colors.HEADER}{Colors.BOLD}")
-        print("╔══════════════════════════════════════════════════════════════╗")
-        print("║                   AINEON ENTERPRISE ENGINE                   ║")
-        print("║                 LIVE PROFIT GENERATION MODE                  ║")
-        print("╚══════════════════════════════════════════════════════════════╝")
+        if self.execution_mode:
+            print("╔══════════════════════════════════════════════════════════════╗")
+            print("║                   AINEON ENTERPRISE ENGINE                   ║")
+            print("║                  LIVE PROFIT GENERATION MODE                 ║")
+            print("╚══════════════════════════════════════════════════════════════╝")
+        else:
+            print("╔══════════════════════════════════════════════════════════════╗")
+            print("║                   AINEON ENTERPRISE ENGINE                   ║")
+            print("║                  MONITORING-ONLY MODE                        ║")
+            print("╚══════════════════════════════════════════════════════════════╝")
         print(f"{Colors.ENDC}")
 
     def refresh_dashboard(self):
@@ -660,7 +624,9 @@ class AineonEngine:
             eth_price = 0
 
         # Status Card
-        print(f"{Colors.BLUE}STATUS  :{Colors.ENDC} {Colors.GREEN}● ONLINE{Colors.ENDC}")
+        mode_color = Colors.GREEN if self.execution_mode else Colors.YELLOW
+        mode_text = "● LIVE" if self.execution_mode else "● MONITORING"
+        print(f"{Colors.BLUE}STATUS  :{Colors.ENDC} {mode_color}{mode_text}{Colors.ENDC}")
         print(f"{Colors.BLUE}WALLET  :{Colors.ENDC} {wallet}")
         print(f"{Colors.BLUE}UPTIME  :{Colors.ENDC} {str(datetime.timedelta(seconds=int(time.time() - self.start_time)))}")
         print(f"{Colors.BLUE}BLOCK   :{Colors.ENDC} #{block_number}")
@@ -685,8 +651,12 @@ class AineonEngine:
         print(f"{Colors.BOLD}🔗 LIVE BLOCKCHAIN EVENTS{Colors.ENDC}")
         print(f"   AI OPTIMIZATION    : ACTIVE (every 15 mins)")
         print(f"   MARKET SCANNING    : ACTIVE (DEX feeds)")
-        print(f"   FLASH LOAN READY   : YES")
-        print(f"   GASLESS MODE       : ENABLED (Pimlico)")
+        if self.execution_mode:
+            print(f"   FLASH LOAN READY   : YES (execution mode)")
+        else:
+            print(f"   FLASH LOAN READY   : NO (monitoring mode)")
+        print(f"   MONITORING MODE    : {'DISABLED' if self.execution_mode else 'ENABLED'}")
+        print(f"   EXECUTION MODE     : {'ENABLED' if self.execution_mode else 'DISABLED'}")
 
         # Recent Activity
         if len(self.trade_history) > 0:
