@@ -1,0 +1,21 @@
+name: Deploy to GitHub Enterprise
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Docker image
+        run: docker build -t myapp:latest .
+      - name: Push to GitHub Enterprise
+        run: |
+          echo "$GITHUB_TOKEN" | docker login -u $GITHUB_USER --password-stdin
+          docker push myapp:latest
+        env:
+          GITHUB_USER: $GITHUB_USER
+          GITHUB_TOKEN: $GITHUB_TOKEN
