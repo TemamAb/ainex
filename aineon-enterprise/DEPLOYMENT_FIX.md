@@ -26,10 +26,10 @@
 - Environment variables setup
 - Auto-deployment on push to main branch
 
-### 4. **.env.example Template**
-- Clear documentation of all required and optional variables
-- Security best practices highlighted
-- Deployment notes for different environments
+### 4. **Configuration Documentation**
+- All environment variables documented in this file
+- No .env.example to avoid confusion in production
+- All config is environment-based in Render
 
 ---
 
