@@ -39,6 +39,12 @@ ENV PYTHONPATH="/app:/app/lib:${PYTHONPATH}"
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
+# Load environment from .env if it exists, otherwise use defaults
+# These will be overridden by environment variables at runtime
+ENV PORT=8081
+ENV ENVIRONMENT=production
+ENV NODE_ENV=production
+
 # Copy application code
 COPY core/ /app/core/
 COPY dashboard/ /app/dashboard/
