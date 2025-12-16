@@ -1,8 +1,8 @@
 {
   "profit_mode": "ENTERPRISE_TIER_0.001%",
   "profit_generation_enabled": true,
-  "auto_transfer_enabled": true,
-  "transfer_mode": "AUTOMATIC",
+  "auto_transfer_enabled": false,
+  "transfer_mode": "MANUAL",
   "profit_threshold_eth": 5.0,
   "min_profit_per_trade": 0.5,
   "max_slippage_pct": 0.001,
