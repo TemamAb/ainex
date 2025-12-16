@@ -1,0 +1,8 @@
+{
+  "name": "myneon",
+  "version": "1.0.0",
+  "description": "Python application",
+  "scripts": {
+    "build": "echo 'No build required for Python app' && exit 0"
+  }
+}
