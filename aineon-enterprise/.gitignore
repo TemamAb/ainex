@@ -395,8 +395,10 @@ audit-reports/
 # Never ignore these (negative patterns)
 !.env.example
 !.gitignore
+!.dockerignore
 !README.md
 !LICENSE
 !pyproject.toml
 !requirements.txt
 !Dockerfile*
+!render.yaml
