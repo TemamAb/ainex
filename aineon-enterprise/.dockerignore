@@ -1,43 +1,80 @@
-node_modules
+# Node modules (not needed for Python)
+node_modules/
 npm-debug.log
-.git
-.gitignore
-.env
-.env.local
-.env.*.local
-__pycache__
+package-lock.json
+
+# Python cache
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
-env/
+*.egg-info/
+.eggs/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual environments
+.venv/
 venv/
-.vscode
-.idea
+env/
+ENV/
+
+# IDE and editor files
+.vscode/
+.idea/
 *.swp
 *.swo
 *~
 .DS_Store
-dist
-build
-*.egg-info
-.qodo
-.github
-docs
-scripts
-tools
-dashboard
-infrastructure
-.vscode
-.npm
-.eslintcache
-coverage
-logs
-data
-cache
-models
-*.log
-.pytest_cache
-.mypy_cache
+
+# Version control
+.git/
+.gitignore
+
+# Documentation and tests (not needed in production)
+docs/
+tests/
+*.md
+README*
+
+# Development and temporary files
+.pytest_cache/
 .coverage
-htmlcov
+htmlcov/
+*.log
+logs/
+debug_*
+
+# Git and CI
+.github/
+.qodo/
+
+# Build artifacts
+build/
+dist/
+*.egg
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# Environment files (use Docker env vars instead)
+.env
+.env.local
+.env.*.local
+
+# Large files not needed
+models/
+data/
+cache/
+*.pkl
+*.h5
+*.pb
+
+# Misc
+profit/
+terminal_profit_monitor.py
+terminal_monitor.py
+deploy_aineon_profit.py
+diagnose_minimax_error.py
