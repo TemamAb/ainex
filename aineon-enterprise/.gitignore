@@ -212,6 +212,8 @@ keystore/
 *.json
 !package.json
 !tsconfig.json
+!profit_earning_config.json
+!render.yaml
 
 # Smart contract artifacts
 artifacts/
