@@ -1,0 +1,402 @@
+# Aineon Enterprise - Top 0.001% Grade .gitignore
+# Comprehensive ignore rules for enterprise Python/DeFi project
+
+# ============================================================================
+# Python
+# ============================================================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ============================================================================
+# Virtual Environments
+# ============================================================================
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# pdm
+.pdm.toml
+
+# PEP 582
+__pypackages__/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.conda/
+miniconda/
+miniconda3/
+anaconda/
+anaconda3/
+
+# ============================================================================
+# IDEs and Editors
+# ============================================================================
+
+# PyCharm
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# VS Code
+.vscode/settings.json
+.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/tasks.json
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Sublime Text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+*.sublime-project
+
+# ============================================================================
+# OS Generated Files
+# ============================================================================
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# ============================================================================
+# Project Specific
+# ============================================================================
+
+# Logs
+*.log
+logs/
+log/
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# celery beat schedule file
+celerybeat-schedule
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ============================================================================
+# DeFi / Blockchain Specific
+# ============================================================================
+
+# Private keys (NEVER commit these!)
+*.pem
+*.key
+*.p12
+*.pfx
+*private*
+*secret*
+
+# Wallet files
+keystore/
+*.json
+!package.json
+!tsconfig.json
+
+# Smart contract artifacts
+artifacts/
+build/
+cache/
+
+# Hardhat
+.cache/
+artifacts/
+
+# Node modules (if any JS components)
+node_modules/
+
+# ============================================================================
+# Enterprise / Cloud Specific
+# ============================================================================
+
+# Terraform
+.terraform/
+terraform.tfstate*
+*.tfvars
+
+# Kubernetes
+kubeconfig
+.kube/
+
+# Docker
+.dockerignore
+
+# AWS
+.aws/
+credentials
+config
+
+# GCP
+.gcp/
+*.pem
+
+# Azure
+.azure/
+
+# ============================================================================
+# Temporary Files
+# ============================================================================
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+*.swp
+*.swo
+*~
+
+# ============================================================================
+# Large Data Files
+# ============================================================================
+
+# Model files (can be large)
+*.h5
+*.pb
+*.pkl
+*.joblib
+*.model
+models/
+checkpoints/
+
+# Large datasets
+*.csv
+*.parquet
+*.feather
+data/
+datasets/
+
+# ============================================================================
+# Security
+# ============================================================================
+
+# Security scans
+security/
+vulnerabilities/
+*.sarif
+
+# Secrets (double protection)
+secrets/
+.secrets/
+
+# ============================================================================
+# CI/CD
+# ============================================================================
+
+# GitHub Actions
+.github/workflows/*.log
+
+# Build artifacts
+target/
+build/
+dist/
+
+# Test artifacts
+test-results/
+junit.xml
+allure-results/
+
+# ============================================================================
+# Documentation Build
+# ============================================================================
+
+# MkDocs
+site/
+docs/site/
+
+# Sphinx
+docs/build/
+docs/source/_build/
+
+# ============================================================================
+# Local Development
+# ============================================================================
+
+# Local database
+*.db
+*.sqlite
+*.sqlite3
+
+# Local Redis dumps
+dump.rdb
+
+# Local logs
+*.log
+logs/
+
+# Development notes
+NOTES.md
+TODO.md
+scratch/
+experiments/
+
+# ============================================================================
+# Backup Files
+# ============================================================================
+
+*.bak
+*.backup
+*.old
+*.orig
+*~
+
+# ============================================================================
+# Custom Rules for Aineon
+# ============================================================================
+
+# Aineon specific
+aineon-local/
+local-config/
+debug-logs/
+
+# Performance profiling
+*.prof
+*.lprof
+profile_output/
+
+# Chaos engineering artifacts
+chaos-logs/
+failure-injection-reports/
+
+# Load testing artifacts
+load-test-results/
+performance-reports/
+
+# Compliance reports (local copies)
+compliance-reports/
+audit-reports/
+
+# ============================================================================
+# Final Rules
+# ============================================================================
+
+# Never ignore these (negative patterns)
+!.env.example
+!.gitignore
+!README.md
+!LICENSE
+!pyproject.toml
+!requirements.txt
+!Dockerfile*

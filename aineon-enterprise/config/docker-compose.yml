@@ -1,0 +1,66 @@
+version: '3.9'
+
+services:
+  aineon-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aineon-engine
+    ports:
+      - "8082:8082"
+    environment:
+      # Ethereum RPC - use testnet for testing
+      - ETH_RPC_URL=${ETH_RPC_URL:-https://eth-sepolia.g.alchemy.com/v2/demo}
+      - CONTRACT_ADDRESS=${CONTRACT_ADDRESS:-0x0000000000000000000000000000000000000000}
+      - WALLET_ADDRESS=${WALLET_ADDRESS:-0x0000000000000000000000000000000000000000}
+      - PRIVATE_KEY=${PRIVATE_KEY:-0x0000000000000000000000000000000000000000000000000000000000000000}
+      - PAYMASTER_URL=${PAYMASTER_URL:-}
+      - BUNDLER_URL=${BUNDLER_URL:-}
+      - PORT=8082
+    volumes:
+      - ./core:/app
+      - aineon-logs:/app/logs
+    networks:
+      - aineon-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  aineon-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    container_name: aineon-dashboard
+    ports:
+      - "8000:8000"
+    environment:
+      - AINEON_API_URL=http://aineon-engine:8082
+      - REFRESH_INTERVAL=5
+    depends_on:
+      aineon-engine:
+        condition: service_healthy
+    networks:
+      - aineon-network
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  aineon-logs:
+    driver: local
+
+networks:
+  aineon-network:
+    driver: bridge
