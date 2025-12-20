@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AINEON Dashboard</title>
+    <style>
+        body {
+            margin: 0;
+            background: #0f172a;
+            color: white;
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 40px 0;
+            border-bottom: 1px solid #334155;
+            margin-bottom: 40px;
+        }
+        h1 {
+            color: #60a5fa;
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+        .status {
+            display: inline-block;
+            background: #10b981;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        .card h3 {
+            color: #94a3b8;
+            margin-bottom: 15px;
+        }
+        .value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .profit { color: #10b981; }
+        .roi { color: #60a5fa; }
+        .trades { color: #8b5cf6; }
+        .risk { color: #f59e0b; }
+        .features {
+            background: #1e293b;
+            padding: 30px;
+            border-radius: 10px;
+            border: 1px solid #334155;
+            margin-top: 40px;
+        }
+        .features h2 {
+            color: #e2e8f0;
+            margin-bottom: 20px;
+        }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .feature {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #334155;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #334155;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>íº€ AINEON Enterprise</h1>
+            <div class="status">LIVE DASHBOARD</div>
+            <p>Real-time trading system monitoring</p>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h3>Total Profit</h3>
+                <div class="value profit" id="profit">$1,523.67</div>
+                <p>Lifetime earnings</p>
+            </div>
+            <div class="card">
+                <h3>Daily ROI</h3>
+                <div class="value roi">2.34%</div>
+                <p>+$342.15 today</p>
+            </div>
+            <div class="card">
+                <h3>Active Trades</h3>
+                <div class="value trades">12</div>
+                <p>3 arbitrage, 5 MEV, 4 DEX</p>
+            </div>
+            <div class="card">
+                <h3>Risk Score</h3>
+                <div class="value risk">8.2/10</div>
+                <p>Low risk profile</p>
+            </div>
+        </div>
+
+        <div class="features">
+            <h2>Connected Systems</h2>
+            <div class="features-grid">
+                <div class="feature">Flash Loan Engine</div>
+                <div class="feature">Multi-DEX Arbitrage</div>
+                <div class="feature">MEV Bot</div>
+                <div class="feature">Portfolio Manager</div>
+                <div class="feature">Risk Manager</div>
+                <div class="feature">AI Optimizer</div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>AINEON Enterprise Trading System Â© 2024</p>
+            <p>Dashboard running at: http://localhost:3000</p>
+            <p>Backend API: http://localhost:8080</p>
+        </div>
+    </div>
+
+    <script>
+        // Auto-update profit
+        let profit = 1523.67;
+        setInterval(() => {
+            profit += (Math.random() * 2 - 1);
+            document.getElementById('profit').textContent = '$' + profit.toFixed(2);
+        }, 2000);
+    </script>
+</body>
+</html>

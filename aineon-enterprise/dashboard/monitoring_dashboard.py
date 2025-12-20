@@ -11,6 +11,8 @@ import time
 import requests
 import os
 import numpy as np
+from decimal import Decimal
+from typing import Dict, List, Optional
 
 class MonitoringDashboard:
     def __init__(self):
@@ -18,7 +20,7 @@ class MonitoringDashboard:
         self.performance_metrics = {}
         self.risk_metrics = {}
         self.websocket_url = "ws://localhost:8765"  # For real-time updates
-        self.api_base_url = os.getenv("API_BASE_URL", "http://localhost:8080")
+        self.api_base_url = os.getenv("API_BASE_URL", "http://localhost:8081")
 
     def run_dashboard(self):
         """Run the Streamlit dashboard"""
@@ -31,7 +33,7 @@ class MonitoringDashboard:
         self.sidebar_controls()
 
         # Main dashboard tabs
-        tab1, tab2, tab3, tab4 = st.tabs(["📊 Performance", "🎯 Opportunities", "⚠️ Risk", "🔧 Settings"])
+        tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Performance", "🎯 Opportunities", "⚠️ Risk", "💰 Withdrawals", "🔧 Settings"])
 
         with tab1:
             self.performance_tab()
@@ -41,8 +43,11 @@ class MonitoringDashboard:
 
         with tab3:
             self.risk_tab()
-
+        
         with tab4:
+            self.withdrawals_tab()
+
+        with tab5:
             self.settings_tab()
 
     def sidebar_controls(self):
@@ -91,12 +96,12 @@ class MonitoringDashboard:
         transfer_mode = st.sidebar.radio(
             "Transfer Mode",
             ["Manual", "Auto"],
-            index=0 if not profit_data['auto_transfer'] else 1,
+            index=0 if not profit_data.get('auto_transfer_enabled', False) else 1,
             horizontal=True
         )
         
         # Update mode if changed
-        if (transfer_mode == "Auto") != profit_data['auto_transfer']:
+        if (transfer_mode == "Auto") != profit_data.get('auto_transfer_enabled', False):
             self.update_profit_config(transfer_mode == "Auto", profit_data['threshold_eth'])
             st.rerun()
         
@@ -114,6 +119,70 @@ class MonitoringDashboard:
         else:
             st.sidebar.success("✅ AUTO-SWEEP ACTIVE")
             st.sidebar.caption(f"Threshold: {profit_data['threshold_eth']:.4f} ETH")
+        
+        # Advanced Withdrawal Controls
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("🔧 Advanced Controls")
+        
+        # Withdrawal mode selection
+        withdrawal_mode = st.sidebar.selectbox(
+            "Withdrawal Mode",
+            ["Manual", "Auto", "Scheduled", "Emergency"],
+            index=0
+        )
+        
+        # Threshold settings
+        threshold = st.sidebar.number_input(
+            "Withdrawal Threshold (ETH)",
+            min_value=0.001,
+            max_value=10.0,
+            value=float(profit_data.get('threshold_eth', 0.1)),
+            step=0.01,
+            format="%.3f"
+        )
+        
+        # Update threshold if changed
+        if threshold != profit_data.get('threshold_eth', 0.1):
+            self.update_profit_config(profit_data.get('auto_transfer_enabled', False), threshold)
+            st.rerun()
+        
+        # Gas optimization strategy
+        gas_strategy = st.sidebar.selectbox(
+            "Gas Strategy",
+            ["Standard", "Fast", "Slow", "Optimized"],
+            index=0
+        )
+        
+        # Multi-address withdrawal setup
+        if st.sidebar.expander("📍 Withdrawal Addresses", expanded=False):
+            st.sidebar.markdown("**Configure destination addresses:**")
+            addresses = self.get_withdrawal_addresses()
+            for addr_info in addresses:
+                st.sidebar.markdown(f"• {addr_info['label']}: {addr_info['address'][:10]}...")
+            
+            # Add new address form
+            with st.sidebar.form("add_address"):
+                st.subheader("Add Address")
+                label = st.text_input("Label")
+                address = st.text_input("Address")
+                percentage = st.slider("Percentage", 1, 100, 100)
+                
+                if st.form_submit_button("Add Address"):
+                    if self.add_withdrawal_address(label, address, percentage):
+                        st.sidebar.success("Address added!")
+                        st.rerun()
+        
+        # Emergency withdrawal
+        st.sidebar.markdown("---")
+        if st.sidebar.button("🚨 EMERGENCY WITHDRAW", 
+                           type="secondary",
+                           use_container_width=True):
+            if st.sidebar.button("Confirm Emergency", type="primary"):
+                if self.execute_emergency_withdrawal():
+                    st.sidebar.success("Emergency withdrawal initiated!")
+                    st.rerun()
+                else:
+                    st.sidebar.error("Emergency withdrawal failed!")
 
         # Quick stats
         st.sidebar.markdown("---")
@@ -205,6 +274,185 @@ class MonitoringDashboard:
         st.subheader("Risk Exposure Over Time")
         risk_chart = self.create_risk_chart()
         st.plotly_chart(risk_chart, use_container_width=True)
+    
+    def withdrawals_tab(self):
+        """Advanced withdrawal management dashboard"""
+        st.header("💰 Profit Withdrawal Management")
+        
+        # Withdrawal statistics overview
+        withdrawal_stats = self.get_withdrawal_statistics()
+        
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric(
+                "Total Withdrawn", 
+                f"{withdrawal_stats['total_withdrawn_eth']:.4f} ETH",
+                delta=f"${withdrawal_stats['total_withdrawn_eth'] * 2500:.0f}"
+            )
+        with col2:
+            st.metric(
+                "Success Rate", 
+                f"{withdrawal_stats['success_rate']:.1f}%",
+                delta=f"{withdrawal_stats['withdrawal_count']} withdrawals"
+            )
+        with col3:
+            st.metric(
+                "Avg Gas Fee", 
+                f"{withdrawal_stats['average_gas_fee']:.4f} ETH",
+                delta=f"${withdrawal_stats['average_gas_fee'] * 2500:.0f}"
+            )
+        with col4:
+            st.metric(
+                "Daily Total", 
+                f"{withdrawal_stats['daily_withdrawal_total']:.4f} ETH",
+                delta=f"Limit: {withdrawal_stats['daily_withdrawal_limit']} ETH"
+            )
+        
+        # Withdrawal mode controls
+        st.subheader("🔄 Withdrawal Mode")
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            mode = st.radio(
+                "Select Withdrawal Mode",
+                ["Manual", "Auto", "Scheduled", "Emergency"],
+                horizontal=True
+            )
+            
+            # Mode-specific configuration
+            if mode == "Manual":
+                st.info("Manual mode: You control all withdrawals manually")
+                amount = st.number_input(
+                    "Withdrawal Amount (ETH)",
+                    min_value=0.001,
+                    max_value=10.0,
+                    value=0.1,
+                    step=0.01,
+                    format="%.3f"
+                )
+                
+                if st.button("Execute Manual Withdrawal", type="primary"):
+                    if self.execute_manual_withdrawal(amount):
+                        st.success(f"Withdrawal initiated: {amount} ETH")
+                        time.sleep(2)
+                        st.rerun()
+                    else:
+                        st.error("Withdrawal failed - check logs")
+            
+            elif mode == "Auto":
+                st.info("Auto mode: Automatic withdrawals based on thresholds")
+                
+                # Auto-withdrawal rules
+                rules = self.get_withdrawal_rules()
+                if rules:
+                    st.markdown("**Active Rules:**")
+                    for rule in rules:
+                        st.markdown(f"• {rule['name']}: {rule['threshold_eth']} ETH")
+                
+                # Add new rule
+                with st.expander("Add Auto-Withdrawal Rule"):
+                    rule_name = st.text_input("Rule Name")
+                    threshold = st.number_input("Threshold (ETH)", min_value=0.001, value=0.1, step=0.01)
+                    gas_strategy = st.selectbox("Gas Strategy", ["Standard", "Fast", "Slow"])
+                    frequency = st.number_input("Min Frequency (hours)", min_value=1, value=24)
+                    
+                    if st.button("Add Rule"):
+                        if self.add_withdrawal_rule(rule_name, threshold, gas_strategy, frequency):
+                            st.success("Rule added!")
+                            st.rerun()
+            
+            elif mode == "Scheduled":
+                st.info("Scheduled mode: Time-based automatic withdrawals")
+                # TODO: Implement cron-like scheduling
+                st.warning("Scheduled withdrawals coming in next update")
+            
+            elif mode == "Emergency":
+                st.error("Emergency mode: Immediate withdrawal of all available funds")
+                st.warning("Use only in critical situations!")
+                
+                percentage = st.slider("Withdrawal Percentage", 50, 100, 100)
+                
+                if st.button("Execute Emergency Withdrawal", type="secondary"):
+                    if st.button("CONFIRM EMERGENCY", type="primary"):
+                        if self.execute_emergency_withdrawal(percentage):
+                            st.success("Emergency withdrawal initiated!")
+                            time.sleep(2)
+                            st.rerun()
+                        else:
+                            st.error("Emergency withdrawal failed!")
+        
+        with col2:
+            # Current withdrawal status
+            st.markdown("**Current Status:**")
+            st.markdown(f"Mode: **{withdrawal_stats['mode']}**")
+            st.markdown(f"Pending: **{withdrawal_stats['pending_withdrawals']}**")
+            st.markdown(f"Rules: **{withdrawal_stats['active_rules']}**")
+            st.markdown(f"Addresses: **{withdrawal_stats['configured_addresses']}**")
+        
+        # Withdrawal history
+        st.subheader("📜 Withdrawal History")
+        history = self.get_withdrawal_history(20)
+        
+        if history:
+            history_df = pd.DataFrame(history)
+            st.dataframe(
+                history_df,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "initiated_at": "Initiated",
+                    "amount_eth": st.column_config.NumberColumn("Amount (ETH)", format="%.4f"),
+                    "status": st.column_config.TextColumn("Status"),
+                    "gas_price_gwei": st.column_config.NumberColumn("Gas (Gwei)", format=".1f"),
+                    "fee_eth": st.column_config.NumberColumn("Fee (ETH)", format=".6f"),
+                    "tx_id": st.column_config.TextColumn("TX Hash"),
+                }
+            )
+        else:
+            st.info("No withdrawal history available")
+        
+        # Pending withdrawals
+        st.subheader("⏳ Pending Withdrawals")
+        pending = self.get_pending_withdrawals()
+        
+        if pending:
+            pending_df = pd.DataFrame(pending)
+            st.dataframe(
+                pending_df,
+                use_container_width=True,
+                hide_index=True
+            )
+        else:
+            st.success("No pending withdrawals")
+        
+        # Withdrawal addresses management
+        st.subheader("📍 Withdrawal Addresses")
+        addresses = self.get_withdrawal_addresses()
+        
+        if addresses:
+            addresses_df = pd.DataFrame(addresses)
+            st.dataframe(
+                addresses_df,
+                use_container_width=True,
+                hide_index=True
+            )
+        
+        # Add new address form
+        with st.expander("Add New Withdrawal Address"):
+            col1, col2 = st.columns(2)
+            with col1:
+                label = st.text_input("Address Label")
+                address = st.text_input("Ethereum Address")
+            with col2:
+                percentage = st.slider("Percentage", 1, 100, 100)
+                priority = st.number_input("Priority", min_value=1, value=1)
+            
+            if st.button("Add Address"):
+                if self.add_withdrawal_address(label, address, percentage, priority):
+                    st.success("Address added!")
+                    st.rerun()
+                else:
+                    st.error("Failed to add address")
 
     def settings_tab(self):
         """Configuration settings"""
@@ -250,6 +498,8 @@ class MonitoringDashboard:
             pass
         # Fallback
         return {
+            'accumulated_eth': 0.0,
+            'accumulated_usd': 0.0,
             'accumulated_eth_verified': 0.0,
             'accumulated_eth_pending': 0.0,
             'threshold_eth': 0.1,
@@ -656,6 +906,153 @@ class MonitoringDashboard:
         except Exception as e:
             print(f"Failed to save settings: {e}")
             return False
+    
+    # Enhanced withdrawal system methods
+    def execute_manual_withdrawal(self, amount: float = None) -> bool:
+        """Execute manual withdrawal via API"""
+        try:
+            data = {}
+            if amount:
+                data['amount'] = amount
+            
+            response = requests.post(
+                f"{self.api_base_url}/withdraw/manual", 
+                json=data, 
+                timeout=10
+            )
+            return response.ok
+        except:
+            return False
+    
+    def execute_emergency_withdrawal(self, percentage: int = 100) -> bool:
+        """Execute emergency withdrawal via API"""
+        try:
+            response = requests.post(
+                f"{self.api_base_url}/withdraw/emergency",
+                json={'percentage': percentage},
+                timeout=10
+            )
+            return response.ok
+        except:
+            return False
+    
+    def get_withdrawal_statistics(self) -> Dict:
+        """Get withdrawal statistics from API"""
+        try:
+            response = requests.get(f"{self.api_base_url}/withdraw/stats", timeout=5)
+            if response.ok:
+                return response.json()
+        except:
+            pass
+        
+        # Fallback statistics
+        return {
+            'total_withdrawn_eth': 0.0,
+            'total_withdrawal_fees': 0.0,
+            'withdrawal_count': 0,
+            'success_rate': 100.0,
+            'average_withdrawal_size': 0.0,
+            'average_gas_fee': 0.0,
+            'daily_withdrawal_total': 0.0,
+            'daily_withdrawal_limit': 100.0,
+            'pending_withdrawals': 0,
+            'active_rules': 0,
+            'configured_addresses': 1,
+            'mode': 'manual'
+        }
+    
+    def get_withdrawal_history(self, limit: int = 20) -> List[Dict]:
+        """Get withdrawal history from API"""
+        try:
+            response = requests.get(
+                f"{self.api_base_url}/withdraw/history?limit={limit}", 
+                timeout=5
+            )
+            if response.ok:
+                return response.json().get('history', [])
+        except:
+            pass
+        
+        return []
+    
+    def get_pending_withdrawals(self) -> List[Dict]:
+        """Get pending withdrawals from API"""
+        try:
+            response = requests.get(f"{self.api_base_url}/withdraw/pending", timeout=5)
+            if response.ok:
+                return response.json().get('pending', [])
+        except:
+            pass
+        
+        return []
+    
+    def get_withdrawal_addresses(self) -> List[Dict]:
+        """Get withdrawal addresses from API"""
+        try:
+            response = requests.get(f"{self.api_base_url}/withdraw/addresses", timeout=5)
+            if response.ok:
+                return response.json().get('addresses', [])
+        except:
+            pass
+        
+        # Default address
+        return [{
+            'label': 'Primary Wallet',
+            'address': self.wallet_address or '0x...',
+            'percentage': 100,
+            'priority': 1,
+            'enabled': True
+        }]
+    
+    def add_withdrawal_address(self, label: str, address: str, percentage: int, priority: int = 1) -> bool:
+        """Add withdrawal address via API"""
+        try:
+            response = requests.post(
+                f"{self.api_base_url}/withdraw/addresses",
+                json={
+                    'label': label,
+                    'address': address,
+                    'percentage': percentage,
+                    'priority': priority
+                },
+                timeout=5
+            )
+            return response.ok
+        except:
+            return False
+    
+    def get_withdrawal_rules(self) -> List[Dict]:
+        """Get withdrawal rules from API"""
+        try:
+            response = requests.get(f"{self.api_base_url}/withdraw/rules", timeout=5)
+            if response.ok:
+                return response.json().get('rules', [])
+        except:
+            pass
+        
+        return []
+    
+    def add_withdrawal_rule(self, name: str, threshold: float, gas_strategy: str, frequency: int) -> bool:
+        """Add withdrawal rule via API"""
+        try:
+            response = requests.post(
+                f"{self.api_base_url}/withdraw/rules",
+                json={
+                    'name': name,
+                    'threshold_eth': threshold,
+                    'gas_strategy': gas_strategy,
+                    'max_frequency_hours': frequency
+                },
+                timeout=5
+            )
+            return response.ok
+        except:
+            return False
+    
+    @property
+    def wallet_address(self) -> Optional[str]:
+        """Get wallet address from environment or config"""
+        return os.getenv("WALLET_ADDRESS")
 
 # WebSocket handler for real-time updates
 async def websocket_handler(websocket, path):

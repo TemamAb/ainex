@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Monthly Compliance Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .header { text-align: center; margin-bottom: 40px; }
+        .summary { background: #f5f5f5; padding: 20px; border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        .risk-high { background: #ffebee; }
+        .risk-medium { background: #fff8e1; }
+        .risk-low { background: #e8f5e9; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>AINEON Enterprise Compliance Report</h1>
+        <p>Monthly Report - {{report_date}}</p>
+    </div>
+    
+    <div class="summary">
+        <h2>Executive Summary</h2>
+        <p>Total Screenings: {{total_screenings}}</p>
+        <p>High Risk Detections: {{high_risk_count}}</p>
+        <p>Compliance Rate: {{compliance_rate}}%</p>
+    </div>
+    
+    <h2>Detailed Findings</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Wallet Address</th>
+                <th>Risk Score</th>
+                <th>Risk Level</th>
+                <th>Screening Date</th>
+                <th>Flags</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#screenings}}
+            <tr class="risk-{{risk_level}}">
+                <td>{{wallet_short}}</td>
+                <td>{{risk_score}}</td>
+                <td>{{risk_level}}</td>
+                <td>{{screening_date}}</td>
+                <td>{{flags_count}}</td>
+            </tr>
+            {{/screenings}}
+        </tbody>
+    </table>
+</body>
+</html>

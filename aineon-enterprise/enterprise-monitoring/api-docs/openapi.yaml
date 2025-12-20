@@ -1,0 +1,331 @@
+openapi: 3.0.0
+info:
+  title: AINEON Enterprise API
+  description: Enterprise-grade API for institutional flash loan dashboard
+  version: 1.0.0
+  contact:
+    name: AINEON Enterprise Support
+    email: api-support@ainex.enterprise
+  license:
+    name: Proprietary
+    url: https://ainex.enterprise/terms
+
+servers:
+  - url: https://api.ainex.enterprise/v1
+    description: Production server
+  - url: https://api-staging.ainex.enterprise/v1
+    description: Staging server
+  - url: http://localhost:3000/api/v1
+    description: Local development server
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Check API health status
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+        '503':
+          description: API is unhealthy
+
+  /transactions:
+    get:
+      summary: Get transactions
+      description: Retrieve a list of transactions with filtering and pagination
+      parameters:
+        - name: limit
+          in: query
+          description: Number of results to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          description: Starting offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: wallet
+          in: query
+          description: Filter by wallet address
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionList'
+        '400':
+          description: Invalid parameters
+
+  /wallets/{address}:
+    get:
+      summary: Get wallet details
+      description: Retrieve detailed information about a specific wallet
+      parameters:
+        - name: address
+          in: path
+          required: true
+          description: Wallet address
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Wallet information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Wallet'
+        '404':
+          description: Wallet not found
+
+  /flash-loans:
+    post:
+      summary: Execute flash loan
+      description: Execute a flash loan transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FlashLoanRequest'
+      responses:
+        '200':
+          description: Flash loan executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlashLoanResponse'
+        '400':
+          description: Invalid request
+        '429':
+          description: Rate limit exceeded
+
+  /compliance/screen:
+    post:
+      summary: Screen wallet address
+      description: Perform compliance screening on a wallet address
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplianceScreenRequest'
+      responses:
+        '200':
+          description: Screening results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceScreenResponse'
+        '400':
+          description: Invalid address
+
+  /reports/generate:
+    post:
+      summary: Generate report
+      description: Generate institutional reports
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportRequest'
+      responses:
+        '200':
+          description: Report generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportResponse'
+        '400':
+          description: Invalid parameters
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          example: "healthy"
+        timestamp:
+          type: string
+          format: date-time
+        uptime:
+          type: number
+          example: 12345.67
+        version:
+          type: string
+          example: "1.0.0"
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: string
+        hash:
+          type: string
+        from:
+          type: string
+        to:
+          type: string
+        amount:
+          type: string
+        token:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [pending, confirmed, failed]
+
+    TransactionList:
+      type: object
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Transaction'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    Wallet:
+      type: object
+      properties:
+        address:
+          type: string
+        balance:
+          type: string
+        transactionCount:
+          type: integer
+        firstSeen:
+          type: string
+          format: date-time
+        riskScore:
+          type: number
+          minimum: 0
+          maximum: 100
+
+    FlashLoanRequest:
+      type: object
+      required:
+        - amount
+        - token
+        - protocol
+      properties:
+        amount:
+          type: string
+          description: Amount to borrow
+        token:
+          type: string
+          description: Token symbol
+        protocol:
+          type: string
+          description: Protocol to use
+        strategy:
+          type: string
+          description: Optional strategy name
+
+    FlashLoanResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        transactionHash:
+          type: string
+        profit:
+          type: string
+        gasUsed:
+          type: string
+        executionTime:
+          type: number
+
+    ComplianceScreenRequest:
+      type: object
+      required:
+        - address
+      properties:
+        address:
+          type: string
+          description: Wallet address to screen
+        providers:
+          type: array
+          items:
+            type: string
+          description: List of compliance providers to use
+
+    ComplianceScreenResponse:
+      type: object
+      properties:
+        address:
+          type: string
+        riskScore:
+          type: number
+        riskLevel:
+          type: string
+          enum: [low, medium, high]
+        flags:
+          type: array
+          items:
+            type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    ReportRequest:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [daily, weekly, monthly, custom]
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        format:
+          type: string
+          enum: [pdf, csv, json]
+          default: pdf
+
+    ReportResponse:
+      type: object
+      properties:
+        reportId:
+          type: string
+        url:
+          type: string
+        generatedAt:
+          type: string
+          format: date-time
+        size:
+          type: integer
+          description: File size in bytes

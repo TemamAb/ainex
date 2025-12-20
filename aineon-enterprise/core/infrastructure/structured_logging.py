@@ -186,6 +186,22 @@ class StructuredLogger:
         """Get underlying logger instance"""
         return self.logger
 
+    def info(self, msg: str, **kwargs: Any) -> None:
+        """Standard info log"""
+        self.logger.info(msg, **kwargs)
+
+    def warning(self, msg: str, **kwargs: Any) -> None:
+        """Standard warning log"""
+        self.logger.warning(msg, **kwargs)
+
+    def error(self, msg: str, **kwargs: Any) -> None:
+        """Standard error log"""
+        self.logger.error(msg, **kwargs)
+
+    def debug(self, msg: str, **kwargs: Any) -> None:
+        """Standard debug log"""
+        self.logger.debug(msg, **kwargs)
+
 
 # Global instance
 _global_logger = None

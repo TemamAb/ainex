@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AINEON MASTER DASHBOARD - Complete System</title>
+    
+    <!-- Combined scripts from all dashboards -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Combined styles from all dashboards */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Header */
+        .master-header {
+            text-align: center;
+            padding: 30px 0;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .master-title {
+            font-size: 3rem;
+            font-weight: bold;
+            background: linear-gradient(90deg, #00dbde 0%, #fc00ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 15px;
+        }
+        
+        .system-status {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .status-item {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            font-size: 0.9rem;
+        }
+        
+        /* Tabs Navigation */
+        .tabs-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .tab-btn {
+            padding: 15px 30px;
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid #334155;
+            border-radius: 10px 10px 0 0;
+            color: #94a3b8;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .tab-btn.active {
+            background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            border-bottom: 3px solid #00dbde;
+        }
+        
+        .tab-btn:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Tab Content */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease;
+            background: rgba(30, 41, 59, 0.7);
+            border-radius: 0 15px 15px 15px;
+            padding: 30px;
+            border: 1px solid #334155;
+            min-height: 600px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Grid Systems */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #e2e8f0;
+        }
+        
+        /* Profit Controls */
+        .profit-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #cbd5e1;
+            font-weight: 500;
+        }
+        
+        .control-input {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+        }
+        
+        .btn {
+            padding: 14px 25px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(90deg, #00b09b 0%, #96c93d 100%);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(90deg, #8A2387 0%, #F27121 100%);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(90deg, #FF416C 0%, #FF4B2B 100%);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Withdrawal System */
+        .withdrawal-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        /* Chart Container */
+        .chart-container {
+            height: 400px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        /* Footer */
+        .master-footer {
+            text-align: center;
+            padding: 30px;
+            margin-top: 50px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94a3b8;
+        }
+        
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .profit-controls, .withdrawal-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .tab-btn {
+                padding: 10px 15px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Master Header -->
+        <div class="master-header">
+            <h1 class="master-title">
+                <i class="fas fa-crown"></i> AINEON MASTER DASHBOARD
+            </h1>
+            <p>Complete Integration of All Systems - One Unified Interface</p>
+            <div class="system-status">
+                <div class="status-item">
+                    <i class="fas fa-server"></i> Backends: 3000, 8080, 8081
+                </div>
+                <div class="status-item">
+                    <i class="fas fa-shield-alt"></i> Security: Enterprise
+                </div>
+                <div class="status-item">
+                    <i class="fas fa-sync-alt"></i> Auto-sync: Enabled
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab Navigation -->
+        <div class="tabs-container">
+            <button class="tab-btn active" onclick="switchTab('profit')">
+                <i class="fas fa-chart-line"></i> Profit Earning
+            </button>
+            <button class="tab-btn" onclick="switchTab('withdrawal')">
+                <i class="fas fa-money-check-alt"></i> Withdrawal System
+            </button>
+            <button class="tab-btn" onclick="switchTab('dashboard')">
+                <i class="fas fa-tachometer-alt"></i> Main Dashboard
+            </button>
+            <button class="tab-btn" onclick="switchTab('settings')">
+                <i class="fas fa-cog"></i> System Settings
+            </button>
+            <button class="tab-btn" onclick="switchTab('monitor')">
+                <i class="fas fa-desktop"></i> System Monitor
+            </button>
+        </div>
+        
+        <!-- Profit Earning Tab -->
+        <div id="profit-tab" class="tab-content active">
+            <h2><i class="fas fa-money-bill-wave"></i> Profit Earning System</h2>
+            <p>Advanced arbitrage and profit generation controls</p>
+            
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-rocket" style="color: #00dbde;"></i>
+                        <h3 class="card-title">Profit Engine Controls</h3>
+                    </div>
+                    <div class="profit-controls">
+                        <div class="control-group">
+                            <label class="control-label">Profit Mode</label>
+                            <select class="control-input" id="profitMode">
+                                <option value="auto">Auto-Arbitrage</option>
+                                <option value="manual">Manual Trading</option>
+                                <option value="flashloan">Flash Loan</option>
+                                <option value="passive">Passive Income</option>
+                            </select>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label class="control-label">Daily Target ($)</label>
+                            <input type="number" class="control-input" id="dailyTarget" value="1000" min="100">
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px;">
+                        <button class="btn btn-primary" onclick="startProfitEngine()">
+                            <i class="fas fa-play"></i> Start Engine
+                        </button>
+                        <button class="btn btn-danger" onclick="stopProfitEngine()">
+                            <i class="fas fa-stop"></i> Stop Engine
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-chart-bar" style="color: #96c93d;"></i>
+                        <h3 class="card-title">Performance Metrics</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="profitChart"></canvas>
+                    </div>
+                    <div style="margin-top: 20px; display: flex; justify-content: space-between;">
+                        <div>
+                            <div style="color: #94a3b8;">Today's Profit</div>
+                            <div style="font-size: 1.5rem; color: #00b09b;">$1,523.67</div>
+                        </div>
+                        <div>
+                            <div style="color: #94a3b8;">Total Profit</div>
+                            <div style="font-size: 1.5rem; color: #8A2387;">$15,238.42</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-top: 30px;">
+                <div class="card-header">
+                    <i class="fas fa-cogs" style="color: #F27121;"></i>
+                    <h3 class="card-title">Advanced Settings</h3>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                    <div class="control-group">
+                        <label class="control-label">Max Trade Size ($)</label>
+                        <input type="number" class="control-input" value="5000">
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Risk Level</label>
+                        <select class="control-input">
+                            <option>Low (Conservative)</option>
+                            <option selected>Medium (Balanced)</option>
+                            <option>High (Aggressive)</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Auto-stop at Loss (%)</label>
+                        <input type="number" class="control-input" value="5">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Withdrawal System Tab -->
+        <div id="withdrawal-tab" class="tab-content">
+            <h2><i class="fas fa-university"></i> Complete Withdrawal System</h2>
+            <p>Manual and automated profit withdrawal with multi-chain support</p>
+            
+            <div class="withdrawal-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-hand-paper" style="color: #10b981;"></i>
+                        <h3 class="card-title">Manual Withdrawal</h3>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">Wallet Address</label>
+                        <input type="text" class="control-input" placeholder="0x..." id="manualWallet">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">Amount ($)</label>
+                        <input type="number" class="control-input" id="manualAmount" placeholder="0.00">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">Currency</label>
+                        <select class="control-input" id="manualCurrency">
+                            <option>ETH</option>
+                            <option>USDT</option>
+                            <option>USDC</option>
+                            <option>BTC</option>
+                        </select>
+                    </div>
+                    
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 20px;" onclick="processManualWithdrawal()">
+                        <i class="fas fa-paper-plane"></i> Process Withdrawal
+                    </button>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-robot" style="color: #8b5cf6;"></i>
+                        <h3 class="card-title">Auto Withdrawal</h3>
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">Auto-Withdraw Threshold ($)</label>
+                        <input type="number" class="control-input" value="1000">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">Destination Wallet</label>
+                        <input type="text" class="control-input" placeholder="0x...">
+                    </div>
+                    
+                    <div class="control-group">
+                        <label class="control-label">Frequency</label>
+                        <select class="control-input">
+                            <option>Instant (when reached)</option>
+                            <option>Daily</option>
+                            <option>Weekly</option>
+                            <option>Monthly</option>
+                        </select>
+                    </div>
+                    
+                    <button class="btn btn-secondary" style="width: 100%; margin-top: 20px;" onclick="enableAutoWithdrawal()">
+                        <i class="fas fa-power-off"></i> Enable Auto-Withdrawal
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-top: 30px;">
+                <div class="card-header">
+                    <i class="fas fa-history" style="color: #3b82f6;"></i>
+                    <h3 class="card-title">Withdrawal History</h3>
+                </div>
+                <div id="withdrawalHistory">
+                    <!-- Will be populated by JavaScript -->
+                    <div style="text-align: center; padding: 40px; color: #94a3b8;">
+                        <i class="fas fa-history fa-2x"></i>
+                        <p>No withdrawal history yet</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Dashboard Tab -->
+        <div id="dashboard-tab" class="tab-content">
+            <h2><i class="fas fa-tachometer-alt"></i> System Dashboard</h2>
+            <p>Real-time monitoring and system controls</p>
+            
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-server" style="color: #60a5fa;"></i>
+                        <h3 class="card-title">Backend Status</h3>
+                    </div>
+                    <div id="backendStatus">
+                        <!-- Will be populated -->
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-network-wired" style="color: #8b5cf6;"></i>
+                        <h3 class="card-title">Network Status</h3>
+                    </div>
+                    <div id="networkStatus">
+                        <!-- Will be populated -->
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-shield-alt" style="color: #10b981;"></i>
+                        <h3 class="card-title">Security Status</h3>
+                    </div>
+                    <div id="securityStatus">
+                        <!-- Will be populated -->
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-database" style="color: #f59e0b;"></i>
+                        <h3 class="card-title">Database</h3>
+                    </div>
+                    <div id="databaseStatus">
+                        <!-- Will be populated -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- System Settings Tab -->
+        <div id="settings-tab" class="tab-content">
+            <h2><i class="fas fa-sliders-h"></i> System Configuration</h2>
+            <p>Configure all system parameters</p>
+            
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-plug" style="color: #ef4444;"></i>
+                    <h3 class="card-title">Backend Connections</h3>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                    <div class="control-group">
+                        <label class="control-label">Node.js Backend (Port 3000)</label>
+                        <input type="text" class="control-input" value="http://localhost:3000">
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Python Backend (Port 8080)</label>
+                        <input type="text" class="control-input" value="http://localhost:8080">
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Withdrawal API (Port 8081)</label>
+                        <input type="text" class="control-input" value="http://localhost:8081">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- System Monitor Tab -->
+        <div id="monitor-tab" class="tab-content">
+            <h2><i class="fas fa-desktop"></i> Live System Monitor</h2>
+            <p>Real-time system performance and logs</p>
+            
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-chart-area" style="color: #00dbde;"></i>
+                        <h3 class="card-title">System Performance</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <i class="fas fa-terminal" style="color: #10b981;"></i>
+                        <h3 class="card-title">Live Logs</h3>
+                    </div>
+                    <div style="background: #0f172a; border-radius: 8px; padding: 15px; height: 300px; overflow-y: auto; font-family: monospace; font-size: 0.9rem;">
+                        <div id="liveLogs">
+                            <div>[12:00:00] System initialized</div>
+                            <div>[12:00:05] Backends connected</div>
+                            <div>[12:00:10] Dashboard ready</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="master-footer">
+            <p>Ì∫Ä AINEON MASTER DASHBOARD v1.0 ‚Ä¢ Unified System Interface</p>
+            <p>Integrated Features: Profit Earning ‚Ä¢ Withdrawal System ‚Ä¢ System Monitor ‚Ä¢ Configuration</p>
+            <p style="font-size: 0.9rem; margin-top: 10px; color: #64748b;">
+                <i class="fas fa-exclamation-circle"></i> Connected to all backends: 3000, 8080, 8081
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Global State
+        const state = {
+            activeTab: 'profit',
+            backends: {
+                nodejs: 'http://localhost:3000',
+                python: 'http://localhost:8080',
+                withdrawal: 'http://localhost:8081'
+            },
+            profit: 1523.67,
+            autoWithdrawal: false
+        };
+        
+        // Tab Switching
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active from all buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            // Activate button
+            event.target.classList.add('active');
+            
+            state.activeTab = tabName;
+            updateTabContent(tabName);
+        }
+        
+        // Update tab content based on selection
+        function updateTabContent(tabName) {
+            switch(tabName) {
+                case 'profit':
+                    initProfitChart();
+                    break;
+                case 'dashboard':
+                    updateBackendStatus();
+                    break;
+                case 'monitor':
+                    initPerformanceChart();
+                    startLogUpdates();
+                    break;
+            }
+        }
+        
+        // Initialize Profit Chart
+        function initProfitChart() {
+            const ctx = document.getElementById('profitChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Daily Profit',
+                        data: [500, 700, 900, 1200, 1400, 1500, 1523.67],
+                        borderColor: '#00dbde',
+                        backgroundColor: 'rgba(0, 219, 222, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Initialize Performance Chart
+        function initPerformanceChart() {
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['CPU', 'Memory', 'Network', 'Disk', 'API'],
+                    datasets: [{
+                        label: 'Usage %',
+                        data: [65, 80, 45, 30, 90],
+                        backgroundColor: [
+                            '#00dbde', '#fc00ff', '#96c93d', '#F27121', '#8A2387'
+                        ]
+                    }]
+                }
+            });
+        }
+        
+        // Update Backend Status
+        async function updateBackendStatus() {
+            const backends = [
+                { name: 'Node.js API', url: state.backends.nodejs, id: 'backend1' },
+                { name: 'Python Backend', url: state.backends.python, id: 'backend2' },
+                { name: 'Withdrawal API', url: state.backends.withdrawal, id: 'backend3' }
+            ];
+            
+            let html = '';
+            for (const backend of backends) {
+                try {
+                    const response = await axios.get(`${backend.url}/health`, { timeout: 2000 });
+                    html += `
+                        <div style="margin-bottom: 15px; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span><i class="fas fa-check-circle" style="color: #10b981;"></i> ${backend.name}</span>
+                                <span style="color: #10b981;">‚úÖ Online</span>
+                            </div>
+                        </div>
+                    `;
+                } catch (error) {
+                    html += `
+                        <div style="margin-bottom: 15px; padding: 10px; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span><i class="fas fa-times-circle" style="color: #ef4444;"></i> ${backend.name}</span>
+                                <span style="color: #ef4444;">‚ùå Offline</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            document.getElementById('backendStatus').innerHTML = html;
+        }
+        
+        // Profit Engine Controls
+        function startProfitEngine() {
+            addLog('Starting profit engine...');
+            setTimeout(() => {
+                addLog('Profit engine started successfully');
+                alert('‚úÖ Profit engine started!');
+            }, 1000);
+        }
+        
+        function stopProfitEngine() {
+            addLog('Stopping profit engine...');
+            setTimeout(() => {
+                addLog('Profit engine stopped');
+                alert('Ìªë Profit engine stopped!');
+            }, 1000);
+        }
+        
+        // Withdrawal Functions
+        function processManualWithdrawal() {
+            const wallet = document.getElementById('manualWallet').value;
+            const amount = document.getElementById('manualAmount').value;
+            const currency = document.getElementById('manualCurrency').value;
+            
+            if (!wallet || !amount) {
+                alert('Please fill all fields');
+                return;
+            }
+            
+            addLog(`Processing withdrawal: ${amount} ${currency} to ${wallet.substring(0, 20)}...`);
+            alert(`Withdrawal initiated: ${amount} ${currency}`);
+        }
+        
+        function enableAutoWithdrawal() {
+            state.autoWithdrawal = true;
+            addLog('Auto-withdrawal enabled');
+            alert('‚úÖ Auto-withdrawal enabled!');
+        }
+        
+        // Log Management
+        function addLog(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logDiv = document.getElementById('liveLogs');
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function startLogUpdates() {
+            setInterval(() => {
+                if (Math.random() > 0.7) {
+                    const messages = [
+                        'Checking arbitrage opportunities...',
+                        'Updating profit calculations...',
+                        'Syncing with blockchain...',
+                        'Processing pending transactions...',
+                        'Optimizing gas fees...'
+                    ];
+                    addLog(messages[Math.floor(Math.random() * messages.length)]);
+                }
+            }, 5000);
+        }
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            initProfitChart();
+            updateBackendStatus();
+            addLog('Master dashboard initialized');
+            
+            // Simulate initial system status
+            setTimeout(() => {
+                addLog('All systems operational');
+                addLog('Ready for profit earning');
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

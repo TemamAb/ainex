@@ -1,402 +1,360 @@
+"""
+AINEON AI Optimization Engine
+Phase 3: Market Regime Detection + Strategy Weight Optimization
+Auto-tuning every 15 minutes with Thompson Sampling
+"""
+
 import asyncio
-import logging
-import time
-from typing import Dict, List, Optional, Any, Tuple, Union
+import json
+import numpy as np
+from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from decimal import Decimal
-import numpy as np
-import aiohttp
+import logging
 
-try:
-    from sklearn.preprocessing import StandardScaler
-    HAS_SKLEARN = True
-except Exception as e:
-    logging.warning(f"Scikit-learn import failed: {e}. Running in basic heuristic mode.")
-    HAS_SKLEARN = False
-    StandardScaler = None
+logger = logging.getLogger(__name__)
 
-try:
-    import tensorflow as tf
-    HAS_TF = True
-except Exception as e:
-    logging.warning(f"TensorFlow/Keras import failed: {e}. Running in heuristic mode.")
-    HAS_TF = False
-    tf = None
-
-try:
-    import pandas as pd
-    HAS_PANDAS = True
-except Exception as e:
-    logging.warning(f"Pandas import failed: {e}. Limited functionality.")
-    HAS_PANDAS = False
-    pd = None
-
-from core.infrastructure.metrics_collector import MetricsCollector
-from core.infrastructure.health_check_engine import HealthCheckEngine
-from core.infrastructure.structured_logging import StructuredLogger
 
 @dataclass
-class OptimizationMetrics:
-    """Metrics for AI optimization performance"""
-    predictions_made: int = 0
-    successful_predictions: int = 0
-    average_confidence: float = 0.0
-    last_training_time: Optional[datetime] = None
-    model_accuracy: float = 0.0
+class MarketRegime:
+    """Market condition classification"""
+    regime_type: str  # high_vol, trending_up, trending_down, ranging, volatile
+    confidence: float
+    timestamp: datetime
+    metrics: Dict[str, float]
 
-class AIOptimizer:
-    """Enterprise-grade AI optimizer for flash loan arbitrage opportunities"""
 
-    def __init__(self, metrics_collector: Optional[MetricsCollector] = None,
-                 health_engine: Optional[HealthCheckEngine] = None,
-                 logger: Optional[StructuredLogger] = None):
-        self.logger = logger or StructuredLogger(__name__)
-        self.metrics = metrics_collector or MetricsCollector()
-        self.health_engine = health_engine or HealthCheckEngine()
-        self.optimization_metrics = OptimizationMetrics()
+@dataclass
+class StrategyMetrics:
+    """Performance metrics for a single strategy"""
+    strategy_id: str
+    trades_count: int = 0
+    total_profit: float = 0.0
+    win_rate: float = 0.0
+    avg_execution_time: float = 0.0
+    avg_slippage: float = 0.0
+    success_rate: float = 0.0
+    last_updated: datetime = field(default_factory=datetime.utcnow)
 
-        self.model: Optional[Any] = self.load_or_create_model()
-        self.scaler: Optional[StandardScaler] = StandardScaler() if HAS_SKLEARN else None
-        self.historical_data: List[Tuple[List[float], int]] = []
-        self.current_confidence: float = 0.5
 
-        # Register health checks
-        self.health_engine.register_check("ai_optimizer_model", self._check_model_health)
-        self.health_engine.register_check("ai_optimizer_metrics", self._check_metrics_health)
+@dataclass
+class ThompsonSamplingState:
+    """Thompson Sampling state for multi-armed bandit optimization"""
+    strategy_id: str
+    alpha: float = 1.0  # Beta dist parameter
+    beta: float = 1.0
+    trials: int = 0
+    successes: int = 0
+    cumulative_reward: float = 0.0
 
-        self.logger.info("AIOptimizer initialized", extra={
-            "has_sklearn": HAS_SKLEARN,
-            "has_tensorflow": HAS_TF,
-            "has_pandas": HAS_PANDAS
-        })
 
-    def _check_model_health(self) -> Dict[str, Any]:
-        """Health check for ML model status"""
-        return {
-            "model_loaded": self.model is not None,
-            "scaler_available": self.scaler is not None,
-            "tensorflow_available": HAS_TF,
-            "sklearn_available": HAS_SKLEARN,
-            "historical_data_points": len(self.historical_data)
-        }
-
-    def _check_metrics_health(self) -> Dict[str, Any]:
-        """Health check for optimization metrics"""
-        return {
-            "predictions_made": self.optimization_metrics.predictions_made,
-            "success_rate": (self.optimization_metrics.successful_predictions /
-                           max(self.optimization_metrics.predictions_made, 1)),
-            "average_confidence": self.optimization_metrics.average_confidence,
-            "last_training_time": self.optimization_metrics.last_training_time.isoformat()
-            if self.optimization_metrics.last_training_time else None
-        }
-
-    def load_or_create_model(self) -> Optional[Any]:
-        """Load existing model or create new one with proper error handling"""
-        if not HAS_TF:
-            self.logger.warning("TensorFlow not available, cannot load/create ML model")
-            return None
-
-        try:
-            model_path = 'models/arbitrage_predictor_v2.h5'
-            model = tf.keras.models.load_model(model_path)
-            self.logger.info("Successfully loaded existing ML model", extra={"model_path": model_path})
-            return model
-        except Exception as e:
-            self.logger.warning(f"Failed to load existing model: {e}, creating new model")
-            try:
-                return self.create_model()
-            except Exception as create_e:
-                self.logger.error(f"Failed to create new model: {create_e}")
-                return None
-
-    def create_model(self) -> Optional[Any]:
-        """Create new neural network model for arbitrage prediction"""
-        if not HAS_TF:
-            self.logger.error("Cannot create model: TensorFlow not available")
-            return None
-
-        try:
-            model = tf.keras.Sequential([
-                tf.keras.layers.Dense(128, activation='relu', input_shape=(20,)),
-                tf.keras.layers.Dropout(0.2),
-                tf.keras.layers.Dense(64, activation='relu'),
-                tf.keras.layers.Dropout(0.2),
-                tf.keras.layers.Dense(32, activation='relu'),
-                tf.keras.layers.Dense(1, activation='sigmoid')
-            ])
-            model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-            self.logger.info("Successfully created new neural network model")
-            return model
-        except Exception as e:
-            self.logger.error(f"Failed to create neural network model: {e}")
-            return None
-
-    async def predict_arbitrage_opportunity(self, market_data: Dict[str, Dict[str, Any]]) -> Tuple[bool, float]:
-        """Predict arbitrage opportunities using ML or heuristic with enterprise-grade error handling"""
-        start_time = time.time()
-
-        try:
-            self.optimization_metrics.predictions_made += 1
-
-            if not HAS_TF or self.model is None:
-                # Heuristic mode: simple spread-based detection
-                opportunity, confidence = await self._heuristic_prediction(market_data)
+class MarketRegimeDetector:
+    """Classifies market conditions into 5 regimes"""
+    
+    def __init__(self, lookback_minutes: int = 60):
+        self.lookback_minutes = lookback_minutes
+        self.price_history: List[Tuple[datetime, float]] = []
+        self.volatility_window = 20
+        
+    async def detect_regime(self, current_metrics: Dict[str, float]) -> MarketRegime:
+        """
+        Classify market into 5 regimes based on volatility + trend
+        Regimes: high_vol, trending_up, trending_down, ranging, volatile
+        """
+        volatility = current_metrics.get('volatility', 0.0)
+        trend = current_metrics.get('trend', 0.0)
+        momentum = current_metrics.get('momentum', 0.0)
+        
+        # Regime classification logic
+        if volatility > 0.08:
+            regime_type = 'high_vol'
+            confidence = 0.92
+        elif abs(trend) > 0.05 and abs(momentum) > 0.03:
+            if trend > 0:
+                regime_type = 'trending_up'
             else:
-                # ML mode
-                opportunity, confidence = await self._ml_prediction(market_data)
+                regime_type = 'trending_down'
+            confidence = 0.88
+        elif volatility < 0.02:
+            regime_type = 'ranging'
+            confidence = 0.85
+        elif volatility > 0.05:
+            regime_type = 'volatile'
+            confidence = 0.86
+        else:
+            regime_type = 'neutral'
+            confidence = 0.80
+        
+        logger.info(f"Market regime: {regime_type} (confidence: {confidence})")
+        
+        return MarketRegime(
+            regime_type=regime_type,
+            confidence=confidence,
+            timestamp=datetime.utcnow(),
+            metrics=current_metrics
+        )
 
-            self.current_confidence = confidence
 
-            # Update metrics
-            self.optimization_metrics.average_confidence = (
-                (self.optimization_metrics.average_confidence * (self.optimization_metrics.predictions_made - 1) + confidence)
-                / self.optimization_metrics.predictions_made
-            )
-
-            # Record metrics
-            self.metrics.record_metric("ai_optimizer.prediction_time", time.time() - start_time)
-            self.metrics.record_metric("ai_optimizer.confidence", confidence)
-            self.metrics.record_metric("ai_optimizer.opportunity_detected", 1 if opportunity else 0)
-
-            self.logger.debug("Arbitrage prediction completed", extra={
-                "opportunity_detected": opportunity,
-                "confidence": confidence,
-                "mode": "heuristic" if not HAS_TF or self.model is None else "ml",
-                "prediction_time": time.time() - start_time
-            })
-
-            return opportunity, confidence
-
-        except Exception as e:
-            self.logger.error(f"Failed to predict arbitrage opportunity: {e}", extra={
-                "market_data_keys": list(market_data.keys()) if market_data else None
-            })
-            # Return safe defaults on error
-            return False, 0.0
-
-    async def _heuristic_prediction(self, market_data: Dict[str, Dict[str, Any]]) -> Tuple[bool, float]:
-        """Heuristic-based arbitrage prediction"""
-        spreads = []
-        for dex1, data1 in market_data.items():
-            for dex2, data2 in market_data.items():
-                if dex1 != dex2:
-                    price1 = data1.get('price', 0)
-                    price2 = data2.get('price', 0)
-                    if price1 > 0 and price2 > 0:
-                        spread = abs(price1 - price2) / min(price1, price2)  # Percentage spread
-                        spreads.append(spread)
-
-        avg_spread = sum(spreads) / len(spreads) if spreads else 0
-        confidence = min(avg_spread * 100, 0.9)  # Convert to confidence score
-        opportunity = avg_spread > 0.005  # 0.5% threshold
-
-        return opportunity, confidence
-
-    async def _ml_prediction(self, market_data: Dict[str, Dict[str, Any]]) -> Tuple[bool, float]:
-        """ML-based arbitrage prediction"""
-        features = self.extract_features(market_data)
-        scaled_features = self.scaler.transform([features])  # type: ignore
-        prediction = self.model.predict(scaled_features)[0][0]  # type: ignore
-        confidence = float(prediction if prediction > 0.5 else 1 - prediction)
-        opportunity = prediction > 0.7  # High confidence threshold
-
-        return opportunity, confidence
-
-    def extract_features(self, market_data: Dict[str, Dict[str, Any]]) -> List[float]:
-        """Extract features for ML model with validation"""
-        try:
-            features = []
-
-            # Price spreads (percentage differences)
-            dexes = list(market_data.keys())
-            for i, dex1 in enumerate(dexes):
-                for j, dex2 in enumerate(dexes):
-                    if i != j:
-                        price1 = market_data[dex1].get('price', 0)
-                        price2 = market_data[dex2].get('price', 0)
-                        if price1 > 0 and price2 > 0:
-                            spread = abs(price1 - price2) / min(price1, price2)
-                        else:
-                            spread = 0.0
-                        features.append(spread)
-
-            # Volume ratios (normalized)
-            total_volume = sum(data.get('volume', 0) for data in market_data.values())
-            if total_volume > 0:
-                for dex, data in market_data.items():
-                    volume_ratio = data.get('volume', 0) / total_volume
-                    features.append(volume_ratio)
-            else:
-                features.extend([0.0] * len(market_data))
-
-            # Liquidity depth
-            for dex, data in market_data.items():
-                liquidity = data.get('liquidity', 0)
-                features.append(float(liquidity))
-
-            # Gas prices (normalized)
-            gas_price = market_data.get('gas_price', 0)
-            features.append(gas_price / 1000000000)  # Convert to gwei and normalize
-
-            # Time-based features
-            current_hour = datetime.now().hour
-            features.append(current_hour / 24.0)  # Normalize to [0,1]
-            features.append((current_hour ** 2) / (24.0 ** 2))  # Non-linear time effect
-
-            # Pad to 20 features
-            while len(features) < 20:
-                features.append(0.0)
-
-            return features[:20]
-
-        except Exception as e:
-            self.logger.error(f"Failed to extract features: {e}", extra={
-                "market_data_keys": list(market_data.keys())
-            })
-            return [0.0] * 20
-
-    async def optimize_trade_path(self, token_in: str, token_out: str, amount: Decimal) -> Tuple[Optional[List[str]], Decimal]:
-        """Optimize multi-hop trading path using reinforcement learning with enterprise-grade error handling"""
-        start_time = time.time()
-
-        try:
-            # Simplified path optimization - in production, this would use RL algorithms
-            paths = [
-                [token_in, token_out],  # Direct
-                [token_in, 'WETH', token_out],  # Via WETH
-                [token_in, 'USDC', token_out],  # Via USDC
-            ]
-
-            best_path = None
-            best_profit = Decimal('0')
-
-            for path in paths:
-                try:
-                    profit = await self.simulate_path_profit(path, amount)
-                    if profit > best_profit:
-                        best_profit = profit
-                        best_path = path
-                except Exception as e:
-                    self.logger.warning(f"Failed to simulate profit for path {path}: {e}")
-                    continue
-
-            # Record metrics
-            self.metrics.record_metric("ai_optimizer.path_optimization_time", time.time() - start_time)
-            self.metrics.record_metric("ai_optimizer.best_profit", float(best_profit))
-
-            self.logger.debug("Trade path optimization completed", extra={
-                "token_in": token_in,
-                "token_out": token_out,
-                "amount": str(amount),
-                "best_path": best_path,
-                "best_profit": str(best_profit),
-                "optimization_time": time.time() - start_time
-            })
-
-            return best_path, best_profit
-
-        except Exception as e:
-            self.logger.error(f"Failed to optimize trade path: {e}", extra={
-                "token_in": token_in,
-                "token_out": token_out,
-                "amount": str(amount)
-            })
-            return None, Decimal('0')
-
-    async def simulate_path_profit(self, path: List[str], amount: Decimal) -> Decimal:
-        """Calculate profit for a given path using real DEX quotes with validation"""
-        try:
-            if len(path) < 2:
-                raise ValueError("Path must contain at least 2 tokens")
-
-            # Use actual DEX quotes for profit calculation
-            # In production, this would query real DEX prices
-            base_profit = amount * Decimal('0.001')  # 0.1% base profit
-            hop_penalty = Decimal(str(len(path) - 1)) * Decimal('0.0001')  # Penalty per hop
-            profit = base_profit - hop_penalty
-
-            # Ensure non-negative profit
-            return max(profit, Decimal('0'))
-
-        except Exception as e:
-            self.logger.error(f"Failed to simulate path profit: {e}", extra={
-                "path": path,
-                "amount": str(amount)
-            })
-            return Decimal('0')
-
-    async def update_model(self, market_data: Dict[str, Dict[str, Any]], outcome: int) -> None:
-        """Update ML model with new data and trigger retraining if needed"""
-        try:
-            features = self.extract_features(market_data)
-            self.historical_data.append((features, outcome))
-
-            self.logger.debug("Added new training sample", extra={
-                "outcome": outcome,
-                "total_samples": len(self.historical_data)
-            })
-
-            if len(self.historical_data) >= 100:
-                await self.retrain_model()
-
-        except Exception as e:
-            self.logger.error(f"Failed to update model: {e}", extra={
-                "outcome": outcome,
-                "market_data_keys": list(market_data.keys())
-            })
-
-    async def retrain_model(self) -> None:
-        """Retrain the ML model with accumulated data asynchronously"""
-        if not HAS_TF or self.model is None or self.scaler is None:
-            self.logger.warning("Cannot retrain model: missing dependencies or model")
+class ThompsonSamplingOptimizer:
+    """Multi-armed bandit optimizer for strategy selection"""
+    
+    def __init__(self, strategy_ids: List[str]):
+        self.states: Dict[str, ThompsonSamplingState] = {
+            sid: ThompsonSamplingState(strategy_id=sid)
+            for sid in strategy_ids
+        }
+        self.min_trials_for_update = 5
+    
+    def select_strategy(self) -> str:
+        """Thompson Sampling: sample from each arm's posterior, select best"""
+        samples = {}
+        
+        for sid, state in self.states.items():
+            # Sample from Beta distribution
+            sample = np.random.beta(state.alpha, state.beta)
+            samples[sid] = sample
+        
+        # Select highest sampled strategy
+        best_strategy = max(samples, key=samples.get)
+        logger.debug(f"Thompson sampling selected: {best_strategy} (samples: {samples})")
+        return best_strategy
+    
+    def update(self, strategy_id: str, reward: float, success: bool):
+        """Update posterior after strategy execution"""
+        if strategy_id not in self.states:
             return
+        
+        state = self.states[strategy_id]
+        state.trials += 1
+        state.cumulative_reward += reward
+        
+        if success:
+            state.successes += 1
+            state.alpha += 1.0  # Increase alpha for success
+        else:
+            state.beta += 1.0   # Increase beta for failure
+        
+        logger.debug(
+            f"Updated {strategy_id}: "
+            f"trials={state.trials}, successes={state.successes}, "
+            f"alpha={state.alpha}, beta={state.beta}"
+        )
+    
+    def get_strategy_weights(self) -> Dict[str, float]:
+        """Get normalized strategy weights based on success rates"""
+        weights = {}
+        total_successes = sum(s.successes for s in self.states.values())
+        total_trials = sum(s.trials for s in self.states.values())
+        
+        for sid, state in self.states.items():
+            if total_trials == 0:
+                weights[sid] = 1.0 / len(self.states)
+            else:
+                success_rate = state.successes / max(state.trials, 1)
+                weights[sid] = (state.successes + 1) / (total_trials + len(self.states))
+        
+        # Normalize
+        total_weight = sum(weights.values())
+        weights = {k: v / total_weight for k, v in weights.items()}
+        
+        return weights
 
-        try:
-            start_time = time.time()
 
-            X = [data[0] for data in self.historical_data]
-            y = [data[1] for data in self.historical_data]
-
-            X_scaled = self.scaler.fit_transform(X)
-
-            # Train asynchronously to avoid blocking
-            await asyncio.get_event_loop().run_in_executor(
-                None,
-                lambda: self.model.fit(X_scaled, y, epochs=10, batch_size=32, verbose=0)
-            )
-
-            # Save updated model
-            model_path = 'models/arbitrage_predictor_v2.h5'
-            self.model.save(model_path)
-
-            training_time = time.time() - start_time
-            self.optimization_metrics.last_training_time = datetime.utcnow()
-
-            # Evaluate model accuracy
-            predictions = self.model.predict(X_scaled)
-            accuracy = float(np.mean((predictions > 0.5).astype(int) == np.array(y)))
-            self.optimization_metrics.model_accuracy = accuracy
-
-            # Record metrics
-            self.metrics.record_metric("ai_optimizer.training_time", training_time)
-            self.metrics.record_metric("ai_optimizer.model_accuracy", accuracy)
-
-            self.logger.info("Model retraining completed", extra={
-                "training_samples": len(self.historical_data),
-                "accuracy": accuracy,
-                "training_time": training_time,
-                "model_path": model_path
-            })
-
-        except Exception as e:
-            self.logger.error(f"Failed to retrain model: {e}")
-
-    def get_current_confidence(self) -> float:
-        """Return the current confidence score from the last prediction."""
-        return self.current_confidence
-
-    def get_optimization_metrics(self) -> OptimizationMetrics:
-        """Get current optimization performance metrics"""
-        return self.optimization_metrics
+class AIOptimizationEngine:
+    """
+    24/7 AI optimization engine that auto-tunes every 15 minutes
+    Responsibilities:
+    - Market regime detection
+    - Strategy weight optimization (Thompson Sampling)
+    - Parameter tuning
+    - Performance analytics
+    """
+    
+    def __init__(self, strategy_ids: List[str], auto_tune_interval_minutes: int = 15):
+        self.strategy_ids = strategy_ids
+        self.auto_tune_interval = timedelta(minutes=auto_tune_interval_minutes)
+        
+        # Components
+        self.regime_detector = MarketRegimeDetector()
+        self.thompson_optimizer = ThompsonSamplingOptimizer(strategy_ids)
+        
+        # Metrics tracking
+        self.metrics: Dict[str, StrategyMetrics] = {
+            sid: StrategyMetrics(strategy_id=sid)
+            for sid in strategy_ids
+        }
+        self.last_optimization = datetime.utcnow()
+        self.market_regime_history: List[MarketRegime] = []
+        
+        # Parameters to optimize
+        self.parameters = {
+            'gas_price_multiplier': 1.2,
+            'slippage_tolerance': 0.001,
+            'min_profit_threshold': 0.5,
+            'max_position_size': 1000.0,
+            'execution_timeout_seconds': 30
+        }
+        
+        logger.info(f"AI Optimizer initialized with {len(strategy_ids)} strategies")
+    
+    async def collect_metrics(self, execution_results: Dict) -> None:
+        """
+        Collect performance metrics from recent executions
+        Input: {'strategy_id': ..., 'profit': ..., 'execution_time': ..., ...}
+        """
+        if not execution_results:
+            return
+        
+        strategy_id = execution_results.get('strategy_id')
+        if strategy_id not in self.metrics:
+            return
+        
+        metrics = self.metrics[strategy_id]
+        metrics.trades_count += 1
+        metrics.total_profit += execution_results.get('profit', 0.0)
+        metrics.avg_execution_time = (
+            (metrics.avg_execution_time * (metrics.trades_count - 1) +
+             execution_results.get('execution_time', 0.0)) / metrics.trades_count
+        )
+        metrics.avg_slippage = (
+            (metrics.avg_slippage * (metrics.trades_count - 1) +
+             execution_results.get('slippage', 0.0)) / metrics.trades_count
+        )
+        metrics.last_updated = datetime.utcnow()
+        
+        # Update Thompson Sampling
+        success = execution_results.get('success', False)
+        reward = execution_results.get('profit', 0.0)
+        self.thompson_optimizer.update(strategy_id, reward, success)
+        
+        logger.debug(f"Collected metrics for {strategy_id}: profit={reward}, success={success}")
+    
+    async def detect_market_condition(self, current_data: Dict[str, float]) -> MarketRegime:
+        """Detect current market regime"""
+        regime = await self.regime_detector.detect_regime(current_data)
+        self.market_regime_history.append(regime)
+        
+        # Keep only last 100 regimes
+        if len(self.market_regime_history) > 100:
+            self.market_regime_history = self.market_regime_history[-100:]
+        
+        return regime
+    
+    async def optimize_parameters(self, current_regime: MarketRegime) -> Dict[str, float]:
+        """
+        Auto-tune parameters based on market regime and performance
+        Returns updated parameters
+        """
+        regime_type = current_regime.regime_type
+        
+        # Regime-specific parameter adjustments
+        if regime_type == 'high_vol':
+            self.parameters['slippage_tolerance'] = 0.002
+            self.parameters['gas_price_multiplier'] = 1.3
+        elif regime_type == 'trending_up':
+            self.parameters['slippage_tolerance'] = 0.0008
+            self.parameters['gas_price_multiplier'] = 1.1
+        elif regime_type == 'ranging':
+            self.parameters['slippage_tolerance'] = 0.0005
+            self.parameters['gas_price_multiplier'] = 0.95
+        
+        # Adjust based on recent performance
+        best_strategy = max(
+            self.metrics.values(),
+            key=lambda m: m.total_profit if m.trades_count > 0 else 0
+        )
+        
+        if best_strategy.trades_count > 10:
+            if best_strategy.win_rate < 0.80:
+                self.parameters['min_profit_threshold'] *= 1.1
+            if best_strategy.avg_slippage > 0.001:
+                self.parameters['slippage_tolerance'] *= 0.9
+        
+        logger.info(f"Optimized parameters for {regime_type}: {self.parameters}")
+        return self.parameters
+    
+    async def run_auto_tuning_cycle(self, execution_results: List[Dict]) -> Dict:
+        """
+        Run complete 15-minute auto-tuning cycle
+        Returns optimization report
+        """
+        logger.info("Starting AI auto-tuning cycle...")
+        
+        # Collect metrics from recent executions
+        for result in execution_results:
+            await self.collect_metrics(result)
+        
+        # Detect market condition (mock data for now)
+        current_data = {
+            'volatility': np.random.uniform(0.01, 0.1),
+            'trend': np.random.uniform(-0.1, 0.1),
+            'momentum': np.random.uniform(-0.1, 0.1)
+        }
+        market_regime = await self.detect_market_condition(current_data)
+        
+        # Optimize parameters
+        optimized_params = await self.optimize_parameters(market_regime)
+        
+        # Get strategy weights
+        strategy_weights = self.thompson_optimizer.get_strategy_weights()
+        
+        # Generate report
+        report = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'market_regime': market_regime.regime_type,
+            'regime_confidence': market_regime.confidence,
+            'strategy_weights': strategy_weights,
+            'optimized_parameters': optimized_params,
+            'metrics_summary': {
+                sid: {
+                    'trades': m.trades_count,
+                    'total_profit': round(m.total_profit, 4),
+                    'win_rate': round(m.win_rate, 4),
+                    'avg_execution_time': round(m.avg_execution_time, 3)
+                }
+                for sid, m in self.metrics.items()
+            }
+        }
+        
+        logger.info(f"Auto-tuning cycle complete: {report}")
+        return report
+    
+    def get_selected_strategy(self) -> str:
+        """Get next strategy to execute using Thompson Sampling"""
+        return self.thompson_optimizer.select_strategy()
+    
+    def get_strategy_weights(self) -> Dict[str, float]:
+        """Get current strategy weights"""
+        return self.thompson_optimizer.get_strategy_weights()
+    
+    def should_run_optimization(self) -> bool:
+        """Check if 15-minute interval has elapsed"""
+        return (datetime.utcnow() - self.last_optimization) >= self.auto_tune_interval
+    
+    async def periodic_optimization_loop(self, execution_queue: asyncio.Queue):
+        """
+        Run continuously, executing optimization every 15 minutes
+        """
+        logger.info("AI Optimization loop started")
+        
+        while True:
+            try:
+                if self.should_run_optimization():
+                    # Collect recent execution results
+                    recent_results = []
+                    try:
+                        while len(recent_results) < 50:
+                            result = execution_queue.get_nowait()
+                            recent_results.append(result)
+                    except asyncio.QueueEmpty:
+                        pass
+                    
+                    # Run optimization
+                    await self.run_auto_tuning_cycle(recent_results)
+                    self.last_optimization = datetime.utcnow()
+                
+                await asyncio.sleep(60)  # Check every minute
+            
+            except Exception as e:
+                logger.error(f"Error in optimization loop: {e}")
+                await asyncio.sleep(60)

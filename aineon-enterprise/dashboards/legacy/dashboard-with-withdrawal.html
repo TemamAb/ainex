@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AINEON Dashboard - Withdrawal System</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #334155;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        .title-section {
+            flex: 1;
+            min-width: 300px;
+        }
+        .title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: linear-gradient(90deg, #60a5fa 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            background: #10b981;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+        }
+        .stat-card h3 {
+            color: #94a3b8;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .profit { color: #10b981; }
+        .roi { color: #60a5fa; }
+        .trades { color: #8b5cf6; }
+        .risk { color: #f59e0b; }
+        
+        /* Main Content Layout */
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        /* Chart Container */
+        .chart-container {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 20px;
+            height: 500px;
+        }
+        
+        /* Withdrawal System */
+        .withdrawal-system {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 25px;
+        }
+        .withdrawal-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        .withdrawal-header h2 {
+            color: #e2e8f0;
+            font-size: 1.5rem;
+        }
+        .withdrawal-icon {
+            font-size: 1.5rem;
+            color: #10b981;
+        }
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+            background: #0f172a;
+            padding: 5px;
+            border-radius: 8px;
+        }
+        .mode-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .mode-btn.active {
+            background: #1e293b;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .withdrawal-form {
+            display: none;
+        }
+        .withdrawal-form.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #cbd5e1;
+            font-weight: 500;
+        }
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: #60a5fa;
+        }
+        .info-text {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-top: 5px;
+        }
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn-primary {
+            background: linear-gradient(90deg, #10b981 0%, #0ea5e9 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        .btn-danger {
+            background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+        .btn-warning {
+            background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+        .withdrawal-history {
+            margin-top: 30px;
+        }
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .history-header h3 {
+            color: #e2e8f0;
+        }
+        .history-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .history-item.success {
+            border-left: 4px solid #10b981;
+        }
+        .history-item.pending {
+            border-left: 4px solid #f59e0b;
+        }
+        .history-item.failed {
+            border-left: 4px solid #ef4444;
+        }
+        .history-amount {
+            font-weight: 600;
+            color: #10b981;
+        }
+        .history-status {
+            font-size: 0.8rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+        .status-success { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .status-pending { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        .status-failed { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        
+        /* Transaction Limits */
+        .limits-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid #3b82f6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 25px;
+        }
+        .limits-info h4 {
+            color: #60a5fa;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .limit-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        .limit-row:last-child {
+            border-bottom: none;
+        }
+        
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px 0;
+            color: #94a3b8;
+            border-top: 1px solid #334155;
+            margin-top: 40px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.active {
+            display: flex;
+            animation: fadeIn 0.3s ease;
+        }
+        .modal-content {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid #334155;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-header h3 {
+            color: #e2e8f0;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="title-section">
+                <h1 class="title"><i class="fas fa-rocket"></i> AINEON Profit System</h1>
+                <div style="display: flex; align-items: center; gap: 15px; margin-top: 10px;">
+                    <div class="status-badge">íº€ LIVE TRADING</div>
+                    <div style="color: #94a3b8; font-size: 0.9rem;">
+                        <i class="fas fa-wallet"></i> Available: <span id="availableBalance">$1,523.67</span>
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 5px;">Last Withdrawal</div>
+                <div id="lastWithdrawalTime">--:--:--</div>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3><i class="fas fa-dollar-sign"></i> Total Profit</h3>
+                <div class="stat-value profit" id="profit">$1,523.67</div>
+                <p>Available for withdrawal</p>
+            </div>
+            <div class="stat-card">
+                <h3><i class="fas fa-chart-line"></i> Daily ROI</h3>
+                <div class="stat-value roi">2.34%</div>
+                <p>+$342.15 today</p>
+            </div>
+            <div class="stat-card">
+                <h3><i class="fas fa-exchange-alt"></i> Auto Withdrawals</h3>
+                <div class="stat-value trades" id="autoWithdrawals">3</div>
+                <p>Executed this month</p>
+            </div>
+            <div class="stat-card">
+                <h3><i class="fas fa-shield-alt"></i> Security Level</h3>
+                <div class="stat-value risk">HIGH</div>
+                <p>Multi-sig enabled</p>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Left Column: Chart -->
+            <div class="chart-container">
+                <canvas id="profitChart"></canvas>
+            </div>
+
+            <!-- Right Column: Withdrawal System -->
+            <div class="withdrawal-system">
+                <div class="withdrawal-header">
+                    <i class="fas fa-money-check-alt withdrawal-icon"></i>
+                    <h2>Profit Withdrawal System</h2>
+                </div>
+
+                <!-- Mode Selector -->
+                <div class="mode-selector">
+                    <button class="mode-btn active" onclick="setWithdrawalMode('manual')">
+                        <i class="fas fa-hand-paper"></i> Manual
+                    </button>
+                    <button class="mode-btn" onclick="setWithdrawalMode('auto')">
+                        <i class="fas fa-robot"></i> Auto Mode
+                    </button>
+                </div>
+
+                <!-- Manual Withdrawal Form -->
+                <div id="manualForm" class="withdrawal-form active">
+                    <div class="form-group">
+                        <label for="walletAddress">
+                            <i class="fas fa-wallet"></i> Wallet Address
+                        </label>
+                        <input type="text" 
+                               id="manualWalletAddress" 
+                               class="form-control" 
+                               placeholder="0x742d35Cc6634C0532925a3b8...">
+                        <div class="info-text">Enter your ERC-20 compatible wallet address</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="withdrawalAmount">
+                            <i class="fas fa-coins"></i> Amount to Withdraw
+                        </label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="number" 
+                                   id="manualAmount" 
+                                   class="form-control" 
+                                   placeholder="0.00"
+                                   step="0.01"
+                                   min="0.01">
+                            <button class="btn" style="width: auto; padding: 12px 20px;" onclick="setMaxAmount()">
+                                MAX
+                            </button>
+                        </div>
+                        <div class="info-text">Available: <span id="availableAmount">$1,523.67</span></div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="currency">
+                            <i class="fas fa-money-bill-wave"></i> Currency
+                        </label>
+                        <select id="manualCurrency" class="form-control">
+                            <option value="ETH">Ethereum (ETH)</option>
+                            <option value="USDT">Tether (USDT)</option>
+                            <option value="USDC">USD Coin (USDC)</option>
+                            <option value="BTC">Bitcoin (BTC)</option>
+                        </select>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="processManualWithdrawal()">
+                        <i class="fas fa-paper-plane"></i> Process Withdrawal
+                    </button>
+                    
+                    <div style="margin-top: 15px; text-align: center;">
+                        <button class="btn btn-warning" onclick="openGasSettings()" style="padding: 10px;">
+                            <i class="fas fa-gas-pump"></i> Gas Settings
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Auto Withdrawal Form -->
+                <div id="autoForm" class="withdrawal-form">
+                    <div class="form-group">
+                        <label for="autoWalletAddress">
+                            <i class="fas fa-wallet"></i> Auto-Withdrawal Wallet
+                        </label>
+                        <input type="text" 
+                               id="autoWalletAddress" 
+                               class="form-control" 
+                               placeholder="0x742d35Cc6634C0532925a3b8...">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="thresholdAmount">
+                            <i class="fas fa-bell"></i> Auto-Withdrawal Threshold
+                        </label>
+                        <input type="number" 
+                               id="thresholdAmount" 
+                               class="form-control" 
+                               placeholder="1000"
+                               step="100"
+                               min="100">
+                        <div class="info-text">Auto-withdraw when profit exceeds this amount</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="autoCurrency">
+                            <i class="fas fa-money-bill-wave"></i> Auto-Withdraw Currency
+                        </label>
+                        <select id="autoCurrency" class="form-control">
+                            <option value="ETH">Ethereum (ETH)</option>
+                            <option value="USDT">Tether (USDT)</option>
+                            <option value="USDC">USD Coin (USDC)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-history"></i> Auto-Withdrawal Frequency
+                        </label>
+                        <select id="withdrawalFrequency" class="form-control">
+                            <option value="instant">Instant (when threshold reached)</option>
+                            <option value="daily">Daily at 12:00 UTC</option>
+                            <option value="weekly">Weekly on Monday</option>
+                            <option value="monthly">Monthly on 1st</option>
+                        </select>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="enableAutoWithdrawal()">
+                        <i class="fas fa-power-off"></i> Enable Auto-Withdrawal
+                    </button>
+                    
+                    <div id="autoStatus" style="margin-top: 15px; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; display: none;">
+                        <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                        <span>Auto-withdrawal enabled</span>
+                    </div>
+                </div>
+
+                <!-- Withdrawal History -->
+                <div class="withdrawal-history">
+                    <div class="history-header">
+                        <h3><i class="fas fa-history"></i> Recent Withdrawals</h3>
+                        <button class="btn" style="width: auto; padding: 5px 15px; font-size: 0.9rem;" onclick="refreshHistory()">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                    <div class="history-list" id="withdrawalHistory">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Transaction Limits -->
+                <div class="limits-info">
+                    <h4><i class="fas fa-shield-alt"></i> Security Limits</h4>
+                    <div class="limit-row">
+                        <span>Daily Limit:</span>
+                        <span>$10,000</span>
+                    </div>
+                    <div class="limit-row">
+                        <span>Minimum Withdrawal:</span>
+                        <span>$10</span>
+                    </div>
+                    <div class="limit-row">
+                        <span>Network Fee:</span>
+                        <span>0.1% (min $5)</span>
+                    </div>
+                    <div class="limit-row">
+                        <span>Processing Time:</span>
+                        <span>1-3 confirmations</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>AINEON Profit Withdrawal System â€¢ Secure & Automated</p>
+            <p>Connected to backend: http://localhost:8080 â€¢ Multi-chain support: Ethereum, Polygon, BSC</p>
+            <p style="font-size: 0.9rem; margin-top: 10px; color: #64748b;">
+                <i class="fas fa-exclamation-triangle"></i> Always verify wallet addresses before withdrawal
+            </p>
+        </div>
+    </div>
+
+    <!-- Gas Settings Modal -->
+    <div id="gasModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-gas-pump"></i> Gas Settings</h3>
+                <button class="close-btn" onclick="closeGasSettings()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>Gas Priority</label>
+                <select id="gasPriority" class="form-control">
+                    <option value="slow">Slow (Lower fee)</option>
+                    <option value="medium" selected>Medium (Recommended)</option>
+                    <option value="fast">Fast (Higher priority)</option>
+                    <option value="custom">Custom</option>
+                </select>
+            </div>
+            <div id="customGas" style="display: none;">
+                <div class="form-group">
+                    <label>Gas Price (Gwei)</label>
+                    <input type="number" id="customGasPrice" class="form-control" placeholder="30">
+                </div>
+                <div class="form-group">
+                    <label>Gas Limit</label>
+                    <input type="number" id="customGasLimit" class="form-control" placeholder="21000">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Estimated Fee: <span id="estimatedFee">$5.42</span></label>
+                <div class="info-text">Based on current network conditions</div>
+            </div>
+            <button class="btn btn-primary" onclick="saveGasSettings()">
+                <i class="fas fa-save"></i> Save Settings
+            </button>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-check-circle"></i> Confirm Withdrawal</h3>
+                <button class="close-btn" onclick="closeConfirmModal()">&times;</button>
+            </div>
+            <div id="confirmContent">
+                <!-- Will be populated by JavaScript -->
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-danger" onclick="closeConfirmModal()" style="flex: 1;">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button class="btn btn-primary" onclick="confirmWithdrawal()" style="flex: 2;">
+                    <i class="fas fa-check"></i> Confirm & Sign
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global State
+        let state = {
+            balance: 1523.67,
+            mode: 'manual',
+            autoWithdrawal: {
+                enabled: false,
+                wallet: '',
+                threshold: 1000,
+                currency: 'ETH',
+                frequency: 'instant'
+            },
+            history: [],
+            gasSettings: {
+                priority: 'medium',
+                customPrice: 30,
+                customLimit: 21000
+            }
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initChart();
+            loadWithdrawalHistory();
+            updateDisplay();
+            simulateRealTimeUpdates();
+        });
+
+        // Initialize Chart.js
+        function initChart() {
+            const ctx = document.getElementById('profitChart').getContext('2d');
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                    datasets: [{
+                        label: 'Accumulated Profit',
+                        data: [500, 700, 900, 1200, 1400, 1500, 1523.67],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }, {
+                        label: 'Withdrawals',
+                        data: [null, null, 300, null, 200, null, null],
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: '#94a3b8' }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: {
+                                color: '#94a3b8',
+                                callback: value => '$' + value
+                            }
+                        },
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Set Withdrawal Mode
+        function setWithdrawalMode(mode) {
+            state.mode = mode;
+            
+            // Update buttons
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Show correct form
+            document.getElementById('manualForm').classList.remove('active');
+            document.getElementById('autoForm').classList.remove('active');
+            document.getElementById(mode + 'Form').classList.add('active');
+            
+            // Update auto status display
+            const autoStatus = document.getElementById('autoStatus');
+            autoStatus.style.display = state.autoWithdrawal.enabled ? 'block' : 'none';
+        }
+
+        // Set Max Amount
+        function setMaxAmount() {
+            document.getElementById('manualAmount').value = state.balance.toFixed(2);
+            updateEstimatedFee();
+        }
+
+        // Process Manual Withdrawal
+        function processManualWithdrawal() {
+            const wallet = document.getElementById('manualWalletAddress').value;
+            const amount = parseFloat(document.getElementById('manualAmount').value);
+            const currency = document.getElementById('manualCurrency').value;
+            
+            // Validation
+            if (!wallet || wallet.length < 42) {
+                alert('Please enter a valid wallet address (0x...)');
+                return;
+            }
+            
+            if (!amount || amount < 10) {
+                alert('Minimum withdrawal amount is $10');
+                return;
+            }
+            
+            if (amount > state.balance) {
+                alert('Insufficient balance');
+                return;
+            }
+            
+            // Show confirmation modal
+            document.getElementById('confirmContent').innerHTML = `
+                <div style="text-align: center; padding: 20px 0;">
+                    <div style="font-size: 1.2rem; margin-bottom: 15px;">
+                        <i class="fas fa-coins" style="color: #f59e0b; font-size: 2rem;"></i>
+                    </div>
+                    <div style="font-size: 1.5rem; font-weight: bold; color: #10b981; margin-bottom: 10px;">
+                        $${amount.toFixed(2)}
+                    </div>
+                    <div style="color: #94a3b8; margin-bottom: 15px;">
+                        ${currency} to ${wallet.substring(0, 10)}...${wallet.substring(wallet.length - 8)}
+                    </div>
+                    <div style="background: rgba(30, 41, 59, 0.5); padding: 15px; border-radius: 8px; text-align: left;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span>Network Fee:</span>
+                            <span style="color: #ef4444;">$5.42</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span>You Receive:</span>
+                            <span style="color: #10b981;">$${(amount - 5.42).toFixed(2)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                            <span>Total:</span>
+                            <span>$${amount.toFixed(2)}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('confirmModal').classList.add('active');
+        }
+
+        // Confirm Withdrawal
+        function confirmWithdrawal() {
+            const amount = parseFloat(document.getElementById('manualAmount').value);
+            const wallet = document.getElementById('manualWalletAddress').value;
+            const currency = document.getElementById('manualCurrency').value;
+            
+            // Simulate API call to backend
+            simulateWithdrawal(amount, wallet, currency);
+            
+            closeConfirmModal();
+        }
+
+        // Simulate Withdrawal (Replace with actual API call)
+        function simulateWithdrawal(amount, wallet, currency) {
+            // Update balance
+            state.balance -= amount;
+            updateDisplay();
+            
+            // Add to history
+            const withdrawal = {
+                id: Date.now(),
+                amount: amount,
+                wallet: wallet,
+                currency: currency,
+                status: 'pending',
+                timestamp: new Date().toISOString(),
+                txHash: '0x' + Math.random().toString(36).substr(2, 64)
+            };
+            
+            state.history.unshift(withdrawal);
+            saveWithdrawalHistory();
+            
+            // Show success message
+            alert(`Withdrawal initiated!\n\nAmount: $${amount.toFixed(2)}\nTo: ${wallet.substring(0, 20)}...\n\nTransaction will be processed in 1-3 confirmations.`);
+            
+            // Simulate confirmation after 5 seconds
+            setTimeout(() => {
+                withdrawal.status = 'success';
+                saveWithdrawalHistory();
+                alert('âœ… Withdrawal confirmed! Transaction hash: ' + withdrawal.txHash);
+            }, 5000);
+        }
+
+        // Enable Auto Withdrawal
+        function enableAutoWithdrawal() {
+            const wallet = document.getElementById('autoWalletAddress').value;
+            const threshold = parseFloat(document.getElementById('thresholdAmount').value);
+            const currency = document.getElementById('autoCurrency').value;
+            const frequency = document.getElementById('withdrawalFrequency').value;
+            
+            if (!wallet || wallet.length < 42) {
+                alert('Please enter a valid wallet address');
+                return;
+            }
+            
+            if (!threshold || threshold < 100) {
+                alert('Minimum threshold is $100');
+                return;
+            }
+            
+            state.autoWithdrawal = {
+                enabled: true,
+                wallet: wallet,
+                threshold: threshold,
+                currency: currency,
+                frequency: frequency
+            };
+            
+            // Show status
+            document.getElementById('autoStatus').style.display = 'block';
+            document.getElementById('autoStatus').innerHTML = `
+                <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                <span>Auto-withdrawal enabled (Threshold: $${threshold})</span>
+            `;
+            
+            alert(`âœ… Auto-withdrawal enabled!\n\nWallet: ${wallet.substring(0, 20)}...\nThreshold: $${threshold}\nFrequency: ${frequency}\nCurrency: ${currency}`);
+            
+            // Save to localStorage
+            localStorage.setItem('autoWithdrawal', JSON.stringify(state.autoWithdrawal));
+        }
+
+        // Load Withdrawal History
+        function loadWithdrawalHistory() {
+            const saved = localStorage.getItem('withdrawalHistory');
+            if (saved) {
+                state.history = JSON.parse(saved);
+            } else {
+                // Default history
+                state.history = [
+                    { id: 1, amount: 500, wallet: '0x742d35Cc...', currency: 'ETH', status: 'success', timestamp: '2024-12-15T14:30:00Z' },
+                    { id: 2, amount: 300, wallet: '0x742d35Cc...', currency: 'USDT', status: 'success', timestamp: '2024-12-10T09:15:00Z' },
+                    { id: 3, amount: 200, wallet: '0x742d35Cc...', currency: 'ETH', status: 'success', timestamp: '2024-12-05T16:45:00Z' }
+                ];
+            }
+            
+            renderHistory();
+        }
+
+        // Save Withdrawal History
+        function saveWithdrawalHistory() {
+            localStorage.setItem('withdrawalHistory', JSON.stringify(state.history));
+            renderHistory();
+        }
+
+        // Render History
+        function renderHistory() {
+            const container = document.getElementById('withdrawalHistory');
+            container.innerHTML = '';
+            
+            state.history.slice(0, 5).forEach(item => {
+                const date = new Date(item.timestamp);
+                const statusClass = `status-${item.status}`;
+                
+                const element = document.createElement('div');
+                element.className = `history-item ${item.status}`;
+                element.innerHTML = `
+                    <div>
+                        <div style="font-weight: 600;">$${item.amount.toFixed(2)} ${item.currency}</div>
+                        <div style="font-size: 0.8rem; color: #94a3b8;">${date.toLocaleDateString()}</div>
+                    </div>
+                    <div class="history-status ${statusClass}">
+                        ${item.status.toUpperCase()}
+                    </div>
+                `;
+                container.appendChild(element);
+            });
+            
+            // Update last withdrawal time
+            if (state.history.length > 0) {
+                const last = new Date(state.history[0].timestamp);
+                document.getElementById('lastWithdrawalTime').textContent = last.toLocaleDateString();
+            }
+            
+            // Update auto withdrawals count
+            const autoCount = state.history.filter(h => h.auto === true).length;
+            document.getElementById('autoWithdrawals').textContent = autoCount;
+        }
+
+        // Refresh History
+        function refreshHistory() {
+            // Simulate API call
+            setTimeout(() => {
+                renderHistory();
+            }, 1000);
+        }
+
+        // Gas Settings
+        function openGasSettings() {
+            document.getElementById('gasModal').classList.add('active');
+            document.getElementById('gasPriority').value = state.gasSettings.priority;
+            document.getElementById('customGasPrice').value = state.gasSettings.customPrice;
+            document.getElementById('customGasLimit').value = state.gasSettings.customLimit;
+            
+            if (state.gasSettings.priority === 'custom') {
+                document.getElementById('customGas').style.display = 'block';
+            }
+        }
+
+        function closeGasSettings() {
+            document.getElementById('gasModal').classList.remove('active');
+        }
+
+        function saveGasSettings() {
+            const priority = document.getElementById('gasPriority').value;
+            state.gasSettings.priority = priority;
+            
+            if (priority === 'custom') {
+                state.gasSettings.customPrice = parseFloat(document.getElementById('customGasPrice').value);
+                state.gasSettings.customLimit = parseFloat(document.getElementById('customGasLimit').value);
+            }
+            
+            closeGasSettings();
+            alert('Gas settings saved!');
+        }
+
+        // Update custom gas visibility
+        document.getElementById('gasPriority').addEventListener('change', function() {
+            document.getElementById('customGas').style.display = 
+                this.value === 'custom' ? 'block' : 'none';
+        });
+
+        // Close Confirmation Modal
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').classList.remove('active');
+        }
+
+        // Update Display
+        function updateDisplay() {
+            document.getElementById('profit').textContent = '$' + state.balance.toFixed(2);
+            document.getElementById('availableBalance').textContent = '$' + state.balance.toFixed(2);
+            document.getElementById('availableAmount').textContent = '$' + state.balance.toFixed(2);
+        }
+
+        // Simulate Real-time Updates
+        function simulateRealTimeUpdates() {
+            setInterval(() => {
+                // Simulate profit increase
+                state.balance += (Math.random() * 2 - 0.5);
+                updateDisplay();
+                
+                // Check auto-withdrawal threshold
+                if (state.autoWithdrawal.enabled && state.balance >= state.autoWithdrawal.threshold) {
+                    // Auto-withdraw
+                    const amount = state.autoWithdrawal.threshold;
+                    simulateWithdrawal(
+                        amount,
+                        state.autoWithdrawal.wallet,
+                        state.autoWithdrawal.currency
+                    );
+                    
+                    alert(`í²° Auto-withdrawal triggered!\n\nAmount: $${amount.toFixed(2)}\nSent to your wallet.`);
+                }
+            }, 10000); // Every 10 seconds
+        }
+
+        // Update Estimated Fee
+        function updateEstimatedFee() {
+            const amount = parseFloat(document.getElementById('manualAmount').value) || 0;
+            const fee = Math.max(5, amount * 0.001); // 0.1% min $5
+            document.getElementById('estimatedFee').textContent = '$' + fee.toFixed(2);
+        }
+
+        // Attach event listeners
+        document.getElementById('manualAmount').addEventListener('input', updateEstimatedFee);
+    </script>
+</body>
+</html>
