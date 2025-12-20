@@ -1,0 +1,61 @@
+# AINEON Executive Dashboard Requirements
+# Auto-generated for Render deployment
+
+# Core Streamlit and Dashboard Dependencies
+streamlit>=1.28.0
+pandas>=2.0.0
+plotly>=5.17.0
+numpy>=1.24.0
+
+# Web and API Dependencies
+requests>=2.31.0
+aiohttp>=3.8.0
+websockets>=11.0.0
+
+# Date and Time Handling
+python-dateutil>=2.8.0
+pytz>=2023.3
+
+# Financial and Mathematical Libraries
+scipy>=1.10.0
+scikit-learn>=1.3.0
+
+# Data Visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+altair>=5.0.0
+
+# Environment and Configuration
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+pyyaml>=6.0
+
+# Database and Caching
+redis>=4.6.0
+sqlalchemy>=2.0.0
+
+# Monitoring and Logging
+structlog>=23.1.0
+psutil>=5.9.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+
+# Development Tools
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.5.0
+
+# Production Server
+gunicorn>=21.0.0
+
+# Security
+cryptography>=41.0.0
+bcrypt>=4.0.0
+
+# Blockchain Specific (for future integration)
+web3>=6.9.0
+eth-account>=0.9.0
+hexbytes>=0.3.0

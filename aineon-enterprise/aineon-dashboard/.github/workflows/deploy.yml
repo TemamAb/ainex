@@ -1,0 +1,158 @@
+name: AINEON Dashboard Deployment
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov black flake8 mypy
+    
+    - name: Lint with flake8
+      run: |
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    
+    - name: Format check with black
+      run: |
+        black --check --diff .
+    
+    - name: Type check with mypy
+      run: |
+        mypy user_friendly_dashboard.py error_handler.py --ignore-missing-imports || true
+    
+    - name: Test with pytest
+      run: |
+        pytest tests/ -v --cov=. --cov-report=xml --cov-report=term
+    
+    - name: Test Streamlit app
+      run: |
+        python -c "import streamlit; print('Streamlit import successful')"
+        python -c "import user_friendly_dashboard; print('Dashboard import successful')"
+        python -c "import error_handler; print('Error handler import successful')"
+
+  build-dashboard:
+    needs: test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Build dashboard
+      run: |
+        python -c "import user_friendly_dashboard; print('Dashboard build successful')"
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: dashboard-build
+        path: |
+          user_friendly_dashboard.py
+          error_handler.py
+          requirements.txt
+          package.json
+
+  deploy-staging:
+    needs: build-dashboard
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
+    environment: staging
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: dashboard-build
+    
+    - name: Deploy to staging
+      run: |
+        echo "Deploying to staging environment..."
+        # Add staging deployment commands here
+        # This could involve SSH to staging server, Docker deployment, etc.
+
+  deploy-production:
+    needs: build-dashboard
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: dashboard-build
+    
+    - name: Deploy to Render
+      run: |
+        echo "Deploying to Render production..."
+        # This would use Render's API or CLI to deploy
+        # render deploy --service aineon-dashboard
+    
+    - name: Wait for deployment
+      run: |
+        echo "Waiting for deployment to complete..."
+        sleep 30
+    
+    - name: Health check
+      run: |
+        echo "Performing health check..."
+        # Add health check commands here
+        # curl -f https://your-app.onrender.com/health || exit 1
+    
+    - name: Notify success
+      if: success()
+      run: |
+        echo "✅ Deployment successful!"
+        # Add notification logic here (Slack, email, etc.)
+
+  deploy-failure-notification:
+    needs: [deploy-staging, deploy-production]
+    runs-on: ubuntu-latest
+    if: failure()
+    
+    steps:
+    - name: Notify deployment failure
+      run: |
+        echo "❌ Deployment failed!"
+        # Add failure notification logic here

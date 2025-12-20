@@ -1,0 +1,97 @@
+# AINEON Dashboard Deployment Configuration for Render.com
+# Auto-deployment from GitHub repository: TemamAb/myneon
+
+services:
+  # Main AINEON Engine API
+  - type: web
+    name: aineon-engine
+    env: python
+    plan: starter
+    buildCommand: |
+      pip install -r backend/requirements.txt
+      pip install -r core/requirements.txt
+    startCommand: |
+      cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: ETH_RPC_URL
+        value: https://mainnet.infura.io/v3/YOUR_INFURA_KEY
+      - key: WALLET_ADDRESS
+        value: 0xYourWalletAddress
+      - key: PRIVATE_KEY
+        value: your_private_key
+      - key: ETHERSCAN_API_KEY
+        value: your_etherscan_api_key
+      - key: DEBUG
+        value: false
+    healthCheckPath: /api/status
+    autoDeploy: true
+
+  # Executive Dashboard
+  - type: web
+    name: aineon-dashboard
+    env: python
+    plan: starter
+    buildCommand: |
+      pip install -r requirements.txt
+    startCommand: |
+      streamlit run user_friendly_dashboard.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: API_BASE_URL
+        fromService:
+          type: web
+          name: aineon-engine
+          property: host
+    healthCheckPath: /
+    autoDeploy: true
+
+  # Monitoring and Alerting Service
+  - type: worker
+    name: aineon-monitor
+    env: python
+    plan: starter
+    buildCommand: pip install -r core/requirements.txt
+    startCommand: |
+      python core/rpc_monitoring.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: API_BASE_URL
+        fromService:
+          type: web
+          name: aineon-engine
+          property: host
+    autoDeploy: true
+
+  # Background Profit Processing
+  - type: worker
+    name: aineon-profit-processor
+    env: python
+    plan: starter
+    buildCommand: pip install -r core/requirements.txt
+    startCommand: |
+      python core/profit_manager.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: API_BASE_URL
+        fromService:
+          type: web
+          name: aineon-engine
+          property: host
+    autoDeploy: true
+
+# Database (if needed for persistent data)
+# - type: pserv
+#   name: aineon-db
+#   plan: starter
+#   databaseName: aineon_db
+#   user: aineon_user
+
+# Static Site (for documentation)
+# - type: static
+#   name: aineon-docs
+#   staticPublishPath: ./docs
