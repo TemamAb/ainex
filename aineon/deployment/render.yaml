@@ -1,7 +1,0 @@
-services:
-  - type: web
-    name: aineon-production-dashboard
-    rootDir: aineon-production-dashboard
-    buildCommand: npm run build
-    staticPublishPath: dist
-    env: static

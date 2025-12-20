@@ -14,6 +14,8 @@ from core.security import SecureEnvironment, initialize_secure_environment
 from core.infrastructure.paymaster import PimlicoPaymaster
 from core.profit_manager import ProfitManager
 from core.ai_optimizer import AIOptimizer
+from core.real_arbitrage_executor import RealFlashLoanArbitrageExecutor, ArbitrageOpportunity
+from eth_account import Account
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -148,6 +150,24 @@ class AineonEngine:
             self.profit_manager = ProfitManager(self.w3, self.account_address, "")
             self.profit_manager.set_transfer_mode("MONITORING")  # Live monitoring mode
 
+        # 7. Initialize Real Flash Loan Arbitrage Executor (NEW)
+        if self.execution_mode and self.has_private_key:
+            try:
+                account = Account.from_key(os.getenv('PRIVATE_KEY'))
+                self.arbitrage_executor = RealFlashLoanArbitrageExecutor(
+                    w3=self.w3,
+                    account=account,
+                    profit_manager=self.profit_manager,
+                    min_profit_threshold=0.01,  # 0.01 ETH minimum
+                    max_slippage=0.5
+                )
+                print(f"{Colors.GREEN}   - Real arbitrage executor initialized{Colors.ENDC}")
+            except Exception as e:
+                logger.error(f"[ENGINE] Failed to initialize arbitrage executor: {e}")
+                self.arbitrage_executor = None
+        else:
+            self.arbitrage_executor = None
+
         self.trade_history = []
         self.start_time = time.time()
         self.last_ai_update = time.time()
@@ -220,6 +240,7 @@ class AineonEngine:
             "auto_ai_active": True,  # Auto AI optimization every 15 mins
             "monitoring_mode": True,  # Always monitoring in live mode
             "execution_mode": self.execution_mode,
+            "real_arbitrage_executor": self.arbitrage_executor is not None,
             "tier": "LIVE_MODE"
         })
 
@@ -451,30 +472,63 @@ class AineonEngine:
         return opportunities
 
     async def execute_flash_loan(self, opportunity):
-        """Execute flash loan if in execution mode, otherwise log for monitoring."""
+        """Execute real flash loan arbitrage if in execution mode, otherwise log for monitoring."""
         pair = opportunity['pair']
         confidence = opportunity['confidence']
         profit_percent = opportunity['profit_percent']
         
-        if self.execution_mode:
-            print(f"{Colors.GREEN}[EXECUTION] Opportunity detected: {pair} (confidence: {confidence:.2%}, profit: {profit_percent:.2f}%){Colors.ENDC}")
-            print(f"{Colors.GREEN}   Executing flash loan arbitrage...{Colors.ENDC}")
+        if self.execution_mode and self.arbitrage_executor:
+            print(f"{Colors.GREEN}[EXECUTION] Real arbitrage opportunity: {pair} (confidence: {confidence:.2%}, profit: {profit_percent:.2f}%){Colors.ENDC}")
+            print(f"{Colors.GREEN}   Executing REAL flash loan arbitrage...{Colors.ENDC}")
             
-            # TODO: Implement actual flash loan execution here
-            # This would involve:
-            # 1. Requesting flash loan from Aave/Balancer
-            # 2. Executing arbitrage trades across DEXes
-            # 3. Repaying loan with profit
-            
-            # For now, log the execution
-            self.trade_history.append({
-                'pair': pair,
-                'tx': 'FLASH_LOAN_EXECUTED',
-                'profit': opportunity['amount'] * (profit_percent / 100),
-                'confidence': confidence,
-                'timestamp': time.time(),
-                'execution_mode': True
-            })
+            try:
+                # Convert opportunity to ArbitrageOpportunity object
+                arbitrage_opp = ArbitrageOpportunity(
+                    opportunity_id=f"scan_{int(time.time())}",
+                    token_in=opportunity['token_in'],
+                    token_out=opportunity['token_out'],
+                    dex_buy=opportunity['dex_buy'],
+                    dex_sell=opportunity['dex_sell'],
+                    price_buy=opportunity['price_buy'],
+                    price_sell=opportunity['price_sell'],
+                    spread_percent=opportunity['profit_percent'],
+                    amount_eth=opportunity['amount'],
+                    confidence=opportunity['confidence']
+                )
+                
+                # Execute real arbitrage
+                result = await self.arbitrage_executor.execute_arbitrage_opportunity(arbitrage_opp)
+                
+                if result['status'] == 'SUCCESS':
+                    print(f"{Colors.GREEN}   ✓ REAL ARBITRAGE SUCCESS: {result['profit_eth']:.6f} ETH profit{Colors.ENDC}")
+                    print(f"{Colors.GREEN}   Transaction: {result['transaction_hash']}{Colors.ENDC}")
+                    
+                    # Update trade history
+                    self.trade_history.append({
+                        'pair': pair,
+                        'tx': result['transaction_hash'],
+                        'profit': result['profit_eth'],
+                        'confidence': confidence,
+                        'timestamp': time.time(),
+                        'execution_mode': True,
+                        'real_execution': True
+                    })
+                else:
+                    print(f"{Colors.YELLOW}   ✗ Real arbitrage failed: {result.get('error_reason', 'Unknown error')}{Colors.ENDC}")
+                    self.trade_history.append({
+                        'pair': pair,
+                        'tx': 'FAILED',
+                        'profit': 0,
+                        'confidence': confidence,
+                        'timestamp': time.time(),
+                        'execution_mode': True,
+                        'real_execution': True,
+                        'error': result.get('error_reason')
+                    })
+                    
+            except Exception as e:
+                logger.error(f"[ENGINE] Real arbitrage execution failed: {e}")
+                print(f"{Colors.FAIL}   ✗ Execution error: {e}{Colors.ENDC}")
         else:
             print(f"{Colors.YELLOW}[MONITORING] Opportunity detected: {pair} (confidence: {confidence:.2%}, profit: {profit_percent:.2f}%){Colors.ENDC}")
             print(f"{Colors.YELLOW}   Live monitoring active (add PRIVATE_KEY for execution){Colors.ENDC}")
@@ -556,6 +610,10 @@ class AineonEngine:
         print(f"{Colors.GREEN}>> CONNECTED TO ETHEREUM MAINNET{Colors.ENDC}")
         await asyncio.sleep(1)
         print(f"{Colors.BLUE}>> AI MODELS LOADED (Heuristic Mode){Colors.ENDC}")
+        
+        if self.arbitrage_executor:
+            print(f"{Colors.GREEN}>> REAL ARBITRAGE EXECUTOR ACTIVE{Colors.ENDC}")
+        
         await asyncio.sleep(1)
 
         try:
@@ -593,6 +651,8 @@ class AineonEngine:
         print("╔══════════════════════════════════════════════════════════════╗")
         print("║                   AINEON ENTERPRISE ENGINE                   ║")
         print("║                    🚀 LIVE MODE ACTIVE 🚀                    ║")
+        if self.arbitrage_executor:
+            print("║                ⚡ REAL ARBITRAGE ENABLED ⚡                   ║")
         print("╚══════════════════════════════════════════════════════════════╝")
         print(f"{Colors.ENDC}")
 
@@ -644,6 +704,8 @@ class AineonEngine:
         print(f"   MARKET SCANNING    : ACTIVE (DEX feeds)")
         if self.execution_mode:
             print(f"   FLASH LOAN READY   : YES (execution mode)")
+            if self.arbitrage_executor:
+                print(f"   REAL ARBITRAGE     : ACTIVE (live execution)")
         else:
             print(f"   FLASH LOAN READY   : MONITORING (add PRIVATE_KEY for execution)")
         print(f"   LIVE MODE          : ENABLED")

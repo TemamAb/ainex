@@ -1,7 +1,0 @@
-version: '3.8'
-services:
-  aineon-profit-engine:
-    build: .
-    ports:
-      - "10000:10000"
-    restart: unless-stopped
