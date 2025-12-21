@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: your-app-name
+    env: python
+    buildCommand: ""
+    startCommand: "poetry run python -m gunicorn app:app"
+
