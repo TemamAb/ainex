@@ -1,34 +1,13 @@
-# Force Python environment for AINEON Elite Dashboard
-# This ensures Render treats this as a Python project
-
 services:
   - type: web
     name: aineon-elite-dashboard
     env: python
-    plan: starter
-    pythonVersion: 3.11.8
-    buildCommand: |
-      pip install --upgrade pip
-      pip install flask gunicorn
-    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 app:app
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
     envVars:
       - key: PYTHON_VERSION
-        value: "3.11.8"
-      - key: FLASK_ENV
-        value: "production"
-      - key: DEBUG
-        value: "false"
+        value: 3.11.8
       - key: PORT
-        value: "$PORT"
-    healthCheckPath: /health
-    healthCheckTimeout: 30
+        value: 10000
     autoDeploy: true
-
-# Global environment variables
-envVars:
-  - key: APPLICATION_NAME
-    value: "AINEON Elite Dashboard"
-  - key: VERSION
-    value: "1.0.0"
-  - key: ENVIRONMENT
-    value: "production"
