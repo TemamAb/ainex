@@ -1,21 +1,19 @@
-# AINEON Flash Loan Engine - Production Deployment Configuration
-# Auto-deploy from GitHub: github.com/TemamAb/myneon
-# Pure Python Deployment (No Docker)
+# AINEON Flash Loan Engine - Render Production Deployment
+# Repository: github.com/TemamAb/myneon
+# Deployment Type: Pure Python (No Node.js, No Docker)
+# Status: Production Ready
 
 services:
   # ============================================================================
-  # Main AINEON Engine API (Production) - Pure Python
+  # Main AINEON Engine API (Production) - Pure Python 3.11
   # ============================================================================
   - type: web
     name: aineon-engine-api
     env: python
     plan: starter
     pythonVersion: 3.11
-    buildCommand: |
-      pip install --upgrade pip setuptools wheel
-      pip install -r requirements.txt
-    startCommand: |
-      python app.py
+    buildCommand: pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11
@@ -53,18 +51,15 @@ services:
     autoDeploy: true
 
   # ============================================================================
-  # Real-Time Dashboard (Pure Python)
+  # Real-Time Dashboard (Pure Python 3.11)
   # ============================================================================
   - type: web
     name: aineon-dashboard
     env: python
     plan: starter
     pythonVersion: 3.11
-    buildCommand: |
-      pip install --upgrade pip setuptools wheel
-      pip install -r requirements.txt
-    startCommand: |
-      python live_profit_dashboard.py
+    buildCommand: pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
+    startCommand: python wallet_connect_server.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.11
@@ -78,18 +73,15 @@ services:
     autoDeploy: true
 
   # ============================================================================
-  # Profit Monitoring Service (Pure Python Worker)
+  # Profit Monitoring Service (Pure Python 3.11 Worker)
   # ============================================================================
   - type: worker
     name: aineon-monitor
     env: python
     plan: starter
     pythonVersion: 3.11
-    buildCommand: |
-      pip install --upgrade pip setuptools wheel
-      pip install -r requirements.txt
-    startCommand: |
-      python flash_loan_monitor.py
+    buildCommand: pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
+    startCommand: python flash_loan_monitor.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.11
@@ -100,18 +92,15 @@ services:
     autoDeploy: true
 
   # ============================================================================
-  # Background Profit Processing (Pure Python Worker)
+  # Background Profit Processing (Pure Python 3.11 Worker)
   # ============================================================================
   - type: worker
     name: aineon-profit-processor
     env: python
     plan: starter
     pythonVersion: 3.11
-    buildCommand: |
-      pip install --upgrade pip setuptools wheel
-      pip install -r requirements.txt
-    startCommand: |
-      python real_time_profit_monitor.py
+    buildCommand: pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
+    startCommand: python real_time_profit_monitor.py
     envVars:
       - key: PYTHON_VERSION
         value: 3.11

@@ -1,0 +1,36 @@
+# Render Ignore File - Pure Python Deployment
+# Exclude Node.js and web-specific files from Python build
+
+# Node.js
+package.json
+package-lock.json
+yarn.lock
+node_modules/
+.npmrc
+
+# Web frontend (not needed for Python API deployment)
+src/
+frontend/
+aineon-dashboard/
+dashboard/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# IDE and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Environment and local files
+.env
+.env.local
+.env.*.local
+
+# Documentation (optional, reduce build size)
+docs/
+README.md
