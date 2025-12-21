@@ -1,26 +1,28 @@
 # AINEON Flash Loan Engine - Production Deployment Configuration
 # Auto-deploy from GitHub: github.com/TemamAb/myneon
+# Pure Python Deployment (No Docker)
 
 services:
   # ============================================================================
-  # Main AINEON Engine API (Production)
+  # Main AINEON Engine API (Production) - Pure Python
   # ============================================================================
   - type: web
     name: aineon-engine-api
     env: python
     plan: starter
+    pythonVersion: 3.11
     buildCommand: |
-      pip install --upgrade pip
-      pip install -r backend/requirements.txt
-      pip install -r core/requirements.txt
-      pip install streamlit plotly pandas numpy web3 eth-brownie
+      pip install --upgrade pip setuptools wheel
+      pip install -r requirements.txt
     startCommand: |
-      cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2
+      python app.py
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: 3.11
       - key: ENVIRONMENT
         value: PRODUCTION
+      - key: PORT
+        value: $PORT
       - key: ETH_RPC_URL
         value: https://mainnet.infura.io/v3/YOUR_INFURA_KEY
       - key: WALLET_ADDRESS
@@ -47,102 +49,74 @@ services:
         value: "true"
       - key: ENABLE_ETHERSCAN_VERIFICATION
         value: "true"
-    healthCheckPath: /api/status
-    healthCheckPath: /api/health
+    healthCheckPath: /health
     autoDeploy: true
 
   # ============================================================================
-  # Real-Time Dashboard (Streamlit)
+  # Real-Time Dashboard (Pure Python)
   # ============================================================================
   - type: web
     name: aineon-dashboard
     env: python
     plan: starter
+    pythonVersion: 3.11
     buildCommand: |
-      pip install --upgrade pip
-      pip install streamlit plotly pandas numpy requests python-dateutil
-      pip install -r aineon-dashboard/requirements.txt
+      pip install --upgrade pip setuptools wheel
+      pip install -r requirements.txt
     startCommand: |
-      cd aineon-dashboard && streamlit run user_friendly_dashboard.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true --server.runOnSave=true
+      python live_profit_dashboard.py
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
-      - key: API_BASE_URL
-        fromService:
-          type: web
-          name: aineon-engine-api
-          property: host
-      - key: STREAMLIT_SERVER_PORT
+        value: 3.11
+      - key: PORT
         value: $PORT
-      - key: STREAMLIT_SERVER_ADDRESS
-        value: 0.0.0.0
+      - key: API_BASE_URL
+        value: https://aineon-engine-api.onrender.com
+      - key: ENVIRONMENT
+        value: PRODUCTION
     healthCheckPath: /
     autoDeploy: true
 
   # ============================================================================
-  # Profit Monitoring Service
+  # Profit Monitoring Service (Pure Python Worker)
   # ============================================================================
   - type: worker
     name: aineon-monitor
     env: python
     plan: starter
+    pythonVersion: 3.11
     buildCommand: |
-      pip install --upgrade pip
-      pip install -r core/requirements.txt
-      pip install requests schedule
+      pip install --upgrade pip setuptools wheel
+      pip install -r requirements.txt
     startCommand: |
       python flash_loan_monitor.py
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: 3.11
       - key: API_BASE_URL
-        fromService:
-          type: web
-          name: aineon-engine-api
-          property: host
+        value: https://aineon-engine-api.onrender.com
       - key: ENVIRONMENT
         value: PRODUCTION
     autoDeploy: true
 
   # ============================================================================
-  # Background Profit Processing
+  # Background Profit Processing (Pure Python Worker)
   # ============================================================================
   - type: worker
     name: aineon-profit-processor
     env: python
     plan: starter
+    pythonVersion: 3.11
     buildCommand: |
-      pip install --upgrade pip
-      pip install -r core/requirements.txt
+      pip install --upgrade pip setuptools wheel
+      pip install -r requirements.txt
     startCommand: |
       python real_time_profit_monitor.py
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: 3.11
       - key: API_BASE_URL
-        fromService:
-          type: web
-          name: aineon-engine-api
-          property: host
+        value: https://aineon-engine-api.onrender.com
       - key: ENVIRONMENT
         value: PRODUCTION
     autoDeploy: true
-
-# ============================================================================
-# Database (Optional - for persistent data storage)
-# ============================================================================
-# - type: pserv
-#   name: aineon-postgres
-#   plan: starter
-#   databaseName: aineon_db
-#   user: aineon_user
-#   autoDeploy: true
-
-# ============================================================================
-# Redis Cache (Optional - for high-performance caching)
-# ============================================================================
-# - type: redis
-#   name: aineon-redis
-#   plan: starter
-#   maxmemoryPolicy: allkeys-lru
-#   autoDeploy: true
