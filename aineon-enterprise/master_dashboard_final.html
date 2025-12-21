@@ -1,0 +1,1548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AINEON Elite Analytics Dashboard - AI Optimization Analytics</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+    <style>
+        :root {
+            /* Grafana-inspired Color Palette */
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #151515;
+            --bg-tertiary: #1a1a1a;
+            --bg-panel: #222222;
+            --bg-hover: #2a2a2a;
+            
+            /* Primary Colors */
+            --primary-green: #00ff88;
+            --primary-cyan: #00d4ff;
+            --primary-blue: #0099ff;
+            --primary-purple: #9966ff;
+            --primary-orange: #ff9900;
+            
+            /* Status Colors */
+            --success-green: #00ff88;
+            --warning-yellow: #ffcc00;
+            --danger-red: #ff4444;
+            --info-blue: #00d4ff;
+            
+            /* Text Colors */
+            --text-primary: #ffffff;
+            --text-secondary: #b0b3c1;
+            --text-tertiary: #8e8e8e;
+            --text-muted: #666666;
+            
+            /* Border Colors */
+            --border-primary: #333333;
+            --border-secondary: #444444;
+            --border-highlight: #00ff88;
+            
+            /* Grafana Gradients */
+            --gradient-primary: linear-gradient(135deg, #00ff88 0%, #00d4ff 100%);
+            --gradient-secondary: linear-gradient(135deg, #0099ff 0%, #9966ff 100%);
+            --gradient-success: linear-gradient(135deg, #00ff88 0%, #00cc66 100%);
+            --gradient-warning: linear-gradient(135deg, #ffcc00 0%, #ff9900 100%);
+            --gradient-ai: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Main Layout Container */
+        .dashboard-container {
+            display: flex;
+            height: 100vh;
+            background: var(--bg-primary);
+        }
+
+        /* Enhanced Sidebar */
+        .sidebar {
+            width: 280px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-primary);
+            overflow-y: auto;
+            transition: width 0.3s ease;
+        }
+
+        .sidebar.collapsed {
+            width: 60px;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-primary);
+            background: var(--bg-tertiary);
+        }
+
+        .logo {
+            font-size: 1.4rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .sidebar-nav {
+            padding: 1rem 0;
+        }
+
+        .nav-category {
+            margin-bottom: 2rem;
+        }
+
+        .category-title {
+            padding: 0.75rem 1.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+            cursor: pointer;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-left-color: var(--primary-green);
+        }
+
+        .nav-item.active {
+            background: var(--bg-hover);
+            color: var(--primary-green);
+            border-left-color: var(--primary-green);
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            font-size: 16px;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Enhanced Header */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-primary);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .profit-pulse {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--gradient-primary);
+            border-radius: 20px;
+            color: var(--bg-primary);
+            font-weight: 600;
+            animation: pulse 2s infinite;
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .refresh-controls {
+            position: relative;
+        }
+
+        .refresh-dropdown {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .refresh-dropdown:hover {
+            background: var(--bg-hover);
+        }
+
+        .dropdown-content {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            border-radius: 6px;
+            min-width: 150px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: none;
+        }
+
+        .dropdown-content.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 0.75rem 1rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            border: 1px solid var(--border-primary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success-green);
+            animation: pulse 2s infinite;
+        }
+
+        /* Content Area */
+        .content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            background: var(--bg-primary);
+        }
+
+        /* Grid Layout - 5 Cards Per Row */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-highlight);
+            box-shadow: 0 8px 25px rgba(0, 255, 136, 0.1);
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--bg-primary);
+        }
+
+        .card-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .card-change {
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .change-positive {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--success-green);
+        }
+
+        .change-negative {
+            background: rgba(255, 68, 68, 0.1);
+            color: var(--danger-red);
+        }
+
+        .change-neutral {
+            background: rgba(0, 212, 255, 0.1);
+            color: var(--info-blue);
+        }
+
+        /* AI Optimization Specific Styles */
+        .ai-optimization-card {
+            background: var(--gradient-ai);
+            color: white;
+        }
+
+        .ai-optimization-card::before {
+            background: var(--gradient-ai);
+        }
+
+        .optimization-timer {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+        }
+
+        .uptime-counter {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 1.1rem;
+            color: white;
+        }
+
+        /* Chart Containers */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .chart-canvas {
+            height: 300px;
+        }
+
+        /* AI Optimization Section */
+        .ai-optimization-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-primary);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-left: 4px solid #ff6b6b;
+        }
+
+        .ai-optimization-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .ai-optimization-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            background: var(--gradient-ai);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .optimization-status {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .continuous-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--gradient-ai);
+            border-radius: 20px;
+            color: white;
+            font-weight: 600;
+            animation: continuousPulse 3s infinite;
+        }
+
+        @keyframes continuousPulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.02); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .optimization-metrics {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .optimization-metric {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            border-left: 3px solid #ff6b6b;
+        }
+
+        .optimization-metric-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--success-green);
+            margin-bottom: 0.5rem;
+        }
+
+        .optimization-metric-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .ai-terminal {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--success-green);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .ai-terminal-line {
+            margin-bottom: 0.25rem;
+            animation: terminalTyping 0.5s ease-out;
+        }
+
+        @keyframes terminalTyping {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1400px) {
+            .metrics-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            .optimization-metrics {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .metrics-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .optimization-metrics {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .optimization-metrics {
+                grid-template-columns: 1fr;
+            }
+            
+            .header {
+                padding: 1rem;
+            }
+            
+            .content {
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-primary);
+            border-radius: 50%;
+            border-top-color: var(--primary-green);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Real-time Update Indicator */
+        .update-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--primary-green);
+            color: var(--bg-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .update-indicator.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Profit Pulse Animation */
+        .profit-pulse::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-radius: 20px;
+            background: var(--primary-green);
+            opacity: 0.3;
+            animation: ripple 2s infinite;
+        }
+
+        @keyframes ripple {
+            0% {
+                transform: scale(1);
+                opacity: 0.3;
+            }
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        /* AI Optimization Timer */
+        .countdown-timer {
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--success-green);
+            text-align: center;
+            margin: 1rem 0;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+        }
+
+        .uptime-display {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-primary);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .uptime-days {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--success-green);
+        }
+
+        .uptime-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Enhanced Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">🚀 AINEON Elite</div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <!-- PROFIT ANALYTICS -->
+                <div class="nav-category">
+                    <div class="category-title">📊 Profit Analytics</div>
+                    <a href="#profit-overview" class="nav-item active">
+                        <span class="nav-icon">💰</span>
+                        <span>Profit Overview</span>
+                    </a>
+                    <a href="#profit-per-hour" class="nav-item">
+                        <span class="nav-icon">⏱️</span>
+                        <span>Profit/Hour</span>
+                    </a>
+                    <a href="#profit-per-trade" class="nav-item">
+                        <span class="nav-icon">🎯</span>
+                        <span>Profit/Trade</span>
+                    </a>
+                    <a href="#trades-per-hour" class="nav-item">
+                        <span class="nav-icon">⚡</span>
+                        <span>Trades/Hour</span>
+                    </a>
+                </div>
+
+                <!-- MEV STRATEGY ANALYTICS -->
+                <div class="nav-category">
+                    <div class="category-title">🔍 MEV Strategy</div>
+                    <a href="#arbitrage-detected" class="nav-item">
+                        <span class="nav-icon">🎯</span>
+                        <span>Opportunities Detected</span>
+                    </a>
+                    <a href="#arbitrage-executed" class="nav-item">
+                        <span class="nav-icon">✅</span>
+                        <span>Opportunities Executed</span>
+                    </a>
+                    <a href="#profit-by-strategy" class="nav-item">
+                        <span class="nav-icon">📈</span>
+                        <span>Profit by Strategy</span>
+                    </a>
+                    <a href="#profit-by-chain" class="nav-item">
+                        <span class="nav-icon">⛓️</span>
+                        <span>Profit by Chain</span>
+                    </a>
+                    <a href="#profit-by-pairs" class="nav-item">
+                        <span class="nav-icon">🔄</span>
+                        <span>Profit by Pairs</span>
+                    </a>
+                </div>
+
+                <!-- AI INTELLIGENCE -->
+                <div class="nav-category">
+                    <div class="category-title">🤖 AI Intelligence</div>
+                    <a href="#ai-learning" class="nav-item">
+                        <span class="nav-icon">🧠</span>
+                        <span>Learning Progress</span>
+                    </a>
+                    <a href="#ai-optimization" class="nav-item">
+                        <span class="nav-icon">⚙️</span>
+                        <span>AI Optimization</span>
+                    </a>
+                    <a href="#ai-terminal" class="nav-item">
+                        <span class="nav-icon">💻</span>
+                        <span>AI Terminal</span>
+                    </a>
+                </div>
+
+                <!-- AI OPTIMIZATION ANALYTICS (NEW) -->
+                <div class="nav-category">
+                    <div class="category-title">🔄 AI Optimization Analytics</div>
+                    <a href="#optimization-schedule" class="nav-item">
+                        <span class="nav-icon">⏰</span>
+                        <span>15-Min Schedule</span>
+                    </a>
+                    <a href="#continuous-operation" class="nav-item">
+                        <span class="nav-icon">🟢</span>
+                        <span>24/7/365 Operation</span>
+                    </a>
+                    <a href="#optimization-performance" class="nav-item">
+                        <span class="nav-icon">📊</span>
+                        <span>Performance Metrics</span>
+                    </a>
+                    <a href="#optimization-history" class="nav-item">
+                        <span class="nav-icon">📈</span>
+                        <span>Optimization History</span>
+                    </a>
+                    <a href="#ai-uptime" class="nav-item">
+                        <span class="nav-icon">⏱️</span>
+                        <span>AI Uptime Tracker</span>
+                    </a>
+                </div>
+
+                <!-- BENCHMARK ANALYTICS -->
+                <div class="nav-category">
+                    <div class="category-title">📊 Benchmark</div>
+                    <a href="#latency" class="nav-item">
+                        <span class="nav-icon">⚡</span>
+                        <span>Latency Analytics</span>
+                    </a>
+                    <a href="#performance" class="nav-item">
+                        <span class="nav-icon">🚀</span>
+                        <span>Performance Metrics</span>
+                    </a>
+                    <a href="#comparative" class="nav-item">
+                        <span class="nav-icon">📋</span>
+                        <span>Comparative Analysis</span>
+                    </a>
+                </div>
+
+                <!-- SYSTEM STATUS -->
+                <div class="nav-category">
+                    <div class="category-title">🔧 System Status</div>
+                    <a href="#engines" class="nav-item">
+                        <span class="nav-icon">⚙️</span>
+                        <span>Trading Engines</span>
+                    </a>
+                    <a href="#withdrawal" class="nav-item">
+                        <span class="nav-icon">💰</span>
+                        <span>Withdrawal System</span>
+                    </a>
+                    <a href="#alerts" class="nav-item">
+                        <span class="nav-icon">🚨</span>
+                        <span>Alerts & Logs</span>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Enhanced Header -->
+            <header class="header">
+                <div class="header-left">
+                    <h1 class="page-title">Elite Trading Analytics Dashboard</h1>
+                    <div class="profit-pulse">
+                        <span>💚</span>
+                        <span>Live Profit: $135,200</span>
+                    </div>
+                </div>
+                
+                <div class="header-right">
+                    <div class="refresh-controls">
+                        <div class="refresh-dropdown" onclick="toggleRefreshDropdown()">
+                            <span>🔄</span>
+                            <span>Refresh: 5s</span>
+                            <span>▼</span>
+                        </div>
+                        <div class="dropdown-content" id="refreshDropdown">
+                            <div class="dropdown-item" onclick="setRefreshInterval(1)">1 second</div>
+                            <div class="dropdown-item" onclick="setRefreshInterval(5)">5 seconds</div>
+                            <div class="dropdown-item" onclick="setRefreshInterval(10)">10 seconds</div>
+                            <div class="dropdown-item" onclick="setRefreshInterval(30)">30 seconds</div>
+                            <div class="dropdown-item" onclick="setRefreshInterval(60)">1 minute</div>
+                        </div>
+                    </div>
+                    
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        <span>All Systems Online</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="content">
+                <!-- Metrics Grid - 5 Cards Per Row -->
+                <div class="metrics-grid">
+                    <!-- Profit Metrics Cards -->
+                    <div class="metric-card">
+                        <div class="card-header">
+                            <div class="card-icon">💰</div>
+                        </div>
+                        <div class="card-title">Total Profit</div>
+                        <div class="card-value">$135,200</div>
+                        <div class="card-change change-positive">+2.4% today</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="card-header">
+                            <div class="card-icon">⏱️</div>
+                        </div>
+                        <div class="card-title">Profit/Hour</div>
+                        <div class="card-value">$125.50</div>
+                        <div class="card-change change-positive">+5.2% from yesterday</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="card-header">
+                            <div class="card-icon">🎯</div>
+                        </div>
+                        <div class="card-title">Profit/Trade</div>
+                        <div class="card-value">$8.75</div>
+                        <div class="card-change change-positive">+0.25 improvement</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="card-header">
+                            <div class="card-icon">⚡</div>
+                        </div>
+                        <div class="card-title">Trades/Hour</div>
+                        <div class="card-value">14.3</div>
+                        <div class="card-change change-positive">+2.1 from last hour</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="card-header">
+                            <div class="card-icon">🎯</div>
+                        </div>
+                        <div class="card-title">Success Rate</div>
+                        <div class="card-value">94.7%</div>
+                        <div class="card-change change-positive">+0.3% this week</div>
+                    </div>
+
+                    <!-- MEV Strategy Cards -->
+                    <div class="metric-card">
+                        <div class="card-header">
+                            <div class="card-icon">🔍</div>
+                        </div>
+                        <div class="card-title">Opportunities Detected</div>
+                        <div class="card-value">247</div>
+                        <div class="card-change change-positive">+12% today</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="card-header">
+                            <div class="card-icon">✅</div>
+                        </div>
+                        <div class="card-title">Opportunities Executed</div>
+                        <div class="card-value">189</div>
+                        <div class="card-change change-positive">76.5% execution rate</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="card-header">
+                            <div class="card-icon">📈</div>
+                        </div>
+                        <div class="card-title">Best Strategy</div>
+                        <div class="card-value">Flash Loans</div>
+                        <div class="card-change change-positive">$42,300 profit</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="card-header">
+                            <div class="card-icon">⛓️</div>
+                        </div>
+                        <div class="card-title">Top Chain</div>
+                        <div class="card-value">Ethereum</div>
+                        <div class="card-change change-positive">78.5% of profits</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="card-header">
+                            <div class="card-icon">🔄</div>
+                        </div>
+                        <div class="card-title">Top Pair</div>
+                        <div class="card-value">ETH/USDC</div>
+                        <div class="card-change change-positive">$38,900 profit</div>
+                    </div>
+
+                    <!-- AI Intelligence Cards -->
+                    <div class="metric-card">
+                        <div class="card-header">
+                            <div class="card-icon">🧠</div>
+                        </div>
+                        <div class="card-title">AI Learning</div>
+                        <div class="card-value">87.3%</div>
+                        <div class="card-change change-positive">+2.1% this session</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="card-header">
+                            <div class="card-icon">⚙️</div>
+                        </div>
+                        <div class="card-title">Last Optimization</div>
+                        <div class="card-value">15 mins ago</div>
+                        <div class="card-change change-neutral">Next in 0 mins</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="card-header">
+                            <div class="card-icon">📊</div>
+                        </div>
+                        <div class="card-title">AI Accuracy</div>
+                        <div class="card-value">91.2%</div>
+                        <div class="card-change change-positive">+1.8% improvement</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="card-header">
+                            <div class="card-icon">🎯</div>
+                        </div>
+                        <div class="card-title">AI Predictions</div>
+                        <div class="card-value">1,247</div>
+                        <div class="card-change change-positive">87.3% accurate</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="card-header">
+                            <div class="card-icon">💻</div>
+                        </div>
+                        <div class="card-title">AI Terminal</div>
+                        <div class="card-value">Active</div>
+                        <div class="card-change change-positive">Google AI Studio</div>
+                    </div>
+
+                    <!-- AI OPTIMIZATION ANALYTICS CARDS (NEW) -->
+                    <div class="metric-card ai-optimization-card">
+                        <div class="card-header">
+                            <div class="card-icon">⏰</div>
+                        </div>
+                        <div class="card-title">Next Optimization</div>
+                        <div class="optimization-timer" id="countdownTimer">14:23</div>
+                        <div class="card-change change-positive">15-minute cycle</div>
+                    </div>
+
+                    <div class="metric-card ai-optimization-card">
+                        <div class="card-header">
+                            <div class="card-icon">🟢</div>
+                        </div>
+                        <div class="card-title">Continuous Operation</div>
+                        <div class="optimization-timer" id="uptimeDays">247</div>
+                        <div class="card-change change-positive">Days running</div>
+                    </div>
+
+                    <div class="metric-card ai-optimization-card">
+                        <div class="card-header">
+                            <div class="card-icon">📊</div>
+                        </div>
+                        <div class="card-title">Optimizations Today</div>
+                        <div class="optimization-timer">96</div>
+                        <div class="card-change change-positive">+3.2% vs yesterday</div>
+                    </div>
+
+                    <div class="metric-card ai-optimization-card">
+                        <div class="card-header">
+                            <div class="card-icon">⚡</div>
+                        </div>
+                        <div class="card-title">Avg Response Time</div>
+                        <div class="optimization-timer">2.3s</div>
+                        <div class="card-change change-positive">-0.8s improvement</div>
+                    </div>
+
+                    <div class="metric-card ai-optimization-card">
+                        <div class="card-header">
+                            <div class="card-icon">🎯</div>
+                        </div>
+                        <div class="card-title">Success Rate</div>
+                        <div class="optimization-timer">98.7%</div>
+                        <div class="card-change change-positive">+0.4% this week</div>
+                    </div>
+
+                    <!-- Benchmark Analytics Cards -->
+                    <div class="metric-card">
+                        <div class="card-header">
+                            <div class="card-icon">⚡</div>
+                        </div>
+                        <div class="card-title">Avg Latency</div>
+                        <div class="card-value">8.2ms</div>
+                        <div class="card-change change-positive">-1.3ms improvement</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="card-header">
+                            <div class="card-icon">🚀</div>
+                        </div>
+                        <div class="card-title">Peak Performance</div>
+                        <div class="card-value">99.8%</div>
+                        <div class="card-change change-positive">Top 0.001% tier</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="card-header">
+                            <div class="card-icon">📊</div>
+                        </div>
+                        <div class="card-title">Benchmark Score</div>
+                        <div class="card-value">9.7/10</div>
+                        <div class="card-change change-positive">Industry leading</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="card-header">
+                            <div class="card-icon">🎯</div>
+                        </div>
+                        <div class="card-title">Competitive Edge</div>
+                        <div class="card-value">+247%</div>
+                        <div class="card-change change-positive">vs industry avg</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="card-header">
+                            <div class="card-icon">📈</div>
+                        </div>
+                        <div class="card-title">Growth Rate</div>
+                        <div class="card-value">+18.7%</div>
+                        <div class="card-change change-positive">Monthly growth</div>
+                    </div>
+                </div>
+
+                <!-- AI OPTIMIZATION ANALYTICS SECTION (NEW) -->
+                <div class="ai-optimization-section">
+                    <div class="ai-optimization-header">
+                        <h2 class="ai-optimization-title">🔄 AI Optimization Analytics - 24/7/365 Continuous Operation</h2>
+                        <div class="optimization-status">
+                            <div class="continuous-indicator">
+                                <span>🟢</span>
+                                <span>CONTINUOUSLY RUNNING</span>
+                            </div>
+                            <div style="font-size: 0.9rem; color: var(--text-secondary);">
+                                Every 15 Minutes • 24/7/365
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="optimization-metrics">
+                        <div class="optimization-metric">
+                            <div class="optimization-metric-value">96</div>
+                            <div class="optimization-metric-label">Optimizations Today</div>
+                        </div>
+                        <div class="optimization-metric">
+                            <div class="optimization-metric-value">2,847</div>
+                            <div class="optimization-metric-label">Total This Month</div>
+                        </div>
+                        <div class="optimization-metric">
+                            <div class="optimization-metric-value">98.7%</div>
+                            <div class="optimization-metric-label">Success Rate</div>
+                        </div>
+                        <div class="optimization-metric">
+                            <div class="optimization-metric-value">2.3s</div>
+                            <div class="optimization-metric-label">Avg Response Time</div>
+                        </div>
+                    </div>
+
+                    <div class="uptime-display">
+                        <div class="uptime-days" id="uptimeDisplay">247 Days</div>
+                        <div class="uptime-label">Continuous AI Optimization Uptime</div>
+                    </div>
+
+                    <div class="countdown-timer" id="mainCountdownTimer">Next Optimization in: 14:23</div>
+                    
+                    <div class="ai-terminal">
+                        <div class="ai-terminal-line">[2025-12-21 19:38:25] 🔄 AI OPTIMIZATION: Initializing 15-minute optimization cycle...</div>
+                        <div class="ai-terminal-line">[2025-12-21 19:38:26] ⚡ AI OPTIMIZATION: Analyzing market conditions for optimization...</div>
+                        <div class="ai-terminal-line">[2025-12-21 19:38:27] 📊 AI OPTIMIZATION: Processing 1,247 data points...</div>
+                        <div class="ai-terminal-line">[2025-12-21 19:38:28] 🎯 AI OPTIMIZATION: Calculating optimal parameters...</div>
+                        <div class="ai-terminal-line">[2025-12-21 19:38:29] ✅ AI OPTIMIZATION: Optimization cycle #3,847 completed successfully</div>
+                        <div class="ai-terminal-line">[2025-12-21 19:38:30] 📈 AI OPTIMIZATION: Performance improvement: +2.3% detected</div>
+                        <div class="ai-terminal-line">[2025-12-21 19:38:31] 🔄 AI OPTIMIZATION: Scheduling next cycle in 15 minutes...</div>
+                        <div class="ai-terminal-line">[2025-12-21 19:38:32] 🟢 AI OPTIMIZATION: System status: CONTINUOUS OPERATION 24/7/365</div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="chart-grid">
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Profit Analytics Over Time</h3>
+                        </div>
+                        <canvas id="profitChart" class="chart-canvas"></canvas>
+                    </div>
+
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h3 class="chart-title">MEV Strategy Performance</h3>
+                        </div>
+                        <canvas id="mevChart" class="chart-canvas"></canvas>
+                    </div>
+
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h3 class="chart-title">AI Optimization Performance</h3>
+                        </div>
+                        <canvas id="aiOptimizationChart" class="chart-canvas"></canvas>
+                    </div>
+
+                    <div class="chart-container">
+                        <div class="chart-header">
+                            <h3 class="chart-title">24/7 Uptime Analytics</h3>
+                        </div>
+                        <canvas id="uptimeChart" class="chart-canvas"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Update Indicator -->
+    <div class="update-indicator" id="updateIndicator">
+        🔄 Data Updated
+    </div>
+
+    <script>
+        // Global variables
+        let refreshInterval = 5; // seconds
+        let refreshTimer = null;
+        let currentData = {};
+        let optimizationTimer = null;
+        let uptimeTimer = null;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 AINEON Elite Analytics Dashboard initialized');
+            initializeCharts();
+            startDataUpdates();
+            startOptimizationTimer();
+            startUptimeTracker();
+            showUpdateIndicator();
+        });
+
+        // Refresh dropdown functionality
+        function toggleRefreshDropdown() {
+            const dropdown = document.getElementById('refreshDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        function setRefreshInterval(seconds) {
+            refreshInterval = seconds;
+            const dropdown = document.getElementById('refreshDropdown');
+            dropdown.classList.remove('show');
+            
+            // Update the displayed interval
+            document.querySelector('.refresh-dropdown span:nth-child(2)').textContent = `Refresh: ${seconds}s`;
+            
+            // Restart the timer
+            if (refreshTimer) {
+                clearInterval(refreshTimer);
+            }
+            startDataUpdates();
+        }
+
+        // Start data updates
+        function startDataUpdates() {
+            refreshTimer = setInterval(() => {
+                updateDashboardData();
+                showUpdateIndicator();
+            }, refreshInterval * 1000);
+        }
+
+        // AI Optimization Timer (Every 15 minutes)
+        function startOptimizationTimer() {
+            let timeUntilNext = 15 * 60; // 15 minutes in seconds
+            let cycles = 0;
+
+            optimizationTimer = setInterval(() => {
+                timeUntilNext--;
+                
+                // Update countdown displays
+                updateCountdownDisplay(timeUntilNext);
+                
+                // When timer reaches 0, trigger optimization
+                if (timeUntilNext <= 0) {
+                    triggerOptimizationCycle(++cycles);
+                    timeUntilNext = 15 * 60; // Reset to 15 minutes
+                }
+            }, 1000);
+        }
+
+        function updateCountdownDisplay(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            const timeString = `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+            
+            const countdownElement = document.getElementById('countdownTimer');
+            const mainCountdownElement = document.getElementById('mainCountdownTimer');
+            
+            if (countdownElement) countdownElement.textContent = timeString;
+            if (mainCountdownElement) {
+                mainCountdownElement.textContent = `Next Optimization in: ${timeString}`;
+            }
+        }
+
+        function triggerOptimizationCycle(cycleNumber) {
+            console.log(`🔄 AI Optimization Cycle #${cycleNumber} triggered`);
+            
+            // Update optimization metrics
+            const optimizationsTodayElement = document.querySelector('.ai-optimization-card:nth-child(16) .optimization-timer');
+            if (optimizationsTodayElement) {
+                const currentValue = parseInt(optimizationsTodayElement.textContent);
+                optimizationsTodayElement.textContent = (currentValue + 1).toString();
+            }
+            
+            // Add terminal log
+            const terminal = document.querySelector('.ai-terminal');
+            if (terminal) {
+                const timestamp = new Date().toLocaleTimeString();
+                const newLine = document.createElement('div');
+                newLine.className = 'ai-terminal-line';
+                newLine.textContent = `[${timestamp}] 🔄 AI OPTIMIZATION: Cycle #${cycleNumber} completed successfully - Performance improved by +2.1%`;
+                terminal.appendChild(newLine);
+                
+                // Keep only last 10 lines
+                while (terminal.children.length > 10) {
+                    terminal.removeChild(terminal.firstChild);
+                }
+                
+                // Auto-scroll to bottom
+                terminal.scrollTop = terminal.scrollHeight;
+            }
+            
+            showUpdateIndicator();
+        }
+
+        // Uptime Tracker (24/7/365)
+        function startUptimeTracker() {
+            // Simulate 247 days of continuous operation
+            let uptimeDays = 247;
+            let uptimeHours = 0;
+            let uptimeMinutes = 0;
+
+            uptimeTimer = setInterval(() => {
+                uptimeMinutes++;
+                
+                if (uptimeMinutes >= 60) {
+                    uptimeMinutes = 0;
+                    uptimeHours++;
+                    
+                    if (uptimeHours >= 24) {
+                        uptimeHours = 0;
+                        uptimeDays++;
+                        
+                        // Update uptime display
+                        const uptimeElement = document.getElementById('uptimeDays');
+                        const uptimeDisplay = document.getElementById('uptimeDisplay');
+                        
+                        if (uptimeElement) uptimeElement.textContent = uptimeDays.toString();
+                        if (uptimeDisplay) uptimeDisplay.textContent = `${uptimeDays} Days`;
+                    }
+                }
+            }, 60000); // Update every minute
+        }
+
+        // Show update indicator
+        function showUpdateIndicator() {
+            const indicator = document.getElementById('updateIndicator');
+            indicator.classList.add('show');
+            
+            setTimeout(() => {
+                indicator.classList.remove('show');
+            }, 2000);
+        }
+
+        // Update dashboard data
+        function updateDashboardData() {
+            // Simulate real-time data updates
+            updateMetricValues();
+            updateCharts();
+            updateAITerminal();
+        }
+
+        // Update metric values
+        function updateMetricValues() {
+            // Simulate small variations in metrics
+            const profitElements = document.querySelectorAll('.card-value');
+            profitElements.forEach(element => {
+                if (element.textContent.includes('$')) {
+                    const currentValue = parseFloat(element.textContent.replace(/[$,]/g, ''));
+                    const variation = (Math.random() - 0.5) * 0.02; // ±1% variation
+                    const newValue = currentValue * (1 + variation);
+                    element.textContent = '$' + newValue.toLocaleString('en-US', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    });
+                }
+            });
+        }
+
+        // Initialize charts
+        function initializeCharts() {
+            // Profit Chart
+            const profitCtx = document.getElementById('profitChart').getContext('2d');
+            new Chart(profitCtx, {
+                type: 'line',
+                data: {
+                    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+                    datasets: [{
+                        label: 'Profit ($)',
+                        data: [125000, 128000, 131000, 134000, 136000, 135200, 137500],
+                        borderColor: '#00ff88',
+                        backgroundColor: 'rgba(0, 255, 136, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#ffffff' }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#b0b3c1' } },
+                        y: { ticks: { color: '#b0b3c1' } }
+                    }
+                }
+            });
+
+            // MEV Chart
+            const mevCtx = document.getElementById('mevChart').getContext('2d');
+            new Chart(mevCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Flash Loans', 'Arbitrage', 'Liquidation', 'Sandwich'],
+                    datasets: [{
+                        data: [42.3, 28.7, 18.9, 10.1],
+                        backgroundColor: ['#00ff88', '#00d4ff', '#0099ff', '#9966ff']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#ffffff' }
+                        }
+                    }
+                }
+            });
+
+            // AI Optimization Chart
+            const aiOptimizationCtx = document.getElementById('aiOptimizationChart').getContext('2d');
+            new Chart(aiOptimizationCtx, {
+                type: 'line',
+                data: {
+                    labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+                    datasets: [{
+                        label: 'Optimizations per Hour',
+                        data: [4, 4, 4, 4, 4, 4, 4],
+                        borderColor: '#ff6b6b',
+                        backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#ffffff' }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#b0b3c1' } },
+                        y: { 
+                            ticks: { color: '#b0b3c1' },
+                            beginAtZero: true,
+                            max: 6
+                        }
+                    }
+                }
+            });
+
+            // Uptime Chart
+            const uptimeCtx = document.getElementById('uptimeChart').getContext('2d');
+            new Chart(uptimeCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    datasets: [{
+                        label: 'Uptime Hours',
+                        data: [168, 168, 168, 168],
+                        backgroundColor: '#00ff88'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#ffffff' }
+                        }
+                    },
+                    scales: {
+                        x: { ticks: { color: '#b0b3c1' } },
+                        y: { 
+                            ticks: { color: '#b0b3c1' },
+                            beginAtZero: true,
+                            max: 200
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update charts with new data
+        function updateCharts() {
+            // Simulate chart data updates
+            console.log('📊 Updating chart data...');
+        }
+
+        // Update AI Terminal
+        function updateAITerminal() {
+            const terminal = document.querySelector('.ai-terminal');
+            if (!terminal) return;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const messages = [
+                '🧠 AI: Analyzing market conditions for optimization...',
+                '⚡ AI: Processing optimization parameters...',
+                '📊 AI: Calculating performance improvements...',
+                '🎯 AI: Validating optimization results...',
+                '🔄 AI: Preparing next 15-minute cycle...'
+            ];
+            
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            const newLine = document.createElement('div');
+            newLine.className = 'ai-terminal-line';
+            newLine.textContent = `[${timestamp}] 🔄 AI OPTIMIZATION: ${randomMessage}`;
+            
+            terminal.appendChild(newLine);
+            
+            // Keep only last 10 lines
+            while (terminal.children.length > 10) {
+                terminal.removeChild(terminal.firstChild);
+            }
+            
+            // Auto-scroll to bottom
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        // Sidebar navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Remove active class from all items
+                document.querySelectorAll('.nav-item').forEach(nav => {
+                    nav.classList.remove('active');
+                });
+                
+                // Add active class to clicked item
+                this.classList.add('active');
+                
+                // Here you would typically load the corresponding content
+                console.log('📍 Navigating to:', this.querySelector('span:last-child').textContent);
+            });
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('refreshDropdown');
+            const refreshControls = document.querySelector('.refresh-controls');
+            
+            if (!refreshControls.contains(event.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'r' && e.ctrlKey) {
+                e.preventDefault();
+                updateDashboardData();
+            }
+        });
+
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            // Charts will automatically resize due to responsive: true
+        });
+    </script>
+</body>
+</html>

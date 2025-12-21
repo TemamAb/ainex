@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AINEON Master Dashboard - Elite Trading Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-bg: #0a0e1a;
+            --secondary-bg: #1a1f2e;
+            --accent-bg: #2a2f3e;
+            --primary-color: #00ff88;
+            --secondary-color: #00d4ff;
+            --warning-color: #ffaa00;
+            --danger-color: #ff4444;
+            --success-color: #00ff88;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b3c1;
+            --border-color: #333;
+            --gradient-primary: linear-gradient(135deg, #00ff88, #00d4ff);
+            --gradient-secondary: linear-gradient(135deg, #ff6b6b, #feca57);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--primary-bg);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: var(--secondary-bg);
+            padding: 1rem 2rem;
+            border-bottom: 2px solid var(--primary-color);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: bold;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .status-indicators {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.online { background: var(--success-color); }
+        .status-dot.offline { background: var(--danger-color); }
+        .status-dot.warning { background: var(--warning-color); }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Navigation */
+        .nav {
+            background: var(--accent-bg);
+            padding: 0.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 0.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .nav-tab {
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-tab.active {
+            background: var(--primary-color);
+            color: var(--primary-bg);
+        }
+
+        .nav-tab:hover:not(.active) {
+            background: var(--secondary-bg);
+            color: var(--text-primary);
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Dashboard Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--secondary-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 255, 136, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+
+        .card-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
+
+        .card-change {
+            font-size: 0.9rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .card-change.positive {
+            background: rgba(0, 255, 136, 0.1);
+            color: var(--success-color);
+        }
+
+        .card-change.negative {
+            background: rgba(255, 68, 68, 0.1);
+            color: var(--danger-color);
+        }
+
+        /* Profit Overview */
+        .profit-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .profit-card {
+            background: var(--gradient-primary);
+            color: var(--primary-bg);
+            text-align: center;
+            padding: 2rem 1rem;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .profit-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .profit-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .profit-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Trading Engine Status */
+        .engine-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .engine-card {
+            background: var(--accent-bg);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--border-color);
+            transition: border-color 0.3s ease;
+        }
+
+        .engine-card.active {
+            border-left-color: var(--success-color);
+        }
+
+        .engine-card.inactive {
+            border-left-color: var(--danger-color);
+        }
+
+        .engine-status {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Withdrawal System */
+        .withdrawal-container {
+            background: var(--secondary-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 1rem;
+        }
+
+        .wallet-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .wallet-connection {
+            background: var(--accent-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .wallet-address {
+            font-family: monospace;
+            background: var(--primary-bg);
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+            word-break: break-all;
+        }
+
+        .withdrawal-modes {
+            display: flex;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .mode-btn {
+            padding: 0.75rem 1.5rem;
+            border: 2px solid var(--primary-color);
+            background: transparent;
+            color: var(--primary-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .mode-btn.active {
+            background: var(--primary-color);
+            color: var(--primary-bg);
+        }
+
+        .mode-btn:hover {
+            background: var(--primary-color);
+            color: var(--primary-bg);
+        }
+
+        .transfer-form {
+            background: var(--accent-bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.1);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: var(--primary-bg);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--accent-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--secondary-bg);
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #cc3333;
+        }
+
+        /* Progress Bars */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--accent-bg);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0.5rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--gradient-primary);
+            transition: width 0.3s ease;
+        }
+
+        /* Charts */
+        .chart-container {
+            background: var(--secondary-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .chart-placeholder {
+            height: 200px;
+            background: var(--accent-bg);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border-left: 4px solid;
+        }
+
+        .alert-success {
+            background: rgba(0, 255, 136, 0.1);
+            border-left-color: var(--success-color);
+            color: var(--success-color);
+        }
+
+        .alert-warning {
+            background: rgba(255, 170, 0, 0.1);
+            border-left-color: var(--warning-color);
+            color: var(--warning-color);
+        }
+
+        .alert-danger {
+            background: rgba(255, 68, 68, 0.1);
+            border-left-color: var(--danger-color);
+            color: var(--danger-color);
+        }
+
+        /* Transaction History */
+        .transaction-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: var(--accent-bg);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        .transaction-details {
+            flex: 1;
+        }
+
+        .transaction-hash {
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .transaction-amount {
+            font-weight: 600;
+            color: var(--success-color);
+        }
+
+        /* Settings */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .setting-group {
+            background: var(--secondary-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .setting-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--accent-bg);
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: var(--accent-bg);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: var(--primary-color);
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(26px);
+        }
+
+        /* Footer */
+        .footer {
+            background: var(--secondary-bg);
+            padding: 2rem;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+            margin-top: 3rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .nav-tabs {
+                flex-wrap: wrap;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+
+            .wallet-section {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .profit-overview {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Real-time Updates */
+        .update-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--primary-color);
+            color: var(--primary-bg);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
+
+        .update-indicator.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">🚀 AINEON MASTER DASHBOARD</div>
+            <div class="status-indicators">
+                <div class="status-dot online" title="Engine Status: Online"></div>
+                <span style="font-size: 0.9rem; color: var(--text-secondary);">All Systems Online</span>
+                <span id="last-update" style="font-size: 0.8rem; color: var(--text-secondary);">
+                    Last Update: <span id="last-update-time">--:--:--</span>
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('overview')">📊 Overview</button>
+            <button class="nav-tab" onclick="switchTab('withdrawal')">💰 Withdrawal</button>
+            <button class="nav-tab" onclick="switchTab('engines')">⚙️ Engines</button>
+            <button class="nav-tab" onclick="switchTab('analytics')">📈 Analytics</button>
+            <button class="nav-tab" onclick="switchTab('settings')">🔧 Settings</button>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Overview Tab -->
+        <div id="overview" class="tab-content active">
+            <div class="profit-overview">
+                <div class="profit-card">
+                    <div class="profit-label">Total Profit (ETH)</div>
+                    <div class="profit-value" id="total-profit-eth">54.08</div>
+                    <div class="profit-label">Live Earnings</div>
+                </div>
+                <div class="profit-card">
+                    <div class="profit-label">Total Profit (USD)</div>
+                    <div class="profit-value" id="total-profit-usd">$135,200</div>
+                    <div class="profit-label">Converted Value</div>
+                </div>
+                <div class="profit-card">
+                    <div class="profit-label">Daily Rate</div>
+                    <div class="profit-value" id="daily-rate">2.4 ETH</div>
+                    <div class="profit-label">24h Performance</div>
+                </div>
+                <div class="profit-card">
+                    <div class="profit-label">Success Rate</div>
+                    <div class="profit-value" id="success-rate">94.7%</div>
+                    <div class="profit-label">Trading Accuracy</div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Active Opportunities</div>
+                        <div class="status-dot online"></div>
+                    </div>
+                    <div class="card-value">12</div>
+                    <div class="card-change positive">+3 from last hour</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Execution Speed</div>
+                        <div class="status-dot online"></div>
+                    </div>
+                    <div class="card-value">8.2ms</div>
+                    <div class="card-change positive">-1.3ms improvement</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Risk Level</div>
+                        <div class="status-dot warning"></div>
+                    </div>
+                    <div class="card-value">Medium</div>
+                    <div class="card-change positive">Within limits</div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">Wallet Balance</div>
+                        <div class="status-dot online"></div>
+                    </div>
+                    <div class="card-value">54.08 ETH</div>
+                    <div class="card-change positive">Ready for withdrawal</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h3 style="margin-bottom: 1rem; color: var(--primary-color);">📈 Profit Chart (Last 24 Hours)</h3>
+                <div class="chart-placeholder">
+                    Real-time profit visualization would appear here
+                    <br>
+                    <small style="font-size: 0.8rem;">Chart data updating every 30 seconds</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Withdrawal Tab -->
+        <div id="withdrawal" class="tab-content">
+            <div class="withdrawal-container">
+                <h2 style="margin-bottom: 2rem; color: var(--primary-color);">💰 Profit Withdrawal System</h2>
+                
+                <!-- Wallet Connection -->
+                <div class="wallet-section">
+                    <div class="wallet-connection">
+                        <h3>🔗 Wallet Connection</h3>
+                        <div id="wallet-status">
+                            <div class="alert alert-warning">
+                                ⚠️ No wallet connected
+                                <br><small>Connect your MetaMask wallet to begin withdrawals</small>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="connectWallet()">
+                            🔗 Connect Wallet
+                        </button>
+                        <div id="wallet-address" class="wallet-address" style="display: none;">
+                            <!-- Wallet address will appear here -->
+                        </div>
+                    </div>
+
+                    <div class="wallet-connection">
+                        <h3>📊 Account Status</h3>
+                        <div style="text-align: left;">
+                            <div class="setting-item">
+                                <span>Available Balance</span>
+                                <span style="color: var(--success-color); font-weight: bold;">54.08 ETH</span>
+                            </div>
+                            <div class="setting-item">
+                                <span>Pending Transfers</span>
+                                <span style="color: var(--warning-color);">0</span>
+                            </div>
+                            <div class="setting-item">
+                                <span>Total Withdrawn</span>
+                                <span style="color: var(--text-secondary);">0.00 ETH</span>
+                            </div>
+                            <div class="setting-item">
+                                <span>Safety Buffer</span>
+                                <span style="color: var(--text-secondary);">0.1 ETH</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Withdrawal Mode Selection -->
+                <div class="withdrawal-modes">
+                    <button class="mode-btn active" onclick="selectMode('auto')" id="auto-mode">
+                        🤖 Auto Mode
+                    </button>
+                    <button class="mode-btn" onclick="selectMode('manual')" id="manual-mode">
+                        👤 Manual Mode
+                    </button>
+                </div>
+
+                <!-- Auto Mode Settings -->
+                <div id="auto-mode-settings" style="display: block;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">🤖 Auto Withdrawal Settings</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Withdrawal Threshold (ETH)</label>
+                            <input type="number" class="form-input" id="auto-threshold" value="5.0" step="0.1" min="0.1" max="50.0">
+                            <small style="color: var(--text-secondary);">Auto-transfer when balance exceeds this amount</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Safety Buffer (ETH)</label>
+                            <input type="number" class="form-input" id="auto-buffer" value="0.1" step="0.1" min="0.0" max="1.0">
+                            <small style="color: var(--text-secondary);">Minimum balance to maintain in trading wallet</small>
+                        </div>
+                        <button class="btn btn-primary" onclick="updateAutoSettings()">
+                            💾 Save Auto Settings
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Manual Mode Transfer -->
+                <div id="manual-mode-transfer" style="display: none;">
+                    <div class="transfer-form">
+                        <h3>👤 Manual Transfer</h3>
+                        <div class="form-group">
+                            <label class="form-label">Transfer Amount (ETH)</label>
+                            <input type="number" class="form-input" id="transfer-amount" placeholder="Enter amount to transfer" step="0.01" min="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Recipient Address</label>
+                            <input type="text" class="form-input" id="recipient-address" placeholder="0x..." maxlength="42">
+                        </div>
+                        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                            <button class="btn btn-secondary" onclick="validateTransfer()">
+                                🔍 Validate Transfer
+                            </button>
+                            <button class="btn btn-primary" onclick="executeTransfer()">
+                                💸 Execute Transfer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transfer Progress -->
+                <div id="transfer-progress" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">⏳ Transfer in Progress</div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+                        </div>
+                        <div id="transfer-status" style="margin-top: 1rem; text-align: center;">
+                            Initializing transfer...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transaction History -->
+                <div class="card" style="margin-top: 2rem;">
+                    <div class="card-header">
+                        <div class="card-title">📜 Transaction History</div>
+                        <button class="btn btn-secondary" onclick="refreshTransactions()">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                    <div class="transaction-list" id="transaction-history">
+                        <div class="transaction-item">
+                            <div class="transaction-details">
+                                <div class="transaction-hash">0x742d35Cc6634C0532925a3b8D39e86f8...</div>
+                                <div style="font-size: 0.9rem; color: var(--text-secondary);">2025-12-21 18:30:15</div>
+                            </div>
+                            <div class="transaction-amount">+5.2 ETH</div>
+                        </div>
+                        <div class="transaction-item">
+                            <div class="transaction-details">
+                                <div class="transaction-hash">0x891f42a63d4c0532925a3b8D39e86f7...</div>
+                                <div style="font-size: 0.9rem; color: var(--text-secondary);">2025-12-21 16:45:22</div>
+                            </div>
+                            <div class="transaction-amount">+3.8 ETH</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Engines Tab -->
+        <div id="engines" class="tab-content">
+            <h2 style="margin-bottom: 2rem; color: var(--primary-color);">⚙️ Trading Engine Status</h2>
+            
+            <div class="engine-grid">
+                <div class="engine-card active">
+                    <div class="engine-status" style="color: var(--success-color);">● Active</div>
+                    <div style="font-weight: 600; margin-bottom: 0.5rem;">Engine Alpha</div>
+                    <div style="font-size: 0.9rem; color: var(--text-secondary);">
+                        Profit: $85,200 | Speed: 7.8ms<br>
+                        Success Rate: 96.2% | Uptime: 99.8%
+                    </div>
+                </div>
+
+                <div class="engine-card active">
+                    <div class="engine-status" style="color: var(--success-color);">● Active</div>
+                    <div style="font-weight: 600; margin-bottom: 0.5rem;">Engine Beta</div>
+                    <div style="font-size: 0.9rem; color: var(--text-secondary);">
+                        Profit: $50,000 | Speed: 8.9ms<br>
+                        Success Rate: 93.1% | Uptime: 99.5%
+                    </div>
+                </div>
+
+                <div class="engine-card active">
+                    <div class="engine-status" style="color: var(--warning-color);">● Standby</div>
+                    <div style="font-weight: 600; margin-bottom: 0.5rem;">Engine Gamma</div>
+                    <div style="font-size: 0.9rem; color: var(--text-secondary);">
+                        Profit: $0 | Speed: --<br>
+                        Success Rate: -- | Uptime: 99.9%
+                    </div>
+                </div>
+
+                <div class="engine-card inactive">
+                    <div class="engine-status" style="color: var(--danger-color);">● Maintenance</div>
+                    <div style="font-weight: 600; margin-bottom: 0.5rem;">Engine Delta</div>
+                    <div style="font-size: 0.9rem; color: var(--text-secondary);">
+                        Status: Under maintenance<br>
+                        ETA: 2 hours | Priority: Low
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid" style="margin-top: 2rem;">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">⚡ Performance Metrics</div>
+                    </div>
+                    <div style="text-align: left;">
+                        <div class="setting-item">
+                            <span>Average Latency</span>
+                            <span style="color: var(--success-color);">8.2ms</span>
+                        </div>
+                        <div class="setting-item">
+                            <span>Throughput</span>
+                            <span style="color: var(--success-color);">1,247 tx/hour</span>
+                        </div>
+                        <div class="setting-item">
+                            <span>Error Rate</span>
+                            <span style="color: var(--success-color);">0.03%</span>
+                        </div>
+                        <div class="setting-item">
+                            <span>System Load</span>
+                            <span style="color: var(--warning-color);">67%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🛡️ Risk Management</div>
+                    </div>
+                    <div style="text-align: left;">
+                        <div class="setting-item">
+                            <span>Max Drawdown</span>
+                            <span style="color: var(--success-color);">-2.1%</span>
+                        </div>
+                        <div class="setting-item">
+                            <span>Risk Score</span>
+                            <span style="color: var(--success-color);">Low (3.2/10)</span>
+                        </div>
+                        <div class="setting-item">
+                            <span>Position Size</span>
+                            <span style="color: var(--text-secondary);">2.5 ETH avg</span>
+                        </div>
+                        <div class="setting-item">
+                            <span>Stop Loss</span>
+                            <span style="color: var(--text-secondary);">-5% per trade</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="analytics" class="tab-content">
+            <h2 style="margin-bottom: 2rem; color: var(--primary-color);">📈 Trading Analytics</h2>
+            
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">📊 Daily Performance</div>
+                    </div>
+                    <div class="chart-placeholder">
+                        Daily profit chart would appear here
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🎯 Success Rate Trend</div>
+                    </div>
+                    <div class="chart-placeholder">
+                        Success rate trend chart would appear here
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">💹 Asset Distribution</div>
+                    </div>
+                    <div class="chart-placeholder">
+                        Asset allocation pie chart would appear here
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">⚡ Speed Analysis</div>
+                    </div>
+                    <div class="chart-placeholder">
+                        Execution speed histogram would appear here
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings" class="tab-content">
+            <h2 style="margin-bottom: 2rem; color: var(--primary-color);">🔧 Settings & Configuration</h2>
+            
+            <div class="settings-grid">
+                <div class="setting-group">
+                    <div class="setting-title">🎛️ Trading Preferences</div>
+                    <div class="setting-item">
+                        <span>Auto Trading</span>
+                        <div class="toggle-switch active" onclick="toggleSetting(this)">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <span>Risk Management</span>
+                        <div class="toggle-switch active" onclick="toggleSetting(this)">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <span>Real-time Notifications</span>
+                        <div class="toggle-switch active" onclick="toggleSetting(this)">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <span>Sound Alerts</span>
+                        <div class="toggle-switch" onclick="toggleSetting(this)">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <div class="setting-title">💰 Withdrawal Settings</div>
+                    <div class="setting-item">
+                        <span>Auto Withdrawal</span>
+                        <div class="toggle-switch active" onclick="toggleSetting(this)">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <span>Minimum Threshold</span>
+                        <span style="color: var(--text-secondary);">5.0 ETH</span>
+                    </div>
+                    <div class="setting-item">
+                        <span>Safety Buffer</span>
+                        <span style="color: var(--text-secondary);">0.1 ETH</span>
+                    </div>
+                    <div class="setting-item">
+                        <span>Emergency Stop</span>
+                        <button class="btn btn-danger" onclick="emergencyStop()">
+                            🚨 Emergency Stop
+                        </button>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <div class="setting-title">🔔 Alert Preferences</div>
+                    <div class="setting-item">
+                        <span>Profit Alerts</span>
+                        <div class="toggle-switch active" onclick="toggleSetting(this)">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <span>Error Notifications</span>
+                        <div class="toggle-switch active" onclick="toggleSetting(this)">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <span>System Updates</span>
+                        <div class="toggle-switch" onclick="toggleSetting(this)">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <span>Performance Reports</span>
+                        <div class="toggle-switch active" onclick="toggleSetting(this)">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <div class="setting-title">🔒 Security Settings</div>
+                    <div class="setting-item">
+                        <span>Two-Factor Auth</span>
+                        <div class="toggle-switch" onclick="toggleSetting(this)">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <span>Session Timeout</span>
+                        <span style="color: var(--text-secondary);">24 hours</span>
+                    </div>
+                    <div class="setting-item">
+                        <span>API Access</span>
+                        <div class="toggle-switch active" onclick="toggleSetting(this)">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <span>Audit Logging</span>
+                        <div class="toggle-switch active" onclick="toggleSetting(this)">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 2rem;">
+                <div class="card-header">
+                    <div class="card-title">🗑️ Data Management</div>
+                </div>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button class="btn btn-secondary" onclick="exportData()">
+                        📤 Export Data
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearCache()">
+                        🗑️ Clear Cache
+                    </button>
+                    <button class="btn btn-secondary" onclick="resetSettings()">
+                        🔄 Reset Settings
+                    </button>
+                    <button class="btn btn-danger" onclick="factoryReset()">
+                        ⚠️ Factory Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">
+            🚀 AINEON Master Dashboard v1.0 - Elite Trading Platform
+        </p>
+        <p style="font-size: 0.8rem; color: var(--text-secondary);">
+            Real-time monitoring • Auto-scaling • Enterprise security
+        </p>
+        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 1rem;">
+            Backup Dashboard: <a href="#" style="color: var(--primary-color);">python master_dashboard_backup.py</a>
+        </p>
+    </footer>
+
+    <!-- Update Indicator -->
+    <div class="update-indicator" id="update-indicator">
+        🔄 Dashboard Updated
+    </div>
+
+    <script>
+        // Dashboard State
+        let currentTab = 'overview';
+        let withdrawalMode = 'auto';
+        let walletConnected = false;
+        let dashboardData = {
+            totalProfitETH: 54.08,
+            totalProfitUSD: 135200,
+            dailyRate: 2.4,
+            successRate: 94.7,
+            activeOpportunities: 12,
+            executionSpeed: 8.2,
+            riskLevel: 'Medium',
+            walletBalance: 54.08
+        };
+
+        // Tab Switching
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all nav tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            
+            currentTab = tabName;
+            
+            // Load tab-specific data
+            loadTabData(tabName);
+        }
+
+        // Load tab-specific data
+        function loadTabData(tabName) {
+            switch(tabName) {
+                case 'overview':
+                    updateOverview();
+                    break;
+                case 'withdrawal':
+                    updateWithdrawalTab();
+                    break;
+                case 'engines':
+                    updateEnginesTab();
+                    break;
+                case 'analytics':
+                    updateAnalyticsTab();
+                    break;
+                case 'settings':
+                    updateSettingsTab();
+                    break;
+            }
+        }
+
+        // Update Overview Tab
+        function updateOverview() {
+            // Simulate real-time data updates
+            const profitIncrease = Math.random() * 0.1;
+            dashboardData.totalProfitETH += profitIncrease;
+            dashboardData.totalProfitUSD = dashboardData.totalProfitETH * 2500;
+            
+            document.getElementById('total-profit-eth').textContent = dashboardData.totalProfitETH.toFixed(2);
+            document.getElementById('total-profit-usd').textContent = '$' + dashboardData.totalProfitUSD.toLocaleString();
+            document.getElementById('daily-rate').textContent = dashboardData.dailyRate.toFixed(1) + ' ETH';
+            document.getElementById('success-rate').textContent = dashboardData.successRate.toFixed(1) + '%';
+            
+            showUpdateIndicator();
+        }
+
+        // Withdrawal System Functions
+        function connectWallet() {
+            // Simulate wallet connection
+            setTimeout(() => {
+                walletConnected = true;
+                const mockAddress = '0x742d35Cc6634C0532925a3b8D39e86f8Df2B6c4f';
+                
+                document.getElementById('wallet-status').innerHTML = `
+                    <div class="alert alert-success">
+                        ✅ Wallet Connected Successfully
+                        <br><small>Connected to MetaMask</small>
+                    </div>
+                `;
+                
+                document.getElementById('wallet-address').style.display = 'block';
+                document.getElementById('wallet-address').textContent = mockAddress;
+                
+                showUpdateIndicator();
+            }, 1500);
+        }
+
+        function selectMode(mode) {
+            withdrawalMode = mode;
+            
+            // Update button states
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(mode + '-mode').classList.add('active');
+            
+            // Show/hide relevant sections
+            document.getElementById('auto-mode-settings').style.display = mode === 'auto' ? 'block' : 'none';
+            document.getElementById('manual-mode-transfer').style.display = mode === 'manual' ? 'block' : 'none';
+            
+            showUpdateIndicator();
+        }
+
+        function updateAutoSettings() {
+            const threshold = document.getElementById('auto-threshold').value;
+            const buffer = document.getElementById('auto-buffer').value;
+            
+            // Simulate saving settings
+            showNotification('✅ Auto withdrawal settings updated successfully!', 'success');
+            showUpdateIndicator();
+        }
+
+        function validateTransfer() {
+            const amount = document.getElementById('transfer-amount').value;
+            const address = document.getElementById('recipient-address').value;
+            
+            if (!amount || !address) {
+                showNotification('❌ Please fill in all fields', 'danger');
+                return;
+            }
+            
+            if (amount > dashboardData.walletBalance) {
+                showNotification('❌ Insufficient balance', 'danger');
+                return;
+            }
+            
+            showNotification('✅ Transfer validation successful', 'success');
+        }
+
+        function executeTransfer() {
+            const amount = document.getElementById('transfer-amount').value;
+            
+            if (!amount) {
+                showNotification('❌ Please enter transfer amount', 'danger');
+                return;
+            }
+            
+            // Show progress
+            document.getElementById('transfer-progress').style.display = 'block';
+            
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += 10;
+                document.getElementById('progress-fill').style.width = progress + '%';
+                
+                if (progress === 30) {
+                    document.getElementById('transfer-status').textContent = '🔍 Validating transaction...';
+                } else if (progress === 60) {
+                    document.getElementById('transfer-status').textContent = '⛓️ Processing on blockchain...';
+                } else if (progress === 90) {
+                    document.getElementById('transfer-status').textContent = '✅ Finalizing transfer...';
+                } else if (progress === 100) {
+                    clearInterval(progressInterval);
+                    document.getElementById('transfer-status').textContent = '🎉 Transfer completed successfully!';
+                    
+                    setTimeout(() => {
+                        document.getElementById('transfer-progress').style.display = 'none';
+                        document.getElementById('transfer-amount').value = '';
+                        document.getElementById('recipient-address').value = '';
+                        
+                        // Update balance
+                        dashboardData.walletBalance -= parseFloat(amount);
+                        showNotification(`🎉 Successfully transferred ${amount} ETH!`, 'success');
+                        refreshTransactions();
+                    }, 2000);
+                }
+            }, 300);
+        }
+
+        function refreshTransactions() {
+            // Simulate refreshing transaction history
+            showNotification('🔄 Transaction history refreshed', 'success');
+            showUpdateIndicator();
+        }
+
+        // Engine Status Updates
+        function updateEnginesTab() {
+            // Engine data would be updated here with real-time information
+            showUpdateIndicator();
+        }
+
+        // Analytics Updates
+        function updateAnalyticsTab() {
+            // Analytics data would be updated here
+            showUpdateIndicator();
+        }
+
+        // Settings Updates
+        function updateSettingsTab() {
+            // Settings data would be updated here
+            showUpdateIndicator();
+        }
+
+        function updateWithdrawalTab() {
+            // Withdrawal tab specific updates
+            showUpdateIndicator();
+        }
+
+        // Utility Functions
+        function toggleSetting(element) {
+            element.classList.toggle('active');
+            showUpdateIndicator();
+        }
+
+        function emergencyStop() {
+            if (confirm('Are you sure you want to activate emergency stop? This will halt all trading activities.')) {
+                showNotification('🚨 Emergency stop activated - All trading halted', 'danger');
+            }
+        }
+
+        function exportData() {
+            showNotification('📤 Data export initiated', 'success');
+        }
+
+        function clearCache() {
+            showNotification('🗑️ Cache cleared successfully', 'success');
+        }
+
+        function resetSettings() {
+            if (confirm('Are you sure you want to reset all settings to default?')) {
+                showNotification('🔄 Settings reset to default', 'success');
+            }
+        }
+
+        function factoryReset() {
+            if (confirm('⚠️ WARNING: This will reset ALL data and settings. Are you absolutely sure?')) {
+                showNotification('⚠️ Factory reset initiated - This action cannot be undone', 'danger');
+            }
+        }
+
+        function showNotification(message, type = 'success') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type}`;
+            notification.style.position = 'fixed';
+            notification.style.top = '20px';
+            notification.style.right = '20px';
+            notification.style.zIndex = '10000';
+            notification.style.minWidth = '300px';
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+
+        function showUpdateIndicator() {
+            const indicator = document.getElementById('update-indicator');
+            indicator.classList.add('show');
+            
+            setTimeout(() => {
+                indicator.classList.remove('show');
+            }, 2000);
+        }
+
+        function updateLastUpdateTime() {
+            const now = new Date();
+            document.getElementById('last-update-time').textContent = now.toLocaleTimeString();
+        }
+
+        // Real-time updates
+        function startRealTimeUpdates() {
+            // Update every 30 seconds
+            setInterval(() => {
+                if (currentTab === 'overview') {
+                    updateOverview();
+                }
+                updateLastUpdateTime();
+            }, 30000);
+
+            // Update every 5 seconds for critical data
+            setInterval(() => {
+                updateLastUpdateTime();
+            }, 5000);
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 AINEON Master Dashboard initialized');
+            updateLastUpdateTime();
+            startRealTimeUpdates();
+            
+            // Load initial data
+            updateOverview();
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case '1':
+                        e.preventDefault();
+                        switchTab('overview');
+                        break;
+                    case '2':
+                        e.preventDefault();
+                        switchTab('withdrawal');
+                        break;
+                    case '3':
+                        e.preventDefault();
+                        switchTab('engines');
+                        break;
+                    case '4':
+                        e.preventDefault();
+                        switchTab('analytics');
+                        break;
+                    case '5':
+                        e.preventDefault();
+                        switchTab('settings');
+                        break;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

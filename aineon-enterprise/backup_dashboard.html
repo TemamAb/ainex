@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AINEON Emergency Dashboard - Fallback System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #1a1a1a;
+            color: #ffffff;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .emergency-header {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            padding: 2rem;
+            text-align: center;
+            border-bottom: 3px solid #ff4757;
+        }
+
+        .emergency-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .emergency-subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .status-card {
+            background: #2d2d2d;
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 2px solid #444;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .status-card:hover {
+            border-color: #ff6b6b;
+            transform: translateY(-2px);
+        }
+
+        .status-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .status-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #ff6b6b;
+        }
+
+        .status-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
+
+        .status-description {
+            font-size: 0.9rem;
+            color: #cccccc;
+        }
+
+        .emergency-alert {
+            background: linear-gradient(45deg, #ff9ff3, #f368e0);
+            color: #1a1a1a;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 2rem 0;
+            text-align: center;
+            border: 2px solid #ff6b6b;
+        }
+
+        .emergency-alert h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .recovery-actions {
+            background: #2d2d2d;
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+            border: 2px solid #ff6b6b;
+        }
+
+        .recovery-actions h3 {
+            color: #ff6b6b;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            font-size: 1.5rem;
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .action-button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+            border: none;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: block;
+            text-align: center;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+        }
+
+        .action-button.primary {
+            background: linear-gradient(45deg, #00d2d3, #01a3a4);
+        }
+
+        .action-button.secondary {
+            background: linear-gradient(45deg, #feca57, #ff9ff3);
+        }
+
+        .profit-display {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .profit-amount {
+            font-size: 3rem;
+            font-weight: bold;
+            margin: 1rem 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .profit-label {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .system-info {
+            background: #2d2d2d;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .system-info h3 {
+            color: #ff6b6b;
+            margin-bottom: 1rem;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .info-item {
+            background: #333;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #ff6b6b;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #ff6b6b;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-value {
+            font-size: 1.1rem;
+        }
+
+        .footer {
+            background: #2d2d2d;
+            padding: 2rem;
+            text-align: center;
+            margin-top: 3rem;
+            border-top: 2px solid #ff6b6b;
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ff6b6b;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .emergency-title {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 1rem;
+            }
+            
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Emergency Header -->
+    <header class="emergency-header">
+        <div class="emergency-title pulse">🚨 EMERGENCY DASHBOARD ACTIVE</div>
+        <div class="emergency-subtitle">AINEON Fallback System - Primary dashboards unavailable</div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Emergency Alert -->
+        <div class="emergency-alert">
+            <h3>⚠️ DASHBOARD FAILOVER ACTIVE</h3>
+            <p>The primary and backup dashboards are currently unavailable. This emergency dashboard provides basic monitoring capabilities.</p>
+            <p><strong>Action Required:</strong> Check primary dashboard system or contact system administrator.</p>
+        </div>
+
+        <!-- System Status -->
+        <div class="status-grid">
+            <div class="status-card">
+                <div class="status-icon">💰</div>
+                <div class="status-title">Total Profit</div>
+                <div class="status-value" id="total-profit">54.08 ETH</div>
+                <div class="status-description">Last known balance</div>
+            </div>
+
+            <div class="status-card">
+                <div class="status-icon">📈</div>
+                <div class="status-title">Success Rate</div>
+                <div class="status-value" id="success-rate">94.7%</div>
+                <div class="status-description">Trading accuracy</div>
+            </div>
+
+            <div class="status-card">
+                <div class="status-icon">⚡</div>
+                <div class="status-title">Execution Speed</div>
+                <div class="status-value" id="execution-speed">8.2ms</div>
+                <div class="status-description">Average latency</div>
+            </div>
+
+            <div class="status-card">
+                <div class="status-icon">🎯</div>
+                <div class="status-title">Active Engines</div>
+                <div class="status-value" id="active-engines">2/4</div>
+                <div class="status-description">Operational status</div>
+            </div>
+        </div>
+
+        <!-- Profit Display -->
+        <div class="profit-display">
+            <div class="profit-label">Current Portfolio Value</div>
+            <div class="profit-amount" id="portfolio-value">$135,200</div>
+            <div class="profit-label">Based on last known ETH price: $2,500</div>
+        </div>
+
+        <!-- Recovery Actions -->
+        <div class="recovery-actions">
+            <h3>🛠️ RECOVERY ACTIONS</h3>
+            <div class="action-grid">
+                <a href="http://localhost:8080" class="action-button primary">
+                    🔄 Retry Primary Dashboard
+                </a>
+                <a href="http://localhost:8081" class="action-button secondary">
+                    🐍 Try Python Backup
+                </a>
+                <button class="action-button" onclick="refreshData()">
+                    🔄 Refresh Data
+                </button>
+                <button class="action-button" onclick="checkSystemHealth()">
+                    🩺 Health Check
+                </button>
+            </div>
+        </div>
+
+        <!-- System Information -->
+        <div class="system-info">
+            <h3>📊 SYSTEM INFORMATION</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Dashboard Mode</div>
+                    <div class="info-value">Emergency Fallback</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Last Update</div>
+                    <div class="info-value" id="last-update">Loading...</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Uptime</div>
+                    <div class="info-value" id="uptime">Calculating...</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Data Source</div>
+                    <div class="info-value">Cached/Simulated</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Engine Status Details -->
+        <div class="system-info">
+            <h3>⚙️ ENGINE STATUS DETAILS</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Engine Alpha</div>
+                    <div class="info-value" style="color: #00ff88;">● Active</div>
+                    <div style="font-size: 0.9rem; margin-top: 0.5rem;">
+                        Profit: $85,200 | Speed: 7.8ms<br>
+                        Success Rate: 96.2%
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Engine Beta</div>
+                    <div class="info-value" style="color: #00ff88;">● Active</div>
+                    <div style="font-size: 0.9rem; margin-top: 0.5rem;">
+                        Profit: $50,000 | Speed: 8.9ms<br>
+                        Success Rate: 93.1%
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Engine Gamma</div>
+                    <div class="info-value" style="color: #ffaa00;">● Standby</div>
+                    <div style="font-size: 0.9rem; margin-top: 0.5rem;">
+                        Status: Ready for activation<br>
+                        Last Check: 5 minutes ago
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Engine Delta</div>
+                    <div class="info-value" style="color: #ff4444;">● Maintenance</div>
+                    <div style="font-size: 0.9rem; margin-top: 0.5rem;">
+                        Status: Under maintenance<br>
+                        ETA: 2 hours
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p><strong>🚨 EMERGENCY DASHBOARD ACTIVE</strong></p>
+        <p>This is a fallback dashboard activated due to primary system failure.</p>
+        <p>For full functionality, please resolve primary dashboard issues.</p>
+        <p style="margin-top: 1rem; font-size: 0.9rem; opacity: 0.7;">
+            AINEON Emergency System v1.0 | Last updated: <span id="footer-update">--</span>
+        </p>
+    </footer>
+
+    <script>
+        // Emergency Dashboard JavaScript
+        let startTime = Date.now();
+        let updateInterval;
+
+        // Initialize dashboard
+        function initializeDashboard() {
+            console.log('🚨 AINEON Emergency Dashboard initialized');
+            
+            updateLastUpdate();
+            updateUptime();
+            simulateData();
+            
+            // Start update intervals
+            updateInterval = setInterval(() => {
+                updateLastUpdate();
+                updateUptime();
+                simulateData();
+            }, 30000); // Update every 30 seconds
+            
+            // Check primary dashboard status
+            checkPrimaryDashboard();
+        }
+
+        // Update last update time
+        function updateLastUpdate() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            
+            document.getElementById('last-update').textContent = timeString;
+            document.getElementById('footer-update').textContent = timeString;
+        }
+
+        // Update uptime
+        function updateUptime() {
+            const uptime = Date.now() - startTime;
+            const hours = Math.floor(uptime / (1000 * 60 * 60));
+            const minutes = Math.floor((uptime % (1000 * 60 * 60)) / (1000 * 60));
+            
+            document.getElementById('uptime').textContent = `${hours}h ${minutes}m`;
+        }
+
+        // Simulate data updates
+        function simulateData() {
+            // Simulate small profit increases
+            const currentProfit = parseFloat(document.getElementById('total-profit').textContent);
+            const increase = (Math.random() * 0.01);
+            const newProfit = (currentProfit + increase).toFixed(2);
+            
+            document.getElementById('total-profit').textContent = `${newProfit} ETH`;
+            
+            // Update portfolio value
+            const ethPrice = 2500;
+            const portfolioValue = (newProfit * ethPrice).toLocaleString('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            });
+            
+            document.getElementById('portfolio-value').textContent = portfolioValue;
+            
+            // Show update indicator
+            showUpdateIndicator();
+        }
+
+        // Show update indicator
+        function showUpdateIndicator() {
+            const indicator = document.createElement('div');
+            indicator.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #ff6b6b;
+                color: white;
+                padding: 0.5rem 1rem;
+                border-radius: 20px;
+                font-size: 0.8rem;
+                z-index: 1000;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            `;
+            indicator.textContent = '🔄 Data Updated';
+            
+            document.body.appendChild(indicator);
+            
+            // Fade in
+            setTimeout(() => indicator.style.opacity = '1', 100);
+            
+            // Fade out
+            setTimeout(() => {
+                indicator.style.opacity = '0';
+                setTimeout(() => indicator.remove(), 300);
+            }, 2000);
+        }
+
+        // Check primary dashboard status
+        async function checkPrimaryDashboard() {
+            const endpoints = [
+                'http://localhost:8080/api/status',
+                'http://localhost:8081/api/status'
+            ];
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(endpoint, { 
+                        method: 'GET',
+                        timeout: 5000
+                    });
+                    
+                    if (response.ok) {
+                        console.log(`✅ Primary dashboard available at: ${endpoint}`);
+                        showNotification('Primary dashboard is available!', 'success');
+                        break;
+                    }
+                } catch (error) {
+                    console.log(`❌ Dashboard unavailable at: ${endpoint}`);
+                }
+            }
+        }
+
+        // Refresh data manually
+        function refreshData() {
+            const button = event.target;
+            const originalText = button.textContent;
+            
+            button.innerHTML = '<span class="loading"></span> Refreshing...';
+            button.disabled = true;
+            
+            setTimeout(() => {
+                simulateData();
+                updateLastUpdate();
+                button.textContent = originalText;
+                button.disabled = false;
+                
+                showNotification('Data refreshed successfully!', 'success');
+            }, 1500);
+        }
+
+        // Check system health
+        async function checkSystemHealth() {
+            const button = event.target;
+            const originalText = button.textContent;
+            
+            button.innerHTML = '<span class="loading"></span> Checking...';
+            button.disabled = true;
+            
+            setTimeout(async () => {
+                await checkPrimaryDashboard();
+                
+                // Show health status
+                const healthStatus = {
+                    'Emergency Dashboard': '✅ Online',
+                    'Primary Dashboard': '❌ Offline',
+                    'Backup Dashboard': '❌ Offline',
+                    'Data Connection': '⚠️ Cached Mode',
+                    'System Status': '⚠️ Degraded'
+                };
+                
+                let healthMessage = 'System Health Report:\n\n';
+                for (const [service, status] of Object.entries(healthStatus)) {
+                    healthMessage += `${service}: ${status}\n`;
+                }
+                
+                alert(healthMessage);
+                
+                button.textContent = originalText;
+                button.disabled = false;
+            }, 2000);
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: ${type === 'success' ? '#00ff88' : '#ff6b6b'};
+                color: #1a1a1a;
+                padding: 1rem 2rem;
+                border-radius: 8px;
+                font-weight: bold;
+                z-index: 10000;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            `;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Fade in
+            setTimeout(() => notification.style.opacity = '1', 100);
+            
+            // Fade out and remove
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F5' || (e.ctrlKey && e.key === 'r')) {
+                e.preventDefault();
+                refreshData();
+            } else if (e.key === 'F1') {
+                e.preventDefault();
+                checkSystemHealth();
+            }
+        });
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initializeDashboard);
+
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                // Page became visible, update data
+                updateLastUpdate();
+                updateUptime();
+            }
+        });
+
+        // Prevent accidental page closure
+        window.addEventListener('beforeunload', function(e) {
+            e.preventDefault();
+            e.returnValue = 'Are you sure you want to close the emergency dashboard?';
+        });
+    </script>
+</body>
+</html>

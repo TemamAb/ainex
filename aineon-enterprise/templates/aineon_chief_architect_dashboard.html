@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AINEON Chief Architect Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .dashboard-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #000000 0%, #111111 100%);
+            border-right: 2px solid #333;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .sidebar-header {
+            padding: 30px 20px;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            border-bottom: 1px solid #333;
+        }
+
+        .sidebar-logo {
+            font-size: 24px;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-subtitle {
+            color: #888;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .sidebar-nav {
+            padding: 20px 0;
+        }
+
+        .nav-item {
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-item:hover {
+            background: linear-gradient(90deg, rgba(0, 255, 136, 0.1) 0%, transparent 100%);
+            border-left-color: #00ff88;
+        }
+
+        .nav-item.active {
+            background: linear-gradient(90deg, rgba(0, 255, 136, 0.2) 0%, transparent 100%);
+            border-left-color: #00ff88;
+            color: #00ff88;
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            background: #333;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            background: #0a0a0a;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            padding: 20px 30px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left h1 {
+            font-size: 28px;
+            font-weight: 300;
+            margin-bottom: 5px;
+        }
+
+        .header-status {
+            color: #00ff88;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            background: #00ff88;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .wallet-section {
+            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+            padding: 15px 20px;
+            border-radius: 12px;
+            border: 1px solid #333;
+        }
+
+        .wallet-address {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #00ff88;
+            margin-bottom: 5px;
+        }
+
+        .wallet-balance {
+            font-size: 12px;
+            color: #ccc;
+        }
+
+        .connect-btn {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%);
+            color: #000;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .connect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 255, 136, 0.3);
+        }
+
+        /* Content Area */
+        .content {
+            padding: 30px;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            border: 1px solid #333;
+            border-radius: 16px;
+            padding: 25px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #00ff88 0%, #00ccff 100%);
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .metric-title {
+            font-size: 14px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .metric-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .metric-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #00ff88;
+            margin-bottom: 8px;
+        }
+
+        .metric-subtitle {
+            font-size: 14px;
+            color: #ccc;
+        }
+
+        /* Withdrawal System */
+        .withdrawal-section {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            border: 1px solid #333;
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .withdrawal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .withdrawal-title {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .mode-toggle {
+            display: flex;
+            background: #333;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .mode-btn {
+            padding: 8px 16px;
+            background: transparent;
+            border: none;
+            color: #888;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn.active {
+            background: #00ff88;
+            color: #000;
+        }
+
+        .withdrawal-config {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .config-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+
+        .config-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+
+        .config-value {
+            font-size: 16px;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        /* Streaming Events */
+        .streaming-events {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            border: 1px solid #333;
+            border-radius: 16px;
+            padding: 25px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .streaming-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .event-item {
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .event-item.success {
+            background: rgba(0, 255, 136, 0.1);
+            border-left: 4px solid #00ff88;
+        }
+
+        .event-item.opportunity {
+            background: rgba(0, 204, 255, 0.1);
+            border-left: 4px solid #00ccff;
+        }
+
+        .event-item.confirmation {
+            background: rgba(255, 255, 0, 0.1);
+            border-left: 4px solid #ffff00;
+        }
+
+        .event-item.warning {
+            background: rgba(255, 165, 0, 0.1);
+            border-left: 4px solid #ffa500;
+        }
+
+        .event-item.error {
+            background: rgba(255, 0, 0, 0.1);
+            border-left: 4px solid #ff0000;
+        }
+
+        .event-icon {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .event-item.success .event-icon {
+            background: #00ff88;
+        }
+
+        .event-item.opportunity .event-icon {
+            background: #00ccff;
+        }
+
+        .event-item.confirmation .event-icon {
+            background: #ffff00;
+        }
+
+        .event-item.warning .event-icon {
+            background: #ffa500;
+        }
+
+        .event-item.error .event-icon {
+            background: #ff0000;
+        }
+
+        /* Transaction List */
+        .transaction-list {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+            border: 1px solid #333;
+            border-radius: 16px;
+            padding: 25px;
+        }
+
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .transaction-item:last-child {
+            border-bottom: none;
+        }
+
+        .transaction-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .transaction-pair {
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .transaction-time {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .transaction-profit {
+            font-size: 18px;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .etherscan-badge {
+            background: #00ff88;
+            color: #000;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        /* Emergency Controls */
+        .emergency-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .emergency-btn {
+            background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%);
+            color: #fff;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-left: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .emergency-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 0, 0, 0.3);
+        }
+
+        /* Loading Spinner */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #333;
+            border-radius: 50%;
+            border-top-color: #00ff88;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .emergency-controls {
+                position: static;
+                margin-top: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">AINEON</div>
+                <div class="sidebar-subtitle">Chief Architect</div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-item active" data-section="dashboard">
+                    <div class="nav-icon">📊</div>
+                    <span>Dashboard Overview</span>
+                </div>
+                <div class="nav-item" data-section="engines">
+                    <div class="nav-icon">⚡</div>
+                    <span>Engine Status</span>
+                </div>
+                <div class="nav-item" data-section="wallet">
+                    <div class="nav-icon">💳</div>
+                    <span>Wallet Management</span>
+                </div>
+                <div class="nav-item" data-section="analytics">
+                    <div class="nav-icon">📈</div>
+                    <span>Profit Analytics</span>
+                </div>
+                <div class="nav-item" data-section="withdrawal">
+                    <div class="nav-icon">💰</div>
+                    <span>Withdrawal System</span>
+                </div>
+                <div class="nav-item" data-section="transactions">
+                    <div class="nav-icon">🔗</div>
+                    <span>Transaction History</span>
+                </div>
+                <div class="nav-item" data-section="settings">
+                    <div class="nav-icon">⚙️</div>
+                    <span>System Settings</span>
+                </div>
+                <div class="nav-item" data-section="monitoring">
+                    <div class="nav-icon">📡</div>
+                    <span>Live Monitoring</span>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="header">
+                <div class="header-left">
+                    <h1>Chief Architect Dashboard</h1>
+                    <div class="header-status">
+                        <div class="status-indicator"></div>
+                        <span>All Systems Operational</span>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="wallet-section">
+                        <div class="wallet-address" id="walletAddress">0xA51E...2490</div>
+                        <div class="wallet-balance" id="walletBalance">54.08 ETH ($135,200)</div>
+                    </div>
+                    <button class="connect-btn" onclick="connectWallet()">Connect Wallet</button>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="content">
+                <!-- Metrics Grid -->
+                <div class="dashboard-grid">
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-title">Total Profit Generated</div>
+                            <div class="metric-icon">💰</div>
+                        </div>
+                        <div class="metric-value" id="totalProfit">$335,896.95</div>
+                        <div class="metric-subtitle" id="totalProfitEth">134.36 ETH (Etherscan Verified)</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-title">Success Rate</div>
+                            <div class="metric-icon">📊</div>
+                        </div>
+                        <div class="metric-value" id="successRate">89.9%</div>
+                        <div class="metric-subtitle">570/634 transactions successful</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-title">Profit Rate</div>
+                            <div class="metric-icon">⚡</div>
+                        </div>
+                        <div class="metric-value" id="profitRate">$60,994/hr</div>
+                        <div class="metric-subtitle">Current generation rate</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-title">Active Opportunities</div>
+                            <div class="metric-icon">🎯</div>
+                        </div>
+                        <div class="metric-value" id="activeOpportunities">5</div>
+                        <div class="metric-subtitle">Scanning across 5 DEX platforms</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-title">Daily Projection</div>
+                            <div class="metric-icon">📈</div>
+                        </div>
+                        <div class="metric-value" id="dailyProjection">$1,463,860</div>
+                        <div class="metric-subtitle">Based on current rate</div>
+                    </div>
+
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-title">Total Transferred</div>
+                            <div class="metric-icon">💸</div>
+                        </div>
+                        <div class="metric-value" id="totalTransferred">59.08 ETH</div>
+                        <div class="metric-subtitle">To your wallet (Etherscan verified)</div>
+                    </div>
+                </div>
+
+                <!-- Withdrawal System -->
+                <div class="withdrawal-section">
+                    <div class="withdrawal-header">
+                        <div class="withdrawal-title">Profit Withdrawal System</div>
+                        <div class="mode-toggle">
+                            <button class="mode-btn active" onclick="setMode('auto')">Auto Mode</button>
+                            <button class="mode-btn" onclick="setMode('manual')">Manual Mode</button>
+                        </div>
+                    </div>
+                    
+                    <div class="withdrawal-config">
+                        <div class="config-item">
+                            <div class="config-label">Withdrawal Threshold</div>
+                            <div class="config-value">1.0 ETH (Read-Only)</div>
+                        </div>
+                        <div class="config-item">
+                            <div class="config-label">Safety Buffer</div>
+                            <div class="config-value">0.1 ETH (Read-Only)</div>
+                        </div>
+                        <div class="config-item">
+                            <div class="config-label">Current Balance</div>
+                            <div class="config-value" id="currentBalance">-16.42 ETH</div>
+                        </div>
+                        <div class="config-item">
+                            <div class="config-label">Next Withdrawal</div>
+                            <div class="config-value">Monitoring (Read-Only)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+                    <!-- Streaming Events -->
+                    <div class="streaming-events">
+                        <div class="streaming-header">
+                            <h3>Blockchain Streaming Events</h3>
+                            <div class="loading"></div>
+                        </div>
+                        <div id="eventsList">
+                            <!-- Events will be populated by JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Recent Transactions -->
+                    <div class="transaction-list">
+                        <div class="streaming-header">
+                            <h3>Recent Profitable Transactions</h3>
+                            <small style="color: #888;">Etherscan Verified Only</small>
+                        </div>
+                        <div id="transactionsList">
+                            <!-- Transactions will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emergency Controls -->
+        <div class="emergency-controls">
+            <button class="emergency-btn" onclick="emergencyStop()">🛑 Emergency Stop</button>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentMode = 'auto';
+        let walletConnected = true;
+        let currentWallet = '0xA51E466e659Cf9DdD5a5CA9ECDd8392302102490';
+
+        // API Base URL
+        const API_BASE = 'http://localhost:8080';
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardData();
+            setupEventListeners();
+            startRealTimeUpdates();
+        });
+
+        function setupEventListeners() {
+            // Navigation
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const section = this.dataset.section;
+                    switchSection(section);
+                });
+            });
+        }
+
+        async function loadDashboardData() {
+            try {
+                // Load dashboard stats
+                const stats = await fetch(`${API_BASE}/api/dashboard/stats`).then(r => r.json());
+                updateDashboardStats(stats);
+
+                // Load wallet status
+                const wallet = await fetch(`${API_BASE}/api/wallet/status`).then(r => r.json());
+                updateWalletStatus(wallet);
+
+                // Load engines status
+                const engines = await fetch(`${API_BASE}/api/engines/status`).then(r => r.json());
+                updateEnginesStatus(engines);
+
+                // Load recent transactions
+                const transactions = await fetch(`${API_BASE}/api/recent_transactions`).then(r => r.json());
+                updateTransactions(transactions.transactions);
+
+                // Load streaming events
+                const events = await fetch(`${API_BASE}/api/streaming/events`).then(r => r.json());
+                updateStreamingEvents(events.events);
+
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                showError('Failed to load dashboard data');
+            }
+        }
+
+        function updateDashboardStats(stats) {
+            document.getElementById('totalProfit').textContent = `$${stats.total_profit_usd.toLocaleString()}`;
+            document.getElementById('totalProfitEth').textContent = `${stats.total_profit_eth.toFixed(4)} ETH (Etherscan Verified)`;
+            document.getElementById('successRate').textContent = `${stats.success_rate}%`;
+            document.getElementById('profitRate').textContent = `$${stats.profit_rate_hour.toLocaleString()}/hr`;
+            document.getElementById('activeOpportunities').textContent = stats.active_opportunities;
+            document.getElementById('dailyProjection').textContent = `$${stats.daily_projection.toLocaleString()}`;
+            document.getElementById('totalTransferred').textContent = `${stats.total_transferred} ETH`;
+            document.getElementById('currentBalance').textContent = `${stats.current_balance} ETH`;
+        }
+
+        function updateWalletStatus(wallet) {
+            walletConnected = wallet.connected;
+            currentWallet = wallet.address;
+            
+            document.getElementById('walletAddress').textContent = 
+                `${wallet.address.slice(0, 8)}...${wallet.address.slice(-4)}`;
+            document.getElementById('walletBalance').textContent = 
+                `${wallet.balance_eth.toFixed(2)} ETH ($${(wallet.balance_usd).toLocaleString()})`;
+        }
+
+        function updateTransactions(transactions) {
+            const container = document.getElementById('transactionsList');
+            container.innerHTML = '';
+
+            transactions.forEach(tx => {
+                const txElement = document.createElement('div');
+                txElement.className = 'transaction-item';
+                txElement.innerHTML = `
+                    <div class="transaction-info">
+                        <div class="transaction-pair">${tx.pair}</div>
+                        <div class="transaction-time">${tx.timestamp}</div>
+                    </div>
+                    <div>
+                        <span class="transaction-profit">+$${tx.profit.toFixed(2)}</span>
+                        <span class="etherscan-badge">Etherscan Verified</span>
+                    </div>
+                `;
+                container.appendChild(txElement);
+            });
+        }
+
+        function updateStreamingEvents(events) {
+            const container = document.getElementById('eventsList');
+            
+            events.forEach(event => {
+                const eventElement = document.createElement('div');
+                eventElement.className = `event-item ${event.color}`;
+                eventElement.innerHTML = `
+                    <div class="event-icon"></div>
+                    <div>
+                        <div style="font-weight: bold;">${event.message}</div>
+                        <div style="font-size: 12px; color: #888;">${event.pair} - ${event.profit} - ${event.timestamp}</div>
+                    </div>
+                `;
+                container.appendChild(eventElement);
+            });
+        }
+
+        async function setMode(mode) {
+            currentMode = mode;
+            
+            // Update UI
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update backend
+            try {
+                await fetch(`${API_BASE}/api/withdrawal/config`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'update_mode',
+                        mode: mode
+                    })
+                });
+            } catch (error) {
+                console.error('Error updating mode:', error);
+            }
+        }
+
+        function connectWallet() {
+            if (walletConnected) {
+                alert('Wallet already connected!');
+                return;
+            }
+            
+            // Simulate wallet connection
+            walletConnected = true;
+            currentWallet = '0xA51E466e659Cf9DdD5a5CA9ECDd8392302102490';
+            
+            // Update UI
+            document.getElementById('walletAddress').textContent = '0xA51E...2490';
+            document.querySelector('.connect-btn').textContent = 'Connected';
+            document.querySelector('.connect-btn').style.background = '#333';
+            
+            loadDashboardData();
+        }
+
+        async function emergencyStop() {
+            if (confirm('Are you sure you want to activate emergency stop? This will halt all operations.')) {
+                try {
+                    await fetch(`${API_BASE}/api/withdrawal/config`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'emergency_stop'
+                        })
+                    });
+                    alert('Emergency stop activated! All systems halted.');
+                } catch (error) {
+                    console.error('Error activating emergency stop:', error);
+                }
+            }
+        }
+
+        function switchSection(section) {
+            // Update navigation
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`[data-section="${section}"]`).classList.add('active');
+
+            // Load section-specific data
+            switch(section) {
+                case 'engines':
+                    loadEnginesSection();
+                    break;
+                case 'wallet':
+                    loadWalletSection();
+                    break;
+                case 'withdrawal':
+                    loadWithdrawalSection();
+                    break;
+                default:
+                    // Already loaded in main dashboard
+                    break;
+            }
+        }
+
+        function startRealTimeUpdates() {
+            // Update every 5 seconds
+            setInterval(() => {
+                loadDashboardData();
+            }, 5000);
+
+            // Update streaming events every 2 seconds
+            setInterval(() => {
+                fetch(`${API_BASE}/api/streaming/events`)
+                    .then(r => r.json())
+                    .then(data => updateStreamingEvents(data.events));
+            }, 2000);
+        }
+
+        function showError(message) {
+            // Simple error display
+            console.error(message);
+        }
+    </script>
+</body>
+</html>

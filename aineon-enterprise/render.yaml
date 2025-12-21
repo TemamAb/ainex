@@ -1,111 +1,36 @@
-# AINEON Flash Loan Engine - Render Production Deployment
+# AINEON Elite Dashboard - Simple Render Deployment
+# Python Flask Application for Elite Analytics Dashboard
 # Repository: github.com/TemamAb/myneon
-# Deployment Type: Pure Python (No Node.js, No Docker)
 # Status: Production Ready
 
 services:
-  # ============================================================================
-  # Main AINEON Engine API (Production) - Pure Python 3.11
-  # ============================================================================
   - type: web
-    name: aineon-engine-api
+    name: aineon-elite-dashboard
     env: python
-    plan: starter
-    pythonVersion: 3.11
-    buildCommand: pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
-    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
+    plan: starter  # Use starter plan for cost efficiency
+    pythonVersion: 3.11.8
+    buildCommand: |
+      pip install --upgrade pip
+      pip install flask gunicorn
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 app:app
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11
-      - key: ENVIRONMENT
-        value: PRODUCTION
-      - key: PORT
-        value: $PORT
-      - key: ETH_RPC_URL
-        value: https://mainnet.infura.io/v3/YOUR_INFURA_KEY
-      - key: WALLET_ADDRESS
-        value: 0xYourWalletAddress
-      - key: PRIVATE_KEY
-        value: your_private_key_here
-      - key: ETHERSCAN_API_KEY
-        value: your_etherscan_api_key
+        value: "3.11.8"
+      - key: FLASK_ENV
+        value: "production"
       - key: DEBUG
-        value: false
-      - key: PROFIT_MODE
-        value: ENTERPRISE_TIER
-      - key: AUTO_TRANSFER_ENABLED
-        value: "true"
-      - key: PROFIT_THRESHOLD_ETH
-        value: "1.0"
-      - key: MIN_PROFIT_PER_TRADE
-        value: "0.1"
-      - key: MAX_POSITION_SIZE
-        value: "1000.0"
-      - key: DAILY_LOSS_LIMIT
-        value: "100.0"
-      - key: ENABLE_PROFIT_AUDIT
-        value: "true"
-      - key: ENABLE_ETHERSCAN_VERIFICATION
-        value: "true"
-    healthCheckPath: /health
-    autoDeploy: true
-
-  # ============================================================================
-  # Real-Time Dashboard (Pure Python 3.11)
-  # ============================================================================
-  - type: web
-    name: aineon-dashboard
-    env: python
-    plan: starter
-    pythonVersion: 3.11
-    buildCommand: pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
-    startCommand: python wallet_connect_server.py
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11
+        value: "false"
       - key: PORT
-        value: $PORT
-      - key: API_BASE_URL
-        value: https://aineon-engine-api.onrender.com
-      - key: ENVIRONMENT
-        value: PRODUCTION
-    healthCheckPath: /
+        value: "$PORT"
+    healthCheckPath: /health
+    healthCheckTimeout: 30
     autoDeploy: true
 
-  # ============================================================================
-  # Profit Monitoring Service (Pure Python 3.11 Worker)
-  # ============================================================================
-  - type: worker
-    name: aineon-monitor
-    env: python
-    plan: starter
-    pythonVersion: 3.11
-    buildCommand: pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
-    startCommand: python flash_loan_monitor.py
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11
-      - key: API_BASE_URL
-        value: https://aineon-engine-api.onrender.com
-      - key: ENVIRONMENT
-        value: PRODUCTION
-    autoDeploy: true
-
-  # ============================================================================
-  # Background Profit Processing (Pure Python 3.11 Worker)
-  # ============================================================================
-  - type: worker
-    name: aineon-profit-processor
-    env: python
-    plan: starter
-    pythonVersion: 3.11
-    buildCommand: pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
-    startCommand: python real_time_profit_monitor.py
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11
-      - key: API_BASE_URL
-        value: https://aineon-engine-api.onrender.com
-      - key: ENVIRONMENT
-        value: PRODUCTION
-    autoDeploy: true
+# Global environment variables
+envVars:
+  - key: APPLICATION_NAME
+    value: "AINEON Elite Dashboard"
+  - key: VERSION
+    value: "1.0.0"
+  - key: ENVIRONMENT
+    value: "production"

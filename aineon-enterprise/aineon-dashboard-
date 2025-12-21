@@ -1,0 +1,242 @@
+import React, { useState, useEffect } from 'react';
+import { ClockIcon, CheckCircleIcon, ExclamationTriangleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+
+const LiveBlockchainEvents = ({ events = [], currency = 'USD' }) => {
+  const [filteredEvents, setFilteredEvents] = useState([]);
+  const [filter, setFilter] = useState('ALL');
+  const [maxEvents, setMaxEvents] = useState(50);
+
+  // Color coding for different event types
+  const getEventColor = (type) => {
+    switch (type.toLowerCase()) {
+      case 'success':
+      case 'profit':
+      case 'confirmed':
+        return 'text-green-400 bg-green-900/20 border-green-500/30';
+      case 'failed':
+      case 'error':
+      case 'warning':
+        return 'text-red-400 bg-red-900/20 border-red-500/30';
+      case 'pending':
+      case 'executing':
+      case 'scanning':
+        return 'text-yellow-400 bg-yellow-900/20 border-yellow-500/30';
+      case 'info':
+      case 'opportunity':
+      case 'new':
+        return 'text-blue-400 bg-blue-900/20 border-blue-500/30';
+      default:
+        return 'text-gray-400 bg-gray-900/20 border-gray-500/30';
+    }
+  };
+
+  const getEventIcon = (type) => {
+    switch (type.toLowerCase()) {
+      case 'success':
+      case 'profit':
+      case 'confirmed':
+        return <CheckCircleIcon className="h-4 w-4 text-green-400" />;
+      case 'failed':
+      case 'error':
+        return <XCircleIcon className="h-4 w-4 text-red-400" />;
+      case 'warning':
+        return <ExclamationTriangleIcon className="h-4 w-4 text-yellow-400" />;
+      default:
+        return <ClockIcon className="h-4 w-4 text-blue-400" />;
+    }
+  };
+
+  // Format currency display
+  const formatCurrency = (amount) => {
+    if (currency === 'ETH') {
+      return `${parseFloat(amount).toFixed(6)} ETH`;
+    }
+    return `$${parseFloat(amount).toLocaleString('en-US', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    )}`;
+  };
+
+  // Format transaction hash for display
+  const formatTxHash = (hash) => {
+    if (!hash) return 'N/A';
+    return `${hash.slice(0, 10)}...${hash.slice(-8)}`;
+  };
+
+  // Filter events based on selected filter
+  useEffect(() => {
+    let filtered = events;
+    if (filter !== 'ALL') {
+      filtered = events.filter(event => 
+        event.type.toLowerCase().includes(filter.toLowerCase())
+      );
+    }
+    setFilteredEvents(filtered.slice(0, maxEvents));
+  }, [events, filter, maxEvents]);
+
+  // Auto-scroll to newest events
+  useEffect(() => {
+    const eventsContainer = document.getElementById('events-container');
+    if (eventsContainer) {
+      eventsContainer.scrollTop = eventsContainer.scrollHeight;
+    }
+  }, [filteredEvents]);
+
+  const eventTypes = ['ALL', 'SUCCESS', 'PROFIT', 'FAILED', 'PENDING', 'INFO'];
+
+  return (
+    <div className="bg-gray-800 rounded-lg border border-gray-700 h-full">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-700">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-semibold text-white flex items-center">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
+            Live Blockchain Events
+          </h3>
+          <div className="text-sm text-gray-400">
+            {filteredEvents.length} events
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="flex items-center space-x-2 mb-3">
+          <span className="text-xs text-gray-400">Filter:</span>
+          {eventTypes.map((type) => (
+            <button
+              key={type}
+              onClick={() => setFilter(type)}
+              className={`px-2 py-1 text-xs rounded transition-colors ${
+                filter === type
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+              }`}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+
+        {/* Event Count & Max Events Control */}
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-gray-400">
+            Showing {filteredEvents.length} of {events.length} events
+          </div>
+          <select
+            value={maxEvents}
+            onChange={(e) => setMaxEvents(parseInt(e.target.value)}
+            className="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white"
+          >
+            <option value={25}>25 events</option>
+            <option value={50}>50 events</option>
+            <option value={100}>100 events</option>
+            <option value={200}>200 events</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Events List */}
+      <div 
+        id="events-container"
+        className="h-96 overflow-y-auto p-4 space-y-2 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800"
+      >
+        {filteredEvents.length === 0 ? (
+          <div className="text-center text-gray-500 py-8">
+            <ClockIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p>No events to display</p>
+            <p className="text-xs mt-1">Events will appear here in real-time</p>
+          </div>
+        ) : (
+          filteredEvents.map((event, index) => (
+            <div
+              key={`${event.hash || index}-${index}`}
+              className={`p-3 rounded-lg border ${getEventColor(event.type)} transition-all duration-300 hover:scale-[1.02]`}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-start space-x-3 flex-1">
+                  <div className="mt-0.5">
+                    {getEventIcon(event.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <span className="text-xs font-medium text-gray-300 uppercase tracking-wider">
+                        {event.type}
+                      </span>
+                      {event.confidence && (
+                        <span className="text-xs text-gray-400">
+                          ({event.confidence}% confidence)
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-sm text-white mb-1">
+                      {event.message || event.description || 'Event occurred'}
+                    </div>
+                    <div className="flex items-center space-x-4 text-xs text-gray-400">
+                      <span>
+                        {event.pair && `Pair: ${event.pair}`}
+                      </span>
+                      {event.profit && (
+                        <span className="text-green-400 font-medium">
+                          Profit: {formatCurrency(event.profit)}
+                        </span>
+                      )}
+                      {event.hash && (
+                        <span className="font-mono">
+                          Tx: {formatTxHash(event.hash)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500 flex-shrink-0">
+                  {event.timestamp ? 
+                    new Date(event.timestamp).toLocaleTimeString() : 
+                    new Date().toLocaleTimeString()
+                  }
+                </div>
+              </div>
+              
+              {/* Additional Details */}
+              {event.details && (
+                <div className="mt-2 text-xs text-gray-400 bg-gray-800/50 rounded p-2">
+                  {event.details}
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Footer Stats */}
+      <div className="border-t border-gray-700 p-3 bg-gray-850">
+        <div className="grid grid-cols-4 gap-4 text-center">
+          <div>
+            <div className="text-lg font-semibold text-green-400">
+              {events.filter(e => e.type?.toLowerCase().includes('success')).length}
+            </div>
+            <div className="text-xs text-gray-400">Successful</div>
+          </div>
+          <div>
+            <div className="text-lg font-semibold text-red-400">
+              {events.filter(e => e.type?.toLowerCase().includes('failed')).length}
+            </div>
+            <div className="text-xs text-gray-400">Failed</div>
+          </div>
+          <div>
+            <div className="text-lg font-semibold text-blue-400">
+              {events.filter(e => e.type?.toLowerCase().includes('pending')).length}
+            </div>
+            <div className="text-xs text-gray-400">Pending</div>
+          </div>
+          <div>
+            <div className="text-lg font-semibold text-yellow-400">
+              {events.filter(e => e.type?.toLowerCase().includes('opportunity')).length}
+            </div>
+            <div className="text-xs text-gray-400">Opportunities</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default LiveBlockchainEvents;
