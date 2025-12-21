@@ -66,7 +66,7 @@ class FlashLoanStatus(Enum):
 
 
 @dataclass
-class FlashLoanSource:
+class FlashLoanSourceDetails:
     """Flash loan source details."""
     name: str
     fee_bps: Decimal  # fee in basis points
