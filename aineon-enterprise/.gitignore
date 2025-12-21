@@ -210,8 +210,6 @@ celerybeat-schedule
 # Wallet files
 keystore/
 *.json
-!package.json
-!tsconfig.json
 
 # Smart contract artifacts
 artifacts/
