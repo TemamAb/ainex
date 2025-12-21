@@ -1,0 +1,20 @@
+[build-system]
+requires = ["flask", "gunicorn"]
+build-backend = "flask"
+
+[project]
+name = "aineon-elite-dashboard"
+version = "1.0.0"
+description = "AINEON Elite Trading Analytics Dashboard"
+authors = [{name = "AINEON ENGINE", email = "admin@aineon.com"}]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "flask>=3.0.0",
+    "gunicorn>=21.2.0"
+]
+
+[tool.render]
+python_version = "3.11.8"
+build_command = "pip install flask gunicorn"
+start_command = "gunicorn --bind 0.0.0.0:$PORT --workers 2 app:app"
