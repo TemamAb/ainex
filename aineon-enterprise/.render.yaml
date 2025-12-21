@@ -1,11 +1,13 @@
 services:
   - type: web
     name: aineon-elite-dashboard
-    env: python
+    env: node
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --config gunicorn_config.py app:app
+    buildCommand: cd src && npm install
+    startCommand: cd src && npm start
     envVars:
+      - key: NODE_VERSION
+        value: "18"
       - key: PORT
         value: 10000
     autoDeploy: true
