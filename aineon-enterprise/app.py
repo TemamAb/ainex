@@ -29,7 +29,10 @@ dashboard_data = {
 @app.route('/')
 def index():
     """Serve the main dashboard HTML"""
-    return send_file('master_dashboard_complete.html')
+    html_file = 'master_dashboard_final.html'
+    if not os.path.exists(html_file):
+        html_file = 'master_dashboard.html'
+    return send_file(html_file)
 
 @app.route('/health')
 def health():
