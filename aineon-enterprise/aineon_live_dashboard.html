@@ -366,9 +366,13 @@
 
             <!-- Auto-Withdrawal System -->
             <div class="card">
-                <h3>Auto-Withdrawal to Your Wallet</h3>
+                <h3>Auto-Withdrawal System Status</h3>
                 <div class="metric">
-                    <span class="metric-label">Total Transferred:</span>
+                    <span class="metric-label">Auto-Transfer:</span>
+                    <span class="metric-value" style="color: #ff6b6b;">DISABLED</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Total Previously Transferred:</span>
                     <span class="metric-value" id="totalTransferred">59.08 ETH</span>
                 </div>
                 <div class="metric">
@@ -381,19 +385,19 @@
                 </div>
                 <div class="metric">
                     <span class="metric-label">Status:</span>
-                    <span class="status-monitoring">being replenished</span>
+                    <span class="status-monitoring">Profits accumulating locally</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">Withdrawal Threshold:</span>
-                    <span class="metric-value">1.0 ETH</span>
+                    <span class="metric-value">N/A (Disabled)</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">Next Action:</span>
-                    <span class="status-monitoring">MONITORING</span>
+                    <span class="status-monitoring">NONE (Auto-transfer disabled)</span>
                 </div>
                 <div class="metric">
-                    <span class="metric-label">Safety Buffer:</span>
-                    <span class="metric-value">0.1 ETH</span>
+                    <span class="metric-label">Manual Control:</span>
+                    <span class="metric-value">Active</span>
                 </div>
             </div>
 
@@ -509,7 +513,7 @@
                 </div>
                 <div class="metric">
                     <span class="metric-label">Withdrawal System:</span>
-                    <span class="performance-indicator indicator-monitored">MONITORED Auto-transfer</span>
+                    <span class="performance-indicator" style="background: #ff6b6b; color: #fff;">DISABLED Manual control</span>
                 </div>
             </div>
 
@@ -535,10 +539,10 @@
                         <small>Generate</small>
                     </div>
                     <div class="flow-arrow">→</div>
-                    <div class="flow-step">
+                    <div class="flow-step" style="background: rgba(255, 107, 107, 0.2); border: 1px solid rgba(255, 107, 107, 0.4);">
                         <strong>STEP 4</strong><br>
-                        TRANSFER<br>
-                        <small>To Wallet</small>
+                        DISABLED<br>
+                        <small>Manual Control</small>
                     </div>
                 </div>
                 <div style="margin-top: 20px;">
@@ -557,7 +561,7 @@
                     </div>
                     <div class="metric">
                         <span class="metric-label">Transfer:</span>
-                        <span class="metric-value" id="realTimeTransfer">59.08 ETH auto-transferred</span>
+                        <span class="metric-value" id="realTimeTransfer">0.00 ETH auto-transferred (DISABLED)</span>
                     </div>
                 </div>
             </div>
