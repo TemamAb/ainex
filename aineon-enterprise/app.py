@@ -29,10 +29,19 @@ dashboard_data = {
 @app.route('/')
 def index():
     """Serve the main dashboard HTML"""
-    html_file = 'master_dashboard_final.html'
-    if not os.path.exists(html_file):
-        html_file = 'master_dashboard.html'
-    return send_file(html_file)
+    # Priority order for dashboard files
+    html_files = [
+        'aineon_master_dashboard_local.html',
+        'master_dashboard.html',
+        'master_dashboard_final.html'
+    ]
+    
+    for html_file in html_files:
+        if os.path.exists(html_file):
+            return send_file(html_file)
+    
+    # Fallback to index if no dashboard found
+    return "Dashboard file not found. Please ensure aineon_master_dashboard_local.html exists."
 
 @app.route('/health')
 def health():

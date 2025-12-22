@@ -1,13 +1,13 @@
 services:
   - type: web
     name: aineon-elite-dashboard
-    env: node
+    env: python
     plan: free
-    buildCommand: cd src && npm install
-    startCommand: cd src && npm start
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
     envVars:
-      - key: NODE_VERSION
-        value: "18"
+      - key: PYTHON_VERSION
+        value: "3.13.4"
       - key: PORT
         value: 10000
     autoDeploy: true
