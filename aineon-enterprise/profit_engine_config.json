@@ -1,0 +1,41 @@
+{
+  "target_daily_profit_eth": 100.0,
+  "target_hourly_rate_eth": 10.0,
+  "target_minute_rate_eth": 0.25,
+  "three_tier_integration": {
+    "tier_1_scanning": {
+      "opportunities_per_hour": 50,
+      "quality_threshold": 0.75,
+      "latency_target_ms": 10
+    },
+    "tier_2_orchestration": {
+      "signals_per_hour": 30,
+      "ai_optimization": true,
+      "success_rate_target": 0.95
+    },
+    "tier_3_execution": {
+      "trades_per_hour": 15,
+      "gasless_percentage": 0.9,
+      "avg_profit_per_trade_eth": 0.67
+    }
+  },
+  "gasless_optimization": {
+    "enabled": true,
+    "erc4337_transactions": true,
+    "pilmlico_paymaster": true,
+    "bundler_integration": true,
+    "gas_cost_savings_pct": 95.0
+  },
+  "flash_loan_integration": {
+    "enabled": true,
+    "protocols": 5,
+    "capacity_utilization": 0.8,
+    "success_rate": 0.98
+  },
+  "ai_driven_optimization": {
+    "enabled": true,
+    "model_accuracy": 87.0,
+    "continuous_learning": true,
+    "profit_attribution": true
+  }
+}

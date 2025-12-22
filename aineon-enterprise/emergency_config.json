@@ -1,0 +1,44 @@
+{
+  "emergency_stop_enabled": true,
+  "response_time_seconds": 30,
+  "daily_loss_limit_eth": 100.0,
+  "max_drawdown_pct": 2.5,
+  "circuit_breaker": {
+    "enabled": true,
+    "response_seconds": 5.0,
+    "trigger_conditions": [
+      "daily_loss_exceeded",
+      "drawdown_limit_reached",
+      "rpc_connection_lost",
+      "pilmlico_paymaster_failure",
+      "gas_price_spike",
+      "smart_contract_error",
+      "three_tier_failure"
+    ]
+  },
+  "tier_specific_controls": {
+    "tier_1_scanners": {
+      "max_scan_failure_rate": 0.1,
+      "latency_threshold_ms": 100
+    },
+    "tier_2_orchestrators": {
+      "max_signal_failure_rate": 0.05,
+      "ai_model_health_check": true
+    },
+    "tier_3_executors": {
+      "max_execution_failure_rate": 0.02,
+      "flash_loan_health_check": true
+    }
+  },
+  "gasless_emergency": {
+    "paymaster_failure": "switch_to_regular_gas",
+    "bundler_failure": "emergency_queue",
+    "erc4337_failure": "fallback_mode"
+  },
+  "monitoring": {
+    "real_time_alerts": true,
+    "webhook_notifications": true,
+    "email_alerts": true,
+    "slack_notifications": true
+  }
+}

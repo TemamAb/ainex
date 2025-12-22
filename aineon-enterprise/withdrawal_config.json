@@ -1,0 +1,24 @@
+{
+  "mode": "MANUAL_ONLY",
+  "auto_transfer_enabled": false,
+  "transfer_mode": "MANUAL",
+  "profit_threshold_eth": 5.0,
+  "min_profit_per_trade": 0.5,
+  "max_withdrawal_per_tx": "unlimited",
+  "requires_confirmation": true,
+  "notification_on_ready": true,
+  "ready_threshold_eth": 5.0,
+  "gas_price_optimization": true,
+  "destination_wallet": "COLD_STORAGE_OR_SPECIFIED",
+  "gasless_withdrawal": {
+    "enabled": true,
+    "erc4337_mode": true,
+    "pilmlico_sponsorship": true
+  },
+  "approval_levels": {
+    "threshold_5_eth": "auto_notification",
+    "threshold_20_eth": "manager_approval",
+    "threshold_50_eth": "executive_approval",
+    "threshold_100_eth": "multi_level_approval"
+  }
+}

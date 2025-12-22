@@ -1,0 +1,23 @@
+{
+  "real_time_monitoring": true,
+  "profit_tracking": true,
+  "etherscan_validation": true,
+  "webhook_notifications": true,
+  "refresh_interval_seconds": 5,
+  "alert_thresholds": {
+    "profit_per_hour": 10.0,
+    "profit_per_minute": 0.25,
+    "daily_profit_minimum": 100.0,
+    "manual_withdrawal_ready": 5.0
+  },
+  "metrics": [
+    "current_balance_eth",
+    "daily_profit_eth",
+    "active_trades_count",
+    "success_rate_pct",
+    "avg_profit_per_trade",
+    "gas_cost_estimate",
+    "slippage_tracking",
+    "withdrawal_status"
+  ]
+}

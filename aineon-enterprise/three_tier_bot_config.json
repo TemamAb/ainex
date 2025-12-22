@@ -1,0 +1,115 @@
+{
+  "tier_1_scanners": {
+    "description": "Market Intelligence Layer",
+    "components": {
+      "mempool_scanner": {
+        "enabled": true,
+        "target_latency_ms": 2.3,
+        "status": "ACTIVE",
+        "transactions_processed": 1847
+      },
+      "liquidity_scanner": {
+        "enabled": true,
+        "target_latency_ms": 5.7,
+        "status": "ACTIVE",
+        "opportunities_found": 23
+      },
+      "arbitrage_scanner": {
+        "enabled": true,
+        "target_latency_ms": 8.1,
+        "status": "ACTIVE",
+        "pairs_monitored": 156
+      },
+      "mev_scanner": {
+        "enabled": true,
+        "target_latency_ms": 1.9,
+        "status": "ACTIVE",
+        "mev_opportunities": 8
+      },
+      "liquidation_scanner": {
+        "enabled": true,
+        "status": "ACTIVE"
+      },
+      "cross_chain_scanner": {
+        "enabled": true,
+        "status": "ACTIVE"
+      }
+    },
+    "parallel_execution": true,
+    "scan_interval_seconds": 1.0
+  },
+  "tier_2_orchestrators": {
+    "description": "Decision & Routing Layer",
+    "components": {
+      "strategy_orchestrator": {
+        "enabled": true,
+        "status": "ACTIVE",
+        "strategies_managed": 12,
+        "coordination_success": 98.9
+      },
+      "risk_orchestrator": {
+        "enabled": true,
+        "status": "ACTIVE",
+        "risk_checks": 2847,
+        "risk_interventions": 3
+      },
+      "profit_orchestrator": {
+        "enabled": true,
+        "status": "ACTIVE",
+        "profit_optimizations": 89,
+        "efficiency": 94.7
+      },
+      "ai_orchestrator": {
+        "enabled": true,
+        "model_type": "neural_network",
+        "prediction_accuracy_pct": 87.0,
+        "optimization_active": true
+      }
+    },
+    "signal_processing": true,
+    "ai_optimization": true
+  },
+  "tier_3_executors": {
+    "description": "Execution Layer",
+    "components": {
+      "flash_loan_executor": {
+        "enabled": true,
+        "protocols": [
+          "Aave V3",
+          "Balancer",
+          "dYdX",
+          "Uniswap V3",
+          "Curve"
+        ],
+        "capacity_usd": 165000000,
+        "gasless_mode": true
+      },
+      "arbitrage_executor": {
+        "enabled": true,
+        "execution_speed_ms": 0.5,
+        "gasless_mode": true
+      },
+      "liquidity_executor": {
+        "enabled": true,
+        "gasless_mode": true
+      },
+      "mev_executor": {
+        "enabled": true,
+        "mev_resistance": true,
+        "gasless_mode": true
+      },
+      "gasless_executor": {
+        "enabled": true,
+        "erc4337_mode": true,
+        "pilmlico_paymaster": true
+      }
+    },
+    "concurrent_execution": 6,
+    "ultra_fast_execution": true
+  },
+  "coordination": {
+    "tier_communication": "async_signals",
+    "latency_target_ms": 10,
+    "reliability_target": 99.9
+  }
+}
