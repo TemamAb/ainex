@@ -1,0 +1,13 @@
+{
+  "simulation_id": "SIM_20251222_113252",
+  "start_time": "2025-12-22T11:32:22.462341",
+  "end_time": "2025-12-22T11:32:52.760222",
+  "runtime_seconds": 30.297881,
+  "total_profit_eth": 0.17151254169417218,
+  "successful_trades": 29,
+  "failed_trades": 1,
+  "success_rate_percent": 96.66666666666667,
+  "profit_per_hour_eth": 20.37915292158616,
+  "daily_projection_eth": 489.0996701180679,
+  "status": "COMPLETED"
+}
