@@ -10,7 +10,7 @@ This guide provides step-by-step instructions for deploying the Enterprise-Grade
 
 ## Deployment Architecture
 - **Service Name**: flash-loan-engine
-- **Runtime**: Python 3.10.12
+- **Runtime**: Python 3.11.10
 - **Plan**: Starter (high-performance CPU/RAM)
 - **Region**: Ohio
 - **Web Server**: Gunicorn with UvicornWorker
@@ -47,7 +47,7 @@ Contains all Python dependencies with Python 3.10+ compatible versions:
 
 ### 3. runtime.txt
 ```
-python-3.10.12
+python-3.11.10
 ```
 
 ### 4. main.py
@@ -147,7 +147,7 @@ git push origin main
 ## Troubleshooting
 
 ### Build Issues
-1. **Python Version Errors**: Ensure `runtime.txt` specifies `python-3.10.12`
+1. **Python Version Errors**: Ensure `runtime.txt` specifies `python-3.11.10`
 2. **Dependency Conflicts**: Check that all versions in `requirements.txt` are Python 3.10+ compatible
 3. **Memory Issues**: The starter plan has limited memory; consider upgrading if needed
 
@@ -184,7 +184,7 @@ For deployment issues:
 - [ ] All required files present in repository
 - [ ] render.yaml configured correctly
 - [ ] requirements.txt uses Python 3.10+ compatible versions
-- [ ] runtime.txt specifies Python 3.10.12
+- [ ] runtime.txt specifies Python 3.11.10
 - [ ] main.py serves FastAPI application
 - [ ] Environment variables set in Render
 - [ ] Health check endpoint returns 200
