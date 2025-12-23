@@ -70,8 +70,24 @@ class AINEONWebApp:
         
         # Setup logging
         self.setup_logging()
-        
-        self.logger.info("🚀 AINEON Web Application initialized")
+
+        self.logger.info("AINEON Web Application initialized")
+
+    async def get_system_status(self) -> Dict[str, Any]:
+        """Get comprehensive system status"""
+        try:
+            return {
+                'application_status': 'running' if self.running else 'stopped',
+                'start_time': self.start_time.isoformat() if self.start_time else None,
+                'configuration': {
+                    'environment': self.config['environment'],
+                    'auto_withdrawal_enabled': self.config['auto_withdrawal_enabled'],
+                    'min_profit_threshold': self.config['min_profit_threshold']
+                }
+            }
+
+        except Exception as e:
+            return {'error': str(e), 'status': 'error'}
         
     def load_config(self) -> Dict[str, Any]:
         """Load configuration from environment or defaults"""
@@ -102,7 +118,7 @@ class AINEONWebApp:
             'require_confirmation': os.getenv('REQUIRE_CONFIRMATION', 'true').lower() == 'true',
             
             # Auto Withdrawal
-            'auto_withdrawal_enabled': os.getenv('AUTO_WITHDRAWAL_ENABLED', 'true').lower() == 'true',
+            'auto_withdrawal_enabled': os.getenv('AUTO_WITHDRAWAL_ENABLED', 'false').lower() == 'true',
             'auto_withdrawal_threshold': float(os.getenv('AUTO_WITHDRAWAL_THRESHOLD', '10.0')),
             'auto_withdrawal_percentage': float(os.getenv('AUTO_WITHDRAWAL_PERCENTAGE', '0.8')),
             'auto_check_interval': int(os.getenv('AUTO_CHECK_INTERVAL', '3600')),
