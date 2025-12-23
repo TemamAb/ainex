@@ -1,25 +1,84 @@
 services:
   - type: web
-    name: aineon-enterprise-engine
-    runtime: docker
-    plan: free
+    name: aineon-profit-engine
+    runtime: python
+    plan: starter
     region: ohio
+    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
+    startCommand: "gunicorn main:app --bind 0.0.0.0:$PORT --workers 4 --worker-class uvicorn.workers.UvicornWorker"
+    
     envVars:
+      # System Configuration
+      - key: PYTHON_VERSION
+        value: "3.11.10"
       - key: PORT
         value: 10000
       - key: PYTHONUNBUFFERED
         value: "1"
-      - key: PYTHONPATH
-        value: "/app"
-      # Required for live mode (Placeholders - MUST BE SET IN RENDER DASHBOARD)
+      - key: ENVIRONMENT
+        value: "production"
+      - key: LOG_LEVEL
+        value: "INFO"
+      
+      # Blockchain Core (REQUIRED - Set in Render Dashboard)
+      - key: ALCHEMY_API_KEY
+        value: ""  # Set via Render Dashboard secrets
+      - key: INFURA_API_KEY
+        value: ""  # Set via Render Dashboard secrets
       - key: ETH_RPC_URL
-        value: "https://mainnet.infura.io/v3/YOUR_KEY"
+        value: ""  # Set via Render Dashboard secrets
+      
+      # Wallet Configuration (REQUIRED - Set in Render Dashboard)
       - key: WALLET_ADDRESS
-        value: "0x0000000000000000000000000000000000000000"
-      - key: ETHERSCAN_API_KEY
-        value: "YOUR_ETHERSCAN_KEY"
+        value: ""  # Your main wallet address
+      - key: WITHDRAWAL_ADDRESS
+        value: ""  # Where profits will be transferred
       - key: PRIVATE_KEY
-        value: "" # Leave empty for monitoring mode, add for execution
-      - key: CONTRACT_ADDRESS
-        value: "" # Required for flash loan execution
+        value: ""  # Your private key for transactions (HANDLE WITH CARE)
+      
+      # Profit Monitoring Configuration
+      - key: MIN_PROFIT_THRESHOLD
+        value: "0.5"
+      - key: ETH_PRICE_USD
+        value: "2850.0"
+      - key: INITIAL_ETH_BALANCE
+        value: "0.0"
+      - key: TRACKING_INTERVAL
+        value: "60"  # Check every 60 seconds
+      
+      # Auto-Withdrawal Configuration (ENABLED)
+      - key: AUTO_WITHDRAWAL_ENABLED
+        value: "true"
+      - key: AUTO_WITHDRAWAL_THRESHOLD
+        value: "5.0"  # Transfer when 5 ETH profit accumulated
+      - key: AUTO_WITHDRAWAL_PERCENTAGE
+        value: "0.8"  # Transfer 80% of profits
+      - key: AUTO_CHECK_INTERVAL
+        value: "3600"  # Check every hour for transfers
+      - key: DAILY_WITHDRAWAL_LIMIT
+        value: "100.0"  # Max 100 ETH per day
+      
+      # Manual Withdrawal Configuration
+      - key: MIN_WITHDRAWAL_ETH
+        value: "0.1"
+      - key: MAX_WITHDRAWAL_ETH
+        value: "100.0"
+      - key: MAX_DAILY_WITHDRAWALS
+        value: "10"
+      - key: MAX_DAILY_AMOUNT_ETH
+        value: "1000.0"
+      - key: REQUIRE_CONFIRMATION
+        value: "true"
+      
+      # AI/Optimization Parameters
+      - key: MAX_GAS_PRICE
+        value: "50"
+      - key: CONFIDENCE_THRESHOLD
+        value: "0.7"
+      - key: MAX_POSITION_SIZE
+        value: "1000"
+    
     healthCheckPath: /health
+    healthCheckInterval: 300  # Check every 5 minutes
+    healthCheckTimeoutSeconds: 10
+    autoDeploy: true

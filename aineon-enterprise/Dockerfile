@@ -1,4 +1,4 @@
-FROM python:3.11-slim-bullseye
+FROM python:3.10-slim-bullseye
 
 # System dependencies
 RUN apt-get update && apt-get install -y \
@@ -15,15 +15,14 @@ ENV PYTHONUNBUFFERED=1
 
 # Copy requirements and install
 COPY requirements.txt .
+# We install dependencies without strict pins to let pip resolve eth-brownie's requirements
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
 
-# Expose the API port (from core/main.py, it uses PORT env var)
-# Render uses 10000 by default, but the engine defaults to 8081 if PORT is not set.
+# Expose API port
 EXPOSE 8081 10000
 
 # Start the engine
-# We use python -m core.main to ensure absolute imports work correctly
 CMD ["python", "-m", "core.main"]
