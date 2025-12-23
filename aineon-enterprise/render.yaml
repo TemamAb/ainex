@@ -1,15 +1,16 @@
 services:
   - type: web
-    name: aineon-profit-engine
-    runtime: docker
+    name: aineon-hybrid-dashboard
+    runtime: python
     plan: starter
     region: ohio
-    
-    # Dockerfile handles all build and dependencies
-    # No custom build/start commands needed
+    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
+    startCommand: "gunicorn main:app --bind 0.0.0.0:$PORT --workers 4 --worker-class uvicorn.workers.UvicornWorker"
     
     envVars:
       # System Configuration
+      - key: PYTHON_VERSION
+        value: 3.11.10
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: PYTHONDONTWRITEBYTECODE

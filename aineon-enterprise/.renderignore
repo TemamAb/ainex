@@ -1,5 +1,82 @@
-package.json
-package-lock.json
+# Render Ignore File - Exclude Node.js files from Python deployment
+# This ensures Render treats this as a Python-only project
+
+# Node.js files and directories
 node_modules/
-npm-debug.log
-yarn.lock
+node_modules_backup/
+package.json*
+*.package.json
+vite.config.js
+tailwind.config.js
+*.config.js
+
+# Frontend build artifacts
+dist/
+build/
+.next/
+.nuxt/
+
+# Development files
+.env.local
+.env.development
+.env.test
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Documentation (keep essential deployment docs)
+*.md
+!RENDER_DEPLOYMENT_GUIDE.md
+!README.md
+
+# Keep Python files
+!*.py
+!requirements.txt
+!runtime.txt
+!render.yaml
+!main.py
+
+# Keep dashboard templates
+!templates/
+!templates/*.html
+
+# Keep core modules
+!core/
+!core/*.py
+
+# Keep dashboard
+!dashboard/
+!dashboard/*.py
+!dashboard/templates/
+!dashboard/static/
