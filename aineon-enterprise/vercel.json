@@ -2,7 +2,7 @@
   "version": 2,
   "name": "aineon-hybrid-dashboard",
   "public": true,
-  "buildCommand": "echo 'Skipping Node build'",
+  "framework": null,
   "env": {
     "PYTHONUNBUFFERED": "1",
     "ENVIRONMENT": "production"

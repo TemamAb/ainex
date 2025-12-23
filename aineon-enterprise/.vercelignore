@@ -1,0 +1,9 @@
+node_modules
+src/node_modules
+.git
+.env
+.env.local
+*.md
+tests/
+__pycache__/
+*.pyc
