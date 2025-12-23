@@ -46,9 +46,9 @@ services:
       - key: TRACKING_INTERVAL
         value: "60"  # Check every 60 seconds
       
-      # Auto-Withdrawal Configuration (ENABLED)
+      # Auto-Withdrawal Configuration (DISABLED - Manual Withdrawal Default)
       - key: AUTO_WITHDRAWAL_ENABLED
-        value: "true"
+        value: "false"
       - key: AUTO_WITHDRAWAL_THRESHOLD
         value: "5.0"  # Transfer when 5 ETH profit accumulated
       - key: AUTO_WITHDRAWAL_PERCENTAGE
