@@ -4,7 +4,11 @@ services:
     runtime: python
     plan: starter
     region: ohio
-    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
+    buildCommand: |
+      # Install Node.js dependencies and build frontend
+      cd dashboard && npm install && npm run build && cd ..
+      # Install Python dependencies
+      pip install --upgrade pip && pip install -r requirements.txt
     startCommand: "gunicorn main:app --bind 0.0.0.0:$PORT --workers 4 --worker-class uvicorn.workers.UvicornWorker"
     
     envVars:

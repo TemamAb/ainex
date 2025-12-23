@@ -75,8 +75,19 @@ temp/
 !core/
 !core/*.py
 
-# Keep dashboard
+# Keep dashboard for Node.js build
 !dashboard/
 !dashboard/*.py
+!dashboard/package.json
+!dashboard/vite.config.js
+!dashboard/tailwind.config.js
+!dashboard/index.html
+!dashboard/src/
+!dashboard/src/App.tsx
+!dashboard/src/main.tsx
+!dashboard/src/index.css
+!dashboard/public/
+!dashboard/tsconfig.json
+!dashboard/tsconfig.node.json
 !dashboard/templates/
 !dashboard/static/
