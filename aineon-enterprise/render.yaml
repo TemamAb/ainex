@@ -1,20 +1,21 @@
 services:
   - type: web
     name: aineon-profit-engine
-    runtime: python
+    runtime: docker
     plan: starter
     region: ohio
-    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
-    startCommand: "gunicorn main:app --bind 0.0.0.0:$PORT --workers 4 --worker-class uvicorn.workers.UvicornWorker"
+    
+    # Dockerfile handles all build and dependencies
+    # No custom build/start commands needed
     
     envVars:
       # System Configuration
-      - key: PYTHON_VERSION
-        value: "3.11.10"
-      - key: PORT
-        value: 10000
       - key: PYTHONUNBUFFERED
         value: "1"
+      - key: PYTHONDONTWRITEBYTECODE
+        value: "1"
+      - key: PORT
+        value: 10000
       - key: ENVIRONMENT
         value: "production"
       - key: LOG_LEVEL
@@ -46,9 +47,9 @@ services:
       - key: TRACKING_INTERVAL
         value: "60"  # Check every 60 seconds
       
-      # Auto-Withdrawal Configuration (DISABLED - Manual Withdrawal Default)
+      # Manual Withdrawal Configuration (DEFAULT)
       - key: AUTO_WITHDRAWAL_ENABLED
-        value: "false"
+        value: "false"  # Manual withdrawal only
       - key: AUTO_WITHDRAWAL_THRESHOLD
         value: "5.0"  # Transfer when 5 ETH profit accumulated
       - key: AUTO_WITHDRAWAL_PERCENTAGE
@@ -79,6 +80,6 @@ services:
         value: "1000"
     
     healthCheckPath: /health
-    healthCheckInterval: 300  # Check every 5 minutes
+    healthCheckInterval: 30
     healthCheckTimeoutSeconds: 10
     autoDeploy: true
