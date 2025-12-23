@@ -1,0 +1,94 @@
+{
+  "version": 2,
+  "name": "aineon-hybrid-dashboard",
+  "public": true,
+  "buildCommand": "pip install -r requirements.txt",
+  "env": {
+    "PYTHONUNBUFFERED": "1",
+    "ENVIRONMENT": "production"
+  },
+  "functions": {
+    "api/**/*.py": {
+      "runtime": "python3.9",
+      "maxDuration": 60
+    }
+  },
+  "routes": [
+    {
+      "src": "/dashboard",
+      "dest": "/public/dashboard.html",
+      "methods": ["GET"]
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/index.py"
+    },
+    {
+      "src": "/health",
+      "dest": "/api/index.py"
+    },
+    {
+      "src": "/status",
+      "dest": "/api/index.py"
+    },
+    {
+      "src": "/metrics",
+      "dest": "/api/index.py"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/dashboard",
+      "destination": "/public/dashboard.html"
+    },
+    {
+      "source": "/static/(.*)",
+      "destination": "/public/$1"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Credentials",
+          "value": "true"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/json"
+        }
+      ]
+    }
+  ],
+  "env": {
+    "ALCHEMY_API_KEY": "@alchemy_api_key",
+    "INFURA_API_KEY": "@infura_api_key",
+    "PRIVATE_KEY": "@private_key",
+    "WITHDRAWAL_ADDRESS": "@withdrawal_address",
+    "AUTO_WITHDRAWAL_ENABLED": "false",
+    "MIN_PROFIT_THRESHOLD": "0.5",
+    "ETH_PRICE_USD": "2850.0"
+  }
+}
