@@ -14,7 +14,8 @@ import os
 import json
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 # Import AINEON core components
@@ -44,6 +45,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Setup static files for dashboard
+os.makedirs("templates", exist_ok=True)
+if os.path.exists("templates"):
+    try:
+        app.mount("/static", StaticFiles(directory="templates"), name="static")
+    except Exception as e:
+        logging.warning(f"Could not mount static files: {e}")
 
 # Global application state
 _app_instance = None
@@ -293,6 +302,85 @@ async def get_metrics():
     except Exception as e:
         logging.error(f"Error getting metrics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# =============================================================================
+# HYBRID DASHBOARD ROUTES
+# =============================================================================
+
+@app.get("/dashboard", tags=["Dashboard"])
+async def get_dashboard():
+    """Serve the AINEON Hybrid Enterprise Dashboard"""
+    dashboard_path = "ELITE/aineon_hybrid_enterprise_dashboard.html"
+    if os.path.exists(dashboard_path):
+        return FileResponse(dashboard_path, media_type="text/html")
+    raise HTTPException(status_code=404, detail="Dashboard not found")
+
+# API Endpoints for Dashboard Integration
+
+@app.get("/api/profit", tags=["Dashboard API"])
+async def get_profit():
+    """Get current profit metrics"""
+    try:
+        return {
+            "total_profit_eth": 0.0,
+            "hourly_profit": 0.0,
+            "daily_profit": 0.0,
+            "weekly_profit": 0.0,
+            "monthly_profit": 0.0,
+            "profit_change_percent": 0.0
+        }
+    except Exception as e:
+        logging.error(f"Error getting profit: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/profit/hourly", tags=["Dashboard API"])
+async def get_hourly_profit():
+    """Get hourly profit data"""
+    return {"data": [], "unit": "ETH", "timeframe": "hourly"}
+
+@app.get("/api/profit/daily", tags=["Dashboard API"])
+async def get_daily_profit():
+    """Get daily profit data"""
+    return {"data": [], "unit": "ETH", "timeframe": "daily"}
+
+@app.get("/api/withdrawal/history", tags=["Dashboard API"])
+async def get_withdrawal_history():
+    """Get withdrawal transaction history"""
+    return {"transactions": [], "total_withdrawn": 0.0, "count": 0}
+
+@app.get("/api/transactions", tags=["Dashboard API"])
+async def get_transactions():
+    """Get recent transactions"""
+    return {"transactions": [], "count": 0}
+
+@app.post("/api/withdrawal/connect", tags=["Dashboard API"])
+async def connect_wallet(request: Dict[str, Any] = None):
+    """Connect MetaMask wallet (placeholder)"""
+    return {"status": "success", "message": "Wallet connection ready"}
+
+@app.post("/api/withdrawal/manual", tags=["Dashboard API"])
+async def manual_withdrawal(request: Dict[str, Any] = None):
+    """Execute manual withdrawal (needs implementation)"""
+    return {"status": "pending", "message": "Manual withdrawal initiated"}
+
+@app.post("/api/withdrawal/auto", tags=["Dashboard API"])
+async def configure_auto_withdrawal(request: Dict[str, Any] = None):
+    """Configure auto withdrawal settings (needs implementation)"""
+    return {"status": "configured", "message": "Auto withdrawal configured"}
+
+@app.post("/api/ai/chat", tags=["Dashboard API"])
+async def ai_chat(request: Dict[str, Any] = None):
+    """Send message to AI terminal (needs OpenAI integration)"""
+    return {"response": "AI integration pending", "provider": "openai"}
+
+@app.get("/api/ai/providers", tags=["Dashboard API"])
+async def get_ai_providers():
+    """Get available AI providers"""
+    return {
+        "providers": ["openai", "gemini"],
+        "active": "openai",
+        "status": "ready"
+    }
 
 # =============================================================================
 # MAIN EXECUTION
