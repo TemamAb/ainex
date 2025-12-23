@@ -2,8 +2,7 @@
   "version": 2,
   "name": "aineon-hybrid-dashboard",
   "public": true,
-  "buildCommand": "npm install --legacy-peer-deps && npm run build || true",
-  "installCommand": "pip install -r requirements.txt",
+  "buildCommand": "echo 'Skipping Node build'",
   "env": {
     "PYTHONUNBUFFERED": "1",
     "ENVIRONMENT": "production"
