@@ -63,12 +63,13 @@ FastAPI application with:
 ### Required Secrets (Set as Environment Variables in Render Dashboard)
 ```
 ETH_RPC_URL=your_ethereum_rpc_url
-PRIVATE_KEY=your_encrypted_private_key
 WALLET_ADDRESS=your_wallet_address
 PROFIT_WALLET=your_profit_wallet_address
 ALCHEMY_API_KEY=your_alchemy_api_key
 INFURA_API_KEY=your_infura_api_key
 ```
+
+*Note: PRIVATE_KEY is optional and only required for live trading operations*
 
 ### Optional Configuration Variables
 ```
