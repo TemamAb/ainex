@@ -13,7 +13,7 @@ from datetime import datetime
 
 class ProductionDashboardASCII:
     def __init__(self):
-        self.api_base = "http://localhost:5000"
+        self.api_base = "http://0.0.0.0:5000"
         self.wallet_address = None
         self.is_connected = False
         

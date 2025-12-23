@@ -1,87 +1,204 @@
-# Aineon Enterprise - Top 0.001% Grade .gitignore
-# Comprehensive ignore rules for enterprise Python/DeFi project
+# AINEON Enterprise Trading Platform - .gitignore
+# Chief Architect Mission - Production Security
 
-# ============================================================================
+# Environment Variables and Secrets
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+*.env
+secrets/
+credentials/
+keys/
+certs/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+postgres_data/
+mysql_data/
+
+# Logs
+logs/
+*.log
+*.log.*
+log_*.txt
+audit_*.log
+trading_*.log
+
+# Build Artifacts
+build/
+dist/
+target/
+*.egg-info/
+.eggs/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv/
+.env/
+.conda/
+conda-meta/
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Testing
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# IPython
+profile_default/
+ipython_config.py
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# PyCharm
+.idea/
+
 # Python
-# ============================================================================
-
-# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 
-# C extensions
-*.so
+# Trading Data and Models
+models/
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+data/
+datasets/
+training_data/
+backtest_results/
+profit_reports/
 
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+# Blockchain Keys and Wallets
+wallets/
+keystores/
+mnemonic_*
+private_key_*
+wallet_backup/
 
-# ============================================================================
-# Virtual Environments
-# ============================================================================
+# Production Configs
+config/production/
+config/secrets/
+config/ssl/
+config/keys/
 
-# pipenv
-Pipfile.lock
+# Docker
+.dockerignore
+docker-compose.override.yml
 
-# poetry
-poetry.lock
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
 
-# pdm
-.pdm.toml
+# Kubernetes
+*.kubeconfig
+kustomization.yaml.bak
 
-# PEP 582
-__pypackages__/
+# Monitoring and Metrics
+monitoring/data/
+grafana/data/
+prometheus/data/
+influxdb/data/
 
-# Virtual environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-.conda/
-miniconda/
-miniconda3/
-anaconda/
-anaconda3/
+# Temporary Files
+tmp/
+temp/
+*.tmp
+*.temp
+.tmp/
 
-# ============================================================================
-# IDEs and Editors
-# ============================================================================
+# Archive Files
+*.zip
+*.tar.gz
+*.tar
+*.rar
+*.7z
 
-# PyCharm
-.idea/
-*.iml
-*.ipr
-*.iws
+# Documentation Build
+docs/_build/
+docs/build/
+site/
 
-# VS Code
-.vscode/settings.json
-.vscode/launch.json
-!.vscode/extensions.json
-!.vscode/tasks.json
+# Cache
+.cache/
+.npm/
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Backup Files
+*.bak
+*.backup
+backup_*
+*.orig
+
+# System Files
+.docs/
+.tmp/
+*.tmp
+*~
+
+# IDE Specific
+*.sublime-project
+*.sublime-workspace
 
 # Vim
 *.swp
 *.swo
-*~
 
 # Emacs
 *~
@@ -93,46 +210,13 @@ auto-save-list
 tramp
 .\#*
 
-# Sublime Text
-*.tmlanguage.cache
-*.tmPreferences.cache
-*.stTheme.cache
-*.sublime-workspace
-*.sublime-project
-
-# ============================================================================
-# OS Generated Files
-# ============================================================================
-
-# macOS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Windows
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-
-# Linux
-*~
-
-# ============================================================================
-# Project Specific
-# ============================================================================
-
-# Logs
-*.log
-logs/
-log/
-*.log.*
+# Node.js (if using any JS components)
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
 
 # Runtime data
 pids
@@ -140,261 +224,296 @@ pids
 *.seed
 *.pid.lock
 
-# Coverage reports
-htmlcov/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
 
-# Translations
-*.mo
-*.pot
+# nyc test coverage
+.nyc_output
 
-# Django stuff:
+# Dependency directories
+jspm_packages/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.parcel-cache
+
+# Next.js build output
+.next
+out
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+node_modules/
+jspm_packages/
+
+# Logs
+logs
 *.log
-local_settings.py
-db.sqlite3
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
 
-# Flask stuff:
-instance/
-.webassets-cache
+# Diagnostics reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
-# Scrapy stuff:
-.scrapy
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
 
-# Sphinx documentation
-docs/_build/
+# Directory for instrumented libs generated by jscoverage/JSCover
+lib-cov
 
-# PyBuilder
-target/
+# Coverage directory used by tools like istanbul
+coverage
+*.lcov
 
-# Jupyter Notebook
-.ipynb_checkpoints
+# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
+.grunt
 
-# IPython
-profile_default/
-ipython_config.py
+# Bower dependency directory (https://bower.io/)
+bower_components
 
-# pyenv
-.python-version
+# node-waf configuration
+.lock-wscript
 
-# celery beat schedule file
-celerybeat-schedule
+# Compiled binary addons (https://nodejs.org/api/addons.html)
+build/Release
 
-# SageMath parsed files
-*.sage.py
+# Dependency directories
+node_modules/
+jspm_packages/
 
-# Environments
+# Snowpack dependency directory (https://snowpack.dev/)
+web_modules/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variable files
 .env
-.env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.local
 
-# ============================================================================
-# DeFi / Blockchain Specific
-# ============================================================================
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
 
-# Private keys (NEVER commit these!)
-*.pem
-*.key
-*.p12
-*.pfx
-*private*
-*secret*
+# Next.js build output
+.next
+out
 
-# Wallet files
-keystore/
-*.json
+# Nuxt.js build / generate output
+.nuxt
+dist
 
-# Smart contract artifacts
-artifacts/
-build/
-cache/
-
-# Hardhat
+# Gatsby files
 .cache/
-artifacts/
+# Comment in the public line in if your project uses Gatsby and not Next.js
+# https://nextjs.org/blog/next-9-1#public-directory-support
+# public
 
-# Node modules (if any JS components)
-node_modules/
+# vuepress build output
+.vuepress/dist
 
-# ============================================================================
-# Enterprise / Cloud Specific
-# ============================================================================
+# vuepress v2.x temp and cache directory
+.temp
+.cache
 
-# Terraform
-.terraform/
-terraform.tfstate*
-*.tfvars
+# Docusaurus cache and generated files
+.docusaurus
 
-# Kubernetes
-kubeconfig
-.kube/
+# Serverless directories
+.serverless/
 
-# Docker
-.dockerignore
+# FuseBox cache
+.fusebox/
 
-# AWS
-.aws/
-credentials
-config
+# DynamoDB Local files
+.dynamodb/
 
-# GCP
-.gcp/
-*.pem
+# TernJS port file
+.tern-port
 
-# Azure
-.azure/
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
 
-# ============================================================================
-# Temporary Files
-# ============================================================================
+# yarn v2
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
 
-# Temporary files
-*.tmp
-*.temp
-*.bak
-*.backup
-*.old
-*.orig
-*.swp
-*.swo
-*~
+# Financial Data (Highly Sensitive)
+financial_data/
+transaction_data/
+profit_data/
+eth_transactions/
+wallet_balances/
+private_keys/
+seed_phrases/
+mnemonic_phrases/
 
-# ============================================================================
-# Large Data Files
-# ============================================================================
+# Production Deployment
+deployments/
+kubernetes/
+helm/
+terraform/
+ansible/
 
-# Model files (can be large)
-*.h5
-*.pb
-*.pkl
-*.joblib
-*.model
-models/
-checkpoints/
+# Monitoring and Alerting
+alerts/
+monitoring/
+dashboards/
+grafana/
+prometheus/
 
-# Large datasets
-*.csv
-*.parquet
-*.feather
-data/
-datasets/
+# Backup and Recovery
+backups/
+snapshots/
+archives/
 
-# ============================================================================
-# Security
-# ============================================================================
+# Performance and Load Testing
+load_test_results/
+performance_reports/
+stress_test_logs/
 
-# Security scans
-security/
-vulnerabilities/
-*.sarif
+# Security Scans
+security_reports/
+vulnerability_scans/
+pen_test_results/
 
-# Secrets (double protection)
-secrets/
-.secrets/
+# Compliance and Audit
+audit_logs/
+compliance_reports/
+regulatory_documents/
 
-# ============================================================================
-# CI/CD
-# ============================================================================
+# Research and Analysis
+research/
+analysis/
+whitepapers/
+financial_models/
 
-# GitHub Actions
-.github/workflows/*.log
+# Cryptocurrency Exchange Data
+exchange_data/
+api_keys/
+trading_pairs/
+order_books/
 
-# Build artifacts
-target/
-build/
-dist/
+# AI/ML Models and Training Data
+trained_models/
+model_weights/
+training_datasets/
+hyperparameters/
+experiment_logs/
 
-# Test artifacts
-test-results/
-junit.xml
-allure-results/
+# Flash Loan and DeFi Protocols
+flash_loan_contracts/
+defi_protocols/
+liquidity_pools/
+yield_farming/
 
-# ============================================================================
-# Documentation Build
-# ============================================================================
+# Blockchain Network Data
+mainnet_data/
+testnet_data/
+ropsten_data/
+kovan_data/
+goerli_data/
 
-# MkDocs
-site/
-docs/site/
+# Gas Optimization Data
+gas_data/
+priority_fees/
+base_fees/
+gas_stations/
 
-# Sphinx
-docs/build/
-docs/source/_build/
+# Risk Management
+risk_models/
+stress_tests/
+scenario_analysis/
+var_models/
 
-# ============================================================================
-# Local Development
-# ============================================================================
+# Market Data
+market_data/
+price_feeds/
+order_book_snapshots/
+trade_history/
 
-# Local database
-*.db
-*.sqlite
-*.sqlite3
+# Portfolio Management
+portfolios/
+asset_allocation/
+rebalancing_logs/
+performance_attribution/
 
-# Local Redis dumps
-dump.rdb
-
-# Local logs
-*.log
-logs/
-
-# Development notes
-NOTES.md
-TODO.md
-scratch/
-experiments/
-
-# ============================================================================
-# Backup Files
-# ============================================================================
-
-*.bak
-*.backup
-*.old
-*.orig
-*~
-
-# ============================================================================
-# Custom Rules for Aineon
-# ============================================================================
-
-# Aineon specific
-aineon-local/
-local-config/
-debug-logs/
-
-# Performance profiling
-*.prof
-*.lprof
-profile_output/
-
-# Chaos engineering artifacts
-chaos-logs/
-failure-injection-reports/
-
-# Load testing artifacts
-load-test-results/
-performance-reports/
-
-# Compliance reports (local copies)
-compliance-reports/
-audit-reports/
-
-# ============================================================================
-# Final Rules
-# ============================================================================
-
-# Never ignore these (negative patterns)
-!.env.example
-!.gitignore
-!README.md
-!LICENSE
-!pyproject.toml
-!requirements.txt
-!Dockerfile*
+# Legal and Compliance
+legal_documents/
+terms_of_service/
+privacy_policies/
+regulatory_filings/

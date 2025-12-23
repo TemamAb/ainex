@@ -77,7 +77,7 @@ st.markdown("""
         return "https://aineon-engine-api.onrender.com"
     else:
         # Local development
-        return "http://localhost:8000"
+        return "http://0.0.0.0:8000"
 
 # ============================================================================
 # Data Fetching Functions

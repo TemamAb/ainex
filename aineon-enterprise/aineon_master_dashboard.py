@@ -94,7 +94,7 @@ class AINEONMasterDashboard:
     def __init__(self):
         # Configuration
         self.target_wallet = "0xA51E466e659Cf9DdD5a5CA9ECDd8392302102490"
-        self.api_base = "http://localhost:5000"
+        self.api_base = "http://0.0.0.0:5000"
         self.update_interval = 5  # seconds
         self.max_history = 1000
         

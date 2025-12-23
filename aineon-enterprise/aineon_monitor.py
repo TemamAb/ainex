@@ -20,7 +20,7 @@ def format_eth(amount_eth):
 def get_status():
     """Get current aineon status"""
     try:
-        response = requests.get('http://127.0.0.1:54112/status', timeout=5)
+        response = requests.get('http://0.0.0.0:54112/status', timeout=5)
         return response.json()
     except Exception as e:
         return {"error": str(e)}
@@ -28,7 +28,7 @@ def get_status():
 def get_profit():
     """Get current profit data"""
     try:
-        response = requests.get('http://127.0.0.1:54112/profit', timeout=5)
+        response = requests.get('http://0.0.0.0:54112/profit', timeout=5)
         return response.json()
     except Exception as e:
         return {"error": str(e)}
@@ -80,8 +80,8 @@ def monitor():
                 print(f"Error: {status['error']}")
             
             print("-" * 80)
-            print("Dashboard: http://127.0.0.1:54112")
-            print("API Status: http://127.0.0.1:54112/status")
+            print("Dashboard: http://0.0.0.0:54112")
+            print("API Status: http://0.0.0.0:54112/status")
             print("Press Ctrl+C to exit")
             
             time.sleep(5)  # Update every 5 seconds

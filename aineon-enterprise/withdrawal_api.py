@@ -1,3 +1,4 @@
+import os
 from flask import Flask, request, jsonify
 import time
 import random
@@ -218,4 +219,4 @@ if __name__ == '__main__':
     print("   â€¢ POST   /api/gas/estimate")
     print("   â€¢ GET    /api/withdrawal/limits")
     print("\ní³Š Dashboard: Open dashboard-with-withdrawal.html")
-    app.run(host='0.0.0.0', port=8081, debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)), debug=True)

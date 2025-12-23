@@ -1,0 +1,73 @@
+{
+  "validation_completed": "2025-12-22T06:45:37.973255",
+  "total_duration_seconds": 0.03263282775878906,
+  "summary": {
+    "total_tests": 5,
+    "passed_tests": 3,
+    "failed_tests": 2,
+    "success_rate": 0.6
+  },
+  "test_results": [
+    {
+      "test_name": "Master Dashboard Validation",
+      "passed": true,
+      "details": "Components: 6/6 found",
+      "timestamp": "2025-12-22T06:45:37.946595",
+      "performance_metrics": {
+        "file_size_bytes": 60452,
+        "load_time_estimate": 0.057651519775390625,
+        "component_count": 6
+      }
+    },
+    {
+      "test_name": "Dashboard Responsiveness",
+      "passed": true,
+      "details": "Tested 3 screen sizes, 3 passed",
+      "timestamp": "2025-12-22T06:45:37.946595",
+      "performance_metrics": {
+        "scenarios_tested": 3,
+        "avg_load_time": 2.9465954303741455,
+        "responsive_design_score": 1.0
+      }
+    },
+    {
+      "test_name": "Real-time Integration",
+      "passed": false,
+      "details": "Validated 5 data feeds, 0 passed",
+      "timestamp": "2025-12-22T06:45:37.946595",
+      "performance_metrics": {
+        "feeds_tested": 5,
+        "avg_latency_ms": 87.94659543037415,
+        "avg_freshness": 0.2053404569625854
+      }
+    },
+    {
+      "test_name": "Withdrawal Integration",
+      "passed": true,
+      "details": "Tested 2 systems, 2 operational",
+      "timestamp": "2025-12-22T06:45:37.972253",
+      "performance_metrics": {
+        "systems_tested": 2,
+        "operational_systems": 2,
+        "avg_response_time": 0.5639230476289414
+      }
+    },
+    {
+      "test_name": "Performance Display",
+      "passed": false,
+      "details": "Validated 3 metrics, 4 passing",
+      "timestamp": "2025-12-22T06:45:37.973255",
+      "performance_metrics": {
+        "metrics_tested": 5,
+        "metrics_passing": 4,
+        "avg_performance_score": 0.8
+      }
+    }
+  ],
+  "overall_status": "FAILED",
+  "recommendations": [
+    "Address failed validation tests before proceeding to Phase 3",
+    "Improve real-time data feed latency and freshness",
+    "Optimize performance metrics display and update frequency"
+  ]
+}

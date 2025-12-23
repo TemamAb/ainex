@@ -17,7 +17,7 @@ def extract_features(filename):
     }
     
     # Extract backend connections
-    backends = re.findall(r'localhost:\d+', content)
+    backends = re.findall(r'0.0.0.0:\d+', content)
     features['backends'] = list(set(backends))
     
     # Extract script sources

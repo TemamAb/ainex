@@ -1,0 +1,44 @@
+{
+  "validation_results": {
+    "total_transactions": 2,
+    "validated_transactions": 0,
+    "invalidated_transactions": 2,
+    "total_profit_usd": 0.0,
+    "profit_verified": false,
+    "validation_rate": 0.0,
+    "results": [
+      {
+        "valid": false,
+        "reason": "Transaction not found on blockchain",
+        "transaction_hash": "0x845478166a63b28bc0faf16e56c617339d2df8d71971ff48bb8e91c7a4f462d7",
+        "profit_usd": 0,
+        "verified": false
+      },
+      {
+        "valid": false,
+        "reason": "Transaction not found on blockchain",
+        "transaction_hash": "0xa0ea405cab8fc3a2cf2c181343d922880b36ca697c892f657435cee3e5796d5b",
+        "profit_usd": 0,
+        "verified": false
+      }
+    ],
+    "timestamp": "2025-12-21T22:29:46.164991+00:00"
+  },
+  "profit_certificate": {
+    "certificate_id": "AINEON-NO-PROFIT-1766356186",
+    "timestamp": "2025-12-21T22:29:46.164991+00:00",
+    "profit_details": {
+      "total_profit_usd": 0.0,
+      "validated_transactions": 0,
+      "total_transactions": 2,
+      "validation_rate": 0.0
+    },
+    "certificate_status": "NO_PROFIT_VERIFIED",
+    "reason": "No profitable transactions found on blockchain"
+  },
+  "wallet_balance": {
+    "valid": false,
+    "reason": "Could not fetch balance",
+    "wallet_address": "0x1d204466963bA80ee8606b5beDf84507022eAde1"
+  }
+}

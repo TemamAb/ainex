@@ -348,7 +348,7 @@ if __name__ == '__main__':
     update_thread.start()
     
     print("AINEON Chief Architect Web Dashboard Starting...")
-    print("Dashboard: http://localhost:8080")
+    print("Dashboard: http://0.0.0.0:8080")
     print("API Endpoints available for real-time data")
     
     # Create templates directory if it doesn't exist

@@ -1,0 +1,377 @@
+name: Continuous Integration - AINEON Enterprise Trading Platform
+
+on:
+  push:
+    branches: [ main, develop, staging ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Code Quality and Linting
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black isort flake8 mypy bandit safety
+
+      - name: Check code formatting with Black
+        run: black --check --diff .
+
+      - name: Check import sorting with isort
+        run: isort --check-only --diff .
+
+      - name: Lint with flake8
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+
+      - name: Type checking with mypy
+        run: mypy core/ --ignore-missing-imports
+        continue-on-error: true
+
+      - name: Security linting with bandit
+        run: bandit -r core/ -f json -o bandit-report.json
+        continue-on-error: true
+
+      - name: Check dependencies for vulnerabilities
+        run: safety check --json --output safety-report.json
+        continue-on-error: true
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
+
+  # Security Scanning
+  security-scan:
+    name: Security Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run CodeQL Analysis
+        uses: github/codeql-action/init@v2
+        with:
+          languages: python
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+
+  # Unit and Integration Testing
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio pytest-cov pytest-mock
+
+      - name: Create test environment
+        run: |
+          cp .env.example .env
+          echo "TESTING=true" >> .env
+          echo "DATABASE_URL=sqlite:///test.db" >> .env
+          echo "REDIS_URL=redis://localhost:6379/1" >> .env
+
+      - name: Run unit tests
+        run: |
+          pytest tests/unit/ -v --cov=core --cov-report=xml --cov-report=html --junitxml=test-results.xml
+
+      - name: Run integration tests
+        run: |
+          pytest tests/integration/ -v --junitxml=integration-test-results.xml
+        env:
+          ETH_RPC_URL: "https://sepolia.infura.io/v3/test"
+          ETH_PRIVATE_KEY: "test-key"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results-${{ matrix.python-version }}
+          path: |
+            test-results.xml
+            integration-test-results.xml
+            coverage.xml
+            htmlcov/
+
+      - name: Check test coverage
+        run: |
+          pip install coverage
+          coverage report --fail-under=80
+        continue-on-error: true
+
+  # Performance Testing
+  performance-tests:
+    name: Performance and Load Testing
+    runs-on: ubuntu-latest
+    needs: [code-quality, test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install locust pytest-benchmark
+
+      - name: Run performance benchmarks
+        run: |
+          pytest tests/performance/ --benchmark-only --benchmark-json=benchmark-results.json
+        env:
+          ETH_RPC_URL: "https://sepolia.infura.io/v3/test"
+          ETH_PRIVATE_KEY: "test-key"
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-results
+          path: benchmark-results.json
+
+  # Blockchain Integration Tests
+  blockchain-tests:
+    name: Blockchain Integration Tests
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    services:
+      ganache:
+        image: trufflesuite/ganache:latest
+        ports:
+          - 8545:8545
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install web3 ganache-cli
+
+      - name: Run blockchain tests
+        run: |
+          pytest tests/blockchain/ -v --junitxml=blockchain-test-results.xml
+        env:
+          ETH_RPC_URL: "http://localhost:8545"
+          ETH_PRIVATE_KEY: "test-private-key"
+
+      - name: Upload blockchain test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: blockchain-test-results
+          path: blockchain-test-results.xml
+
+  # AI/ML Model Validation
+  ai-model-tests:
+    name: AI/ML Model Validation
+    runs-on: ubuntu-latest
+    needs: [test]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install tensorflow pytest-ml
+
+      - name: Run AI model tests
+        run: |
+          pytest tests/ai/ -v --junitxml=ai-test-results.xml
+
+      - name: Upload AI test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: ai-test-results
+          path: ai-test-results.xml
+
+  # Docker Build and Security Scan
+  docker-security:
+    name: Docker Security Scan
+    runs-on: ubuntu-latest
+    needs: [code-quality, test]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: aineon-enterprise:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Trivy container scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'aineon-enterprise:latest'
+          format: 'sarif'
+          output: 'trivy-container-results.sarif'
+
+      - name: Upload container scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-container-results.sarif'
+
+  # Compliance and Documentation Check
+  compliance-check:
+    name: Compliance and Documentation
+    runs-on: ubuntu-latest
+    needs: [code-quality]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check documentation completeness
+        run: |
+          find . -name "*.py" -exec grep -L "def " {} \; | head -10
+          echo "Files without function definitions found above"
+
+      - name: Validate README and documentation
+        run: |
+          python -c "
+          import markdown
+          with open('README.md', 'r') as f:
+              content = f.read()
+          html = markdown.markdown(content)
+          if 'ETH' not in content or 'trading' not in content:
+              raise Exception('README missing key content')
+          print('README validation passed')
+          "
+
+      - name: License check
+        run: |
+          if [ ! -f "LICENSE" ]; then
+            echo "LICENSE file missing"
+            exit 1
+          fi
+          echo "LICENSE file present"
+
+  # Notification on completion
+  notify-completion:
+    name: Notify CI Completion
+    runs-on: ubuntu-latest
+    needs: [code-quality, test, security-scan, compliance-check]
+    if: always()
+    
+    steps:
+      - name: Notify on success
+        if: ${{ needs.code-quality.result == 'success' && needs.test.result == 'success' && needs.security-scan.result == 'success' }}
+        run: |
+          echo "✅ All CI checks passed! Ready for deployment."
+
+      - name: Notify on failure
+        if: ${{ needs.code-quality.result == 'failure' || needs.test.result == 'failure' || needs.security-scan.result == 'failure' }}
+        run: |
+          echo "❌ CI checks failed. Please review the failures above."
+          exit 1
+
+      - name: Create deployment status
+        if: github.ref == 'refs/heads/main'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const success = '${{ needs.code-quality.result }}' === 'success' && 
+                          '${{ needs.test.result }}' === 'success' && 
+                          '${{ needs.security-scan.result }}' === 'success';
+            
+            github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: context.payload.deployment?.id,
+              state: success ? 'success' : 'failure',
+              environment_url: 'https://aineon-enterprise.com'
+            });

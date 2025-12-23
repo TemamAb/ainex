@@ -1,0 +1,19 @@
+{
+  "simulation_completed": "2025-12-22T07:59:20.300009",
+  "total_duration_minutes": 30.02760209639867,
+  "total_cycles": 610,
+  "final_metrics": {
+    "total_profit_eth": 0.0,
+    "total_transactions": 610,
+    "successful_transactions": 0,
+    "success_rate": 0.0,
+    "avg_execution_time_us": 0.0,
+    "max_execution_time_us": 1683.6,
+    "min_execution_time_us": 0.0,
+    "current_drawdown_percent": 0.0,
+    "ai_optimization_cycles": 1,
+    "profit_rate_eth_per_hour": 0.0
+  },
+  "targets_achieved": {
+    "profit_target": false,
+    "execution_target": 

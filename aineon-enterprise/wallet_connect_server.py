@@ -1,3 +1,4 @@
+import os
 #!/usr/bin/env python3
 """
 AINEON Wallet Connect Server - Production Ready
@@ -311,7 +312,7 @@ if __name__ == '__main__':
     update_thread.start()
     
     print("AINEON Wallet Connect Server Starting...")
-    print("Dashboard: http://localhost:5000")
+    print("Dashboard: http://0.0.0.0:5000")
     print("API Endpoints:")
     print("   - GET  /api/wallet/status")
     print("   - POST /api/wallet/connect")
@@ -325,4 +326,4 @@ if __name__ == '__main__':
     print("   - POST /api/withdrawal/manual")
     print("   - POST /api/withdrawal/emergency-stop")
     
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)), debug=True)

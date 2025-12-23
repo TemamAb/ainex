@@ -200,7 +200,7 @@ ETH_RPC_URL={self.env_vars['ETH_RPC_URL']}
 WALLET_ADDRESS={self.env_vars['WALLET_ADDRESS']}
 PROFIT_WALLET={self.env_vars['PROFIT_WALLET'] or self.env_vars['WALLET_ADDRESS']}
 API_PORT={self.env_vars['PORT']}
-API_URL=http://localhost:{self.env_vars['PORT']}
+API_URL=http://0.0.0.0:{self.env_vars['PORT']}
 
 # Manual Withdrawal Settings
 TRANSFER_MODE=MANUAL
@@ -251,12 +251,12 @@ CONFIG_FILE=profit_earning_config_manual.json
 
         print(f"  Then execute (in another terminal):")
         api_port = self.env_vars['PORT']
-        print(f"  {Colors.CYAN}curl -X POST http://localhost:{api_port}/withdraw{Colors.ENDC}\n")
+        print(f"  {Colors.CYAN}curl -X POST http://0.0.0.0:{api_port}/withdraw{Colors.ENDC}\n")
 
         print(f"{Colors.BOLD}📈 Profit Tracking Dashboard:{Colors.ENDC}")
         print(f"  Real-time metrics available at:")
-        print(f"  {Colors.CYAN}http://localhost:{api_port}/profit{Colors.ENDC}")
-        print(f"  {Colors.CYAN}http://localhost:{api_port}/opportunities{Colors.ENDC}\n")
+        print(f"  {Colors.CYAN}http://0.0.0.0:{api_port}/profit{Colors.ENDC}")
+        print(f"  {Colors.CYAN}http://0.0.0.0:{api_port}/opportunities{Colors.ENDC}\n")
 
         print(f"{Colors.BOLD}🚀 Next Steps:{Colors.ENDC}")
         print(f"  1. Deploy AINEON: ./deploy-production.sh")

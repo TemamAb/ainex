@@ -1,0 +1,270 @@
+version: '3.8'
+
+services:
+  # Main AINEON Trading Engine
+  aineon-trading-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aineon-trading-engine
+    restart: unless-stopped
+    environment:
+      - ETH_RPC_URL=${ETH_RPC_URL}
+      - ETH_PRIVATE_KEY=${ETH_PRIVATE_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - AI_MODEL_PATH=/app/models/profit_optimizer.h5
+      - MIN_PROFIT_THRESHOLD=0.01
+      - MAX_POSITION_SIZE=1.0
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    volumes:
+      - ./models:/app/models:ro
+      - ./logs:/app/logs
+      - ./config:/app/config:ro
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    depends_on:
+      - redis
+      - postgres
+      - influxdb
+    networks:
+      - aineon-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+
+  # Professional Dashboard
+  aineon-dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    container_name: aineon-dashboard
+    restart: unless-stopped
+    environment:
+      - FLASK_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - WEBSOCKET_URL=ws://aineon-trading-engine:8081
+    ports:
+      - "3000:3000"
+    depends_on:
+      - redis
+      - postgres
+    networks:
+      - aineon-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # Redis Cache Layer
+  redis:
+    image: redis:7.2-alpine
+    container_name: aineon-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    networks:
+      - aineon-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: aineon-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=aineon
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - aineon-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # InfluxDB for Time Series Data
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: aineon-influxdb
+    restart: unless-stopped
+    environment:
+      - INFLUXDB_DB=aineon_metrics
+      - INFLUXDB_ADMIN_USER=${INFLUXDB_USER}
+      - INFLUXDB_ADMIN_PASSWORD=${INFLUXDB_PASSWORD}
+      - INFLUXDB_USER=${INFLUXDB_USER}
+      - INFLUXDB_USER_PASSWORD=${INFLUXDB_PASSWORD}
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    ports:
+      - "8086:8086"
+    networks:
+      - aineon-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: aineon-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - aineon-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: aineon-grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    ports:
+      - "3001:3000"
+    networks:
+      - aineon-network
+    depends_on:
+      - prometheus
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # Load Balancer (Nginx)
+  nginx:
+    image: nginx:alpine
+    container_name: aineon-nginx
+    restart: unless-stopped
+    volumes:
+      - ./infrastructure/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infrastructure/nginx/ssl:/etc/nginx/ssl:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - aineon-trading-engine
+      - aineon-dashboard
+    networks:
+      - aineon-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # Elasticsearch for Log Aggregation
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: aineon-elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - aineon-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # Kibana for Log Visualization
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: aineon-kibana
+    restart: unless-stopped
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    networks:
+      - aineon-network
+    depends_on:
+      - elasticsearch
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  # Security Scanner Service
+  security-scanner:
+    build:
+      context: ./security
+      dockerfile: Dockerfile
+    container_name: aineon-security-scanner
+    restart: "no"
+    environment:
+      - SCAN_INTERVAL=3600
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+    volumes:
+      - ./security/reports:/app/reports
+    networks:
+      - aineon-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+
+networks:
+  aineon-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: aineon-bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  influxdb_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  elasticsearch_data:
+    driver: local

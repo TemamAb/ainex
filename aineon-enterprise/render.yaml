@@ -1,9 +1,25 @@
 services:
   - type: web
-    name: myneon-enterprise
+    name: aineon-enterprise-engine
     runtime: docker
     plan: free
     region: ohio
     envVars:
       - key: PORT
         value: 10000
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: PYTHONPATH
+        value: "/app"
+      # Required for live mode (Placeholders - MUST BE SET IN RENDER DASHBOARD)
+      - key: ETH_RPC_URL
+        value: "https://mainnet.infura.io/v3/YOUR_KEY"
+      - key: WALLET_ADDRESS
+        value: "0x0000000000000000000000000000000000000000"
+      - key: ETHERSCAN_API_KEY
+        value: "YOUR_ETHERSCAN_KEY"
+      - key: PRIVATE_KEY
+        value: "" # Leave empty for monitoring mode, add for execution
+      - key: CONTRACT_ADDRESS
+        value: "" # Required for flash loan execution
+    healthCheckPath: /health

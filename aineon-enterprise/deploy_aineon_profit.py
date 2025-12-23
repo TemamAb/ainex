@@ -267,8 +267,8 @@ NEXT STEPS:
   1. Review configuration above
   2. Start unified system: {Colors.CYAN}python core/unified_system.py{Colors.ENDC}
   3. Monitor profit metrics: {Colors.CYAN}python core/profit_metrics_display.py{Colors.ENDC}
-  4. Check API status: {Colors.CYAN}curl http://localhost:8081/status{Colors.ENDC}
-  5. View profit metrics: {Colors.CYAN}curl http://localhost:8081/profit{Colors.ENDC}
+  4. Check API status: {Colors.CYAN}curl http://0.0.0.0:8081/status{Colors.ENDC}
+  5. View profit metrics: {Colors.CYAN}curl http://0.0.0.0:8081/profit{Colors.ENDC}
 
 {Colors.YELLOW}⚠ IMPORTANT SECURITY NOTES:{Colors.ENDC}
   • Never commit .env file to version control

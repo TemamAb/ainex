@@ -12,7 +12,7 @@ from datetime import datetime
 def check_service_status(port, service_name):
     """Check if service is running on specified port"""
     try:
-        response = requests.get(f"http://localhost:{port}/status", timeout=2)
+        response = requests.get(f"http://0.0.0.0:{port}/status", timeout=2)
         if response.status_code == 200:
             return True, response.json()
         else:

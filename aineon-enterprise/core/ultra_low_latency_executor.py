@@ -192,25 +192,56 @@ class UltraLowLatencyExecutor:
         self._prewarm_cache()
     
     def _prewarm_cache(self):
-        """Pre-warm cache with common price data"""
-        common_pairs = [
-            ('WETH', 'USDC'),
-            ('WBTC', 'WETH'),
-            ('USDC', 'USDT'),
-            ('DAI', 'USDC'),
-            ('WETH', 'LINK'),
-            ('WETH', 'UNI'),
+        """Pre-warm cache with consistent price data"""
+        # Comprehensive token pairs with consistent pricing
+        all_pairs = [
+            ('WETH', 'USDC'), ('WETH', 'USDT'), ('WETH', 'DAI'),
+            ('WBTC', 'WETH'), ('WBTC', 'USDC'), ('WBTC', 'USDT'),
+            ('USDC', 'USDT'), ('USDC', 'DAI'), ('USDT', 'DAI'),
+            ('WETH', 'LINK'), ('WETH', 'UNI'), ('WETH', 'AAVE'),
+            ('WETH', 'COMP'), ('WETH', 'SUSHI'), ('WETH', 'CRV'),
+            ('WETH', 'SNX'), ('WETH', 'MKR'), ('WETH', 'YFI')
         ]
         
-        for token_in, token_out in common_pairs:
-            # Pre-populate cache with mock data
-            for dex in ['UNISWAP_V3', 'SUSHISWAP', 'CURVE']:
+        # Consistent price mapping (USD values)
+        price_map = {
+            ('WETH', 'USDC'): 2500_000_000,  # $2500
+            ('WETH', 'USDT'): 2500_000_000,  # $2500
+            ('WETH', 'DAI'): 2500_000_000,   # $2500
+            ('WBTC', 'WETH'): 15_000_000_000, # 15 ETH
+            ('WBTC', 'USDC'): 37500_000_000, # $37,500
+            ('WBTC', 'USDT'): 37500_000_000, # $37,500
+            ('USDC', 'USDT'): 1_000_000,     # 1:1
+            ('USDC', 'DAI'): 1_000_000,      # 1:1
+            ('USDT', 'DAI'): 1_000_000,      # 1:1
+            ('WETH', 'LINK'): 2500_000_000,  # $2500
+            ('WETH', 'UNI'): 2500_000_000,   # $2500
+            ('WETH', 'AAVE'): 2500_000_000,  # $2500
+            ('WETH', 'COMP'): 2500_000_000,  # $2500
+            ('WETH', 'SUSHI'): 2500_000_000, # $2500
+            ('WETH', 'CRV'): 2500_000_000,   # $2500
+            ('WETH', 'SNX'): 2500_000_000,   # $2500
+            ('WETH', 'MKR'): 2500_000_000,   # $2500
+            ('WETH', 'YFI'): 2500_000_000,   # $2500
+        }
+        
+        # Comprehensive DEX list
+        all_dexes = ['UNISWAP_V3', 'SUSHISWAP', 'CURVE', 'BALANCER', '1INCH']
+        
+        for token_in, token_out in all_pairs:
+            base_price = price_map.get((token_in, token_out), 1000000)
+            
+            for dex in all_dexes:
                 key = f"{dex}:{token_in}:{token_out}"
+                # Add small variations per DEX (±2%)
+                price_variation = np.random.uniform(0.98, 1.02)
+                final_price = int(base_price * price_variation)
+                
                 price = UltraFastPrice(
                     dex=dex,
                     token_in=token_in,
                     token_out=token_out,
-                    price_raw=np.random.randint(1000000, 1000000000),
+                    price_raw=final_price,
                     liquidity=np.random.randint(1000000, 100000000),
                     timestamp_ns=time.time_ns()
                 )
@@ -283,12 +314,12 @@ class UltraLowLatencyExecutor:
             if field not in opportunity:
                 return False
         
-        # Quick profitability check
-        if opportunity.get('spread_pct', 0) < 0.1:
+        # Quick profitability check (relaxed from 0.1% to 0.05%)
+        if opportunity.get('spread_pct', 0) < 0.05:
             return False
         
-        # Quick confidence check
-        if opportunity.get('confidence', 0) < 0.7:
+        # Quick confidence check (relaxed from 0.7 to 0.6)
+        if opportunity.get('confidence', 0) < 0.6:
             return False
         
         return True

@@ -53,8 +53,8 @@ class AINEONPortConflictPreventer:
             57211, 60228, 54112, 54113,
             # Localhost services (store as separate tracking)
         }
-        # Store localhost services separately for tracking
-        self.localhost_services = {
+        # Store 0.0.0.0 services separately for tracking
+        self.0.0.0.0_services = {
             4733, 45223, 45224, 45225, 45226
         }
         self.system_ports_reserved = system_ports
@@ -108,7 +108,7 @@ class AINEONPortConflictPreventer:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                 sock.settimeout(0.5)
-                result = sock.connect_ex(('localhost', port))
+                result = sock.connect_ex(('0.0.0.0', port))
                 return result == 0  # If connection succeeds, port is in use
         except Exception:
             return False  # If we can't check, assume it's free

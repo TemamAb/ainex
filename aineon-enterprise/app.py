@@ -101,7 +101,7 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     
     print(f"🚀 AINEON Elite Dashboard starting on port {port}")
-    print(f"📊 Dashboard available at: http://localhost:{port}")
-    print(f"💚 Health check: http://localhost:{port}/health")
+    print(f"📊 Dashboard available at: http://0.0.0.0:{port}")
+    print(f"💚 Health check: http://0.0.0.0:{port}/health")
     
     app.run(host='0.0.0.0', port=port, debug=False)

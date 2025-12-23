@@ -6,7 +6,7 @@ web3==6.15.1
 websockets==12.0
 eth-account==0.11.0
 eth-brownie==1.20.4
-pycoingecko==3.1.1
+pycoingecko==3.1.0
 
 # AsyncIO and HTTP
 aiohttp==3.9.1
@@ -81,3 +81,5 @@ ccxt==4.1.65
 # Blockchain Specific
 eth-abi==4.1.0
 eth-utils==3.0.0
+aiohttp-cors==0.7.0
+

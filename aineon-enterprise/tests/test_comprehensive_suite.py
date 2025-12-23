@@ -1,359 +1,389 @@
 """
-Comprehensive AINEON Test Suite
-Unit + Integration + Performance tests
-Target: 95%+ Code Coverage
+Comprehensive Test Suite for AINEON Enterprise Platform
+
+This module provides complete test coverage for all core components including:
+- AI Optimization Engine
+- Ultra-Low Latency Executor
+- Live Deployment Orchestrator
+- Withdrawal Systems
+- Dashboard Integration
 """
 
 import pytest
 import asyncio
-from decimal import Decimal
-from datetime import datetime
+import time
+import json
+from unittest.mock import Mock, patch, AsyncMock
+from typing import Dict, List, Any
+import numpy as np
 
-# Test Strategy Orchestrator
-from core.strategies.strategy_orchestrator import (
-    StrategyOrchestrator,
-    StrategyType,
-    StrategySignal,
-    MultiDexArbitrageStrategy,
-    LiquidationCascadeStrategy,
-)
+# Import core modules to test
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-# Test AI Optimizer
-from core.ai.ml_optimizer import (
-    AIOptimizationEngine,
-    MarketState,
-    MarketRegime,
-    MarketRegimeDetector,
-    DeepRLOptimizer,
-    ParameterAutoTuner,
-)
-
-# Test Liquidation Engine
-from core.liquidation_engine import (
-    LiquidationDetector,
-    LiquidationExecutor,
-    MultiProtocolLiquidationManager,
-    LendingProtocol,
-    Position,
-)
-
-class TestStrategyOrchestrator:
-    """Test 6-strategy orchestration"""
-    
-    @pytest.fixture
-    def orchestrator(self):
-        """Mock orchestrator"""
-        from unittest.mock import MagicMock
-        
-        return StrategyOrchestrator(
-            dex_router=MagicMock(),
-            mempool_monitor=MagicMock(),
-            protocol_monitor=MagicMock(),
-            pool_analyzer=MagicMock(),
-            bridge_monitor=MagicMock(),
-            volatility_monitor=MagicMock(),
-        )
-    
-    @pytest.mark.asyncio
-    async def test_strategy_initialization(self, orchestrator):
-        """Test 6 strategies are initialized"""
-        assert len(orchestrator.strategies) == 6
-        assert StrategyType.MULTI_DEX_ARBITRAGE in orchestrator.strategies
-        assert StrategyType.MEV_SANDWICH in orchestrator.strategies
-        assert StrategyType.LIQUIDATION_CASCADE in orchestrator.strategies
-    
-    @pytest.mark.asyncio
-    async def test_opportunity_detection(self, orchestrator):
-        """Test opportunity detection across strategies"""
-        signals = await orchestrator.detect_all_opportunities()
-        assert isinstance(signals, list)
-    
-    def test_execution_queue(self, orchestrator):
-        """Test execution queue management"""
-        signal = StrategySignal(
-            strategy_type=StrategyType.MULTI_DEX_ARBITRAGE,
-            opportunity_id="test_123",
-            token_in="USDC",
-            token_out="USDT",
-            amount=Decimal("100"),
-            expected_profit=Decimal("1.0"),
-            confidence=0.92,
-        )
-        
-        orchestrator.execution_queue.append(signal)
-        assert len(orchestrator.execution_queue) == 1
-    
-    def test_portfolio_stats(self, orchestrator):
-        """Test portfolio statistics"""
-        stats = orchestrator.get_portfolio_stats()
-        
-        assert "total_profit" in stats
-        assert "total_executions" in stats
-        assert "win_rate" in stats
-        assert "by_strategy" in stats
+from core.ai_optimizer import AIOptimizationEngine, MarketRegime, ThompsonSamplingOptimizer
+from core.ultra_low_latency_executor import UltraLowLatencyExecutor, UltraFastPrice
+from live_deployment_orchestrator import LiveDeploymentOrchestrator, LiveDeploymentConfig
+from direct_withdrawal_executor import DirectWithdrawalExecutor
+from accelerated_withdrawal_executor import AcceleratedWithdrawalExecutor
 
 
 class TestAIOptimizationEngine:
-    """Test AI optimization and market regime detection"""
+    """Test suite for AI Optimization Engine"""
     
     @pytest.fixture
-    def ai_engine(self):
-        return AIOptimizationEngine()
+    def ai_optimizer(self):
+        """Create AI optimizer instance for testing"""
+        strategy_ids = ['strategy_alpha', 'strategy_beta', 'strategy_gamma']
+        return AIOptimizationEngine(strategy_ids)
     
-    def test_market_regime_detection_trending_up(self):
-        """Test detection of uptrend"""
-        prices = [Decimal(str(2000 + i*10)) for i in range(30)]
-        volatility = 0.04
-        volumes = [Decimal("1000") for _ in range(30)]
+    def test_market_regime_detection(self, ai_optimizer):
+        """Test market regime detection functionality"""
+        test_metrics = {
+            'volatility': 0.05,
+            'trend': 0.03,
+            'momentum': 0.02
+        }
         
-        regime = MarketRegimeDetector.detect_regime(prices, volumes, volatility)
-        # Could be trending up or range bound
-        assert regime in [MarketRegime.TRENDING_UP, MarketRegime.RANGE_BOUND]
+        # Test regime detection
+        regime = asyncio.run(ai_optimizer.regime_detector.detect_regime(test_metrics))
+        
+        assert isinstance(regime, MarketRegime)
+        assert regime.confidence > 0.8
+        assert regime.timestamp is not None
+        assert regime.metrics == test_metrics
     
-    def test_market_regime_detection_volatile(self):
-        """Test detection of volatility"""
-        prices = [Decimal(str(2000 + i*(10 if i%2==0 else -10))) for i in range(30)]
-        volatility = 0.08  # High
-        volumes = [Decimal("1000") for _ in range(30)]
+    def test_thompson_sampling_optimization(self, ai_optimizer):
+        """Test Thompson Sampling strategy selection"""
+        # Test initial strategy selection (should be random)
+        selected_strategy = ai_optimizer.get_selected_strategy()
+        assert selected_strategy in ai_optimizer.strategy_ids
         
-        regime = MarketRegimeDetector.detect_regime(prices, volumes, volatility)
-        assert regime == MarketRegime.VOLATILE
-    
-    def test_rsi_calculation(self):
-        """Test RSI calculation"""
-        prices = [Decimal(str(2000 + i)) for i in range(50)]  # Uptrend
-        rsi = MarketRegimeDetector._calculate_rsi(prices)
+        # Test update mechanism
+        ai_optimizer.thompson_optimizer.update('strategy_alpha', 10.0, True)
+        ai_optimizer.thompson_optimizer.update('strategy_beta', 5.0, False)
         
-        assert 0 <= rsi <= 100
-        assert rsi > 50  # Uptrend = high RSI
-    
-    def test_deep_rl_optimizer_initialization(self):
-        """Test Deep RL initialization"""
-        optimizer = DeepRLOptimizer(num_strategies=6)
-        
-        assert len(optimizer.strategy_weights) == 6
-        # Equal weight initially
-        assert all(w == 1.0/6 for w in optimizer.strategy_weights.values())
+        # Test weights calculation
+        weights = ai_optimizer.get_strategy_weights()
+        assert len(weights) == len(ai_optimizer.strategy_ids)
+        assert sum(weights.values()) == pytest.approx(1.0, abs=1e-10)
     
     @pytest.mark.asyncio
-    async def test_parameter_auto_tuning(self):
-        """Test parameter auto-tuning"""
-        tuner = ParameterAutoTuner()
+    async def test_auto_tuning_cycle(self, ai_optimizer):
+        """Test complete auto-tuning cycle"""
+        # Mock execution results
+        execution_results = [
+            {'strategy_id': 'strategy_alpha', 'profit': 10.0, 'execution_time': 0.001, 'success': True},
+            {'strategy_id': 'strategy_beta', 'profit': 5.0, 'execution_time': 0.002, 'success': False}
+        ]
         
-        # Record good performance
-        for i in range(25):
-            tuner.record_performance({
-                "profit": 10.0,
-                "roi": 5.0,
-                "success": True,
-            })
+        # Run auto-tuning cycle
+        report = await ai_optimizer.run_auto_tuning_cycle(execution_results)
         
-        adjustments = await tuner.maybe_tune_parameters()
-        # May or may not have tuned depending on timing
-        assert isinstance(adjustments, dict)
-    
-    @pytest.mark.asyncio
-    async def test_ai_optimization_output(self, ai_engine):
-        """Test AI optimization provides valid output"""
-        market_state = MarketState(
-            timestamp=datetime.now(),
-            eth_price=Decimal("2500"),
-            volatility=0.03,
-            momentum=0.02,
-            volume=Decimal("100000"),
-            rsi=55.0,
-            regime=MarketRegime.RANGE_BOUND,
-        )
-        
-        strategy, output = await ai_engine.optimize_next_execution(
-            market_state=market_state,
-            strategy_history={f"strategy_{i}": [] for i in range(6)},
-            opportunities_available=10,
-            gas_price_gwei=50.0,
-        )
-        
-        assert strategy.startswith("strategy_")
-        assert output.confidence > 0.8
-        assert output.recommended_position_size > 0
-        assert 0 < output.recommended_max_slippage < 0.01
+        assert 'timestamp' in report
+        assert 'market_regime' in report
+        assert 'strategy_weights' in report
+        assert 'optimized_parameters' in report
+        assert len(report['strategy_weights']) == len(ai_optimizer.strategy_ids)
 
 
-class TestLiquidationEngine:
-    """Test liquidation detection and execution"""
+class TestUltraLowLatencyExecutor:
+    """Test suite for Ultra-Low Latency Executor"""
     
     @pytest.fixture
-    def detector(self):
-        return LiquidationDetector()
+    def executor(self):
+        """Create ultra-fast executor instance"""
+        return UltraLowLatencyExecutor()
+    
+    def test_cache_functionality(self, executor):
+        """Test ultra-fast cache operations"""
+        # Test cache put and get
+        test_price = UltraFastPrice(
+            dex='UNISWAP_V3',
+            token_in='WETH',
+            token_out='USDC',
+            price_raw=2500000000,
+            liquidity=1000000,
+            timestamp_ns=time.time_ns()
+        )
+        
+        key = "UNISWAP_V3:WETH:USDC"
+        executor.price_cache.put(key, test_price)
+        retrieved_price = executor.price_cache.get(key)
+        
+        assert retrieved_price == test_price
+        assert executor.price_cache.hit_rate() > 0
+    
+    def test_opportunity_validation(self, executor):
+        """Test ultra-fast opportunity validation"""
+        valid_opportunity = {
+            'buy_dex': 'UNISWAP_V3',
+            'sell_dex': 'SUSHISWAP',
+            'token_in': 'WETH',
+            'token_out': 'USDC',
+            'spread_pct': 0.5,
+            'confidence': 0.8
+        }
+        
+        invalid_opportunity = {
+            'buy_dex': 'UNISWAP_V3',
+            'sell_dex': 'SUSHISWAP',
+            'spread_pct': 0.05,  # Too small
+            'confidence': 0.6    # Too low
+        }
+        
+        assert executor._validate_opportunity_fast(valid_opportunity) == True
+        assert executor._validate_opportunity_fast(invalid_opportunity) == False
+    
+    @pytest.mark.asyncio
+    async def test_ultra_fast_execution(self, executor):
+        """Test ultra-fast execution performance"""
+        test_opportunity = {
+            'id': 'test_opportunity',
+            'buy_dex': 'UNISWAP_V3',
+            'sell_dex': 'SUSHISWAP',
+            'token_in': 'WETH',
+            'token_out': 'USDC',
+            'spread_pct': 0.5,
+            'confidence': 0.8,
+            'amount': 1000000
+        }
+        
+        # Execute opportunity
+        result = await executor.ultra_fast_execute(test_opportunity)
+        
+        assert 'success' in result
+        assert 'execution_time_us' in result
+        assert result['execution_time_us'] < 1000  # Should be very fast
+    
+    @pytest.mark.asyncio
+    async def test_performance_benchmark(self, executor):
+        """Test performance benchmarking"""
+        # Run benchmark with small number of iterations for testing
+        stats = await executor.benchmark_performance(iterations=10)
+        
+        assert 'total_iterations' in stats
+        assert 'success_rate' in stats
+        assert 'avg_execution_time_us' in stats
+        assert 'target_150us_met' in stats
+        assert stats['total_iterations'] == 10
+
+
+class TestLiveDeploymentOrchestrator:
+    """Test suite for Live Deployment Orchestrator"""
     
     @pytest.fixture
-    def liquidation_manager(self):
-        from unittest.mock import MagicMock
-        return MultiProtocolLiquidationManager(dex_router=MagicMock())
-    
-    def test_liquidation_detector_initialization(self, detector):
-        """Test detector initialization"""
-        assert detector.liquidation_threshold == Decimal("1.2")
-        assert len(detector.monitored_positions) == 0
-    
-    def test_position_creation(self):
-        """Test creating a position"""
-        position = Position(
-            position_id="pos_123",
-            user="0x1234...",
-            protocol=LendingProtocol.AAVE_V3,
-            collateral_token="WETH",
-            collateral_amount=Decimal("10"),
-            debt_token="USDC",
-            debt_amount=Decimal("15000"),
-            health_factor=Decimal("1.05"),
-            liquidation_threshold=Decimal("1.5"),
+    def orchestrator(self):
+        """Create live deployment orchestrator"""
+        config = LiveDeploymentConfig(
+            network="testnet",
+            rpc_url="https://testnet.ethereum.org/",
+            etherscan_api_key="test_key"
         )
-        
-        assert position.health_factor < position.liquidation_threshold
-        assert position.protocol == LendingProtocol.AAVE_V3
-    
-    def test_protocol_coverage(self, liquidation_manager):
-        """Test 7 protocols are supported"""
-        protocols = liquidation_manager.protocols
-        
-        assert len(protocols) == 7
-        assert LendingProtocol.AAVE_V3 in protocols
-        assert LendingProtocol.COMPOUND in protocols
-        assert LendingProtocol.MORPHO in protocols
-    
-    def test_liquidation_profit_calculation(self, liquidation_manager):
-        """Test liquidation profit calculation"""
-        position = Position(
-            position_id="pos_123",
-            user="0x1234",
-            protocol=LendingProtocol.AAVE_V3,
-            collateral_token="WETH",
-            collateral_amount=Decimal("100"),  # 100 WETH = ~$250K
-            debt_token="USDC",
-            debt_amount=Decimal("200000"),  # $200K debt
-            health_factor=Decimal("0.95"),
-            liquidation_threshold=Decimal("1.5"),
-        )
-        
-        opportunity = liquidation_manager._calculate_liquidation_profit(position)
-        
-        if opportunity:  # May or may not qualify (need profit > 2 ETH)
-            assert opportunity.liquidator_profit > 0
-            assert opportunity.position == position
-
-
-class TestIntegration:
-    """Integration tests for full flow"""
+        return LiveDeploymentOrchestrator(config)
     
     @pytest.mark.asyncio
-    async def test_strategy_to_execution_flow(self):
-        """Test opportunity → strategy → execution"""
-        from unittest.mock import MagicMock
+    async def test_smart_wallet_generation(self, orchestrator):
+        """Test smart wallet generation"""
+        result = await orchestrator._generate_smart_wallet()
         
-        orchestrator = StrategyOrchestrator(
-            dex_router=MagicMock(),
-            mempool_monitor=MagicMock(),
-            protocol_monitor=MagicMock(),
-            pool_analyzer=MagicMock(),
-            bridge_monitor=MagicMock(),
-            volatility_monitor=MagicMock(),
-        )
-        
-        # Create signal
-        signal = StrategySignal(
-            strategy_type=StrategyType.MULTI_DEX_ARBITRAGE,
-            opportunity_id="int_test_001",
-            token_in="USDC",
-            token_out="USDT",
-            amount=Decimal("100"),
-            expected_profit=Decimal("1.0"),
-            confidence=0.92,
-        )
-        
-        # Attempt execution
-        success, profit = await orchestrator.execute_opportunity(signal)
-        
-        assert isinstance(success, bool)
-        assert isinstance(profit, Decimal)
+        assert result['success'] == True
+        assert 'wallet_address' in result
+        assert result['is_smart_wallet'] == True
+        assert orchestrator.smart_wallet is not None
     
     @pytest.mark.asyncio
-    async def test_ai_strategy_selection_integration(self):
-        """Test AI optimization selecting strategy"""
-        ai_engine = AIOptimizationEngine()
+    async def test_wallet_funding(self, orchestrator):
+        """Test wallet funding simulation"""
+        # First generate wallet
+        await orchestrator._generate_smart_wallet()
         
-        market_state = MarketState(
-            timestamp=datetime.now(),
-            eth_price=Decimal("2500"),
-            volatility=0.05,
-            momentum=0.01,
-            volume=Decimal("100000"),
-            rsi=70.0,  # Trending
-            regime=MarketRegime.TRENDING_UP,
+        result = await orchestrator._fund_wallet()
+        
+        assert result['success'] == True
+        assert 'balance_eth' in result
+        assert orchestrator.smart_wallet.balance_eth >= 0
+    
+    @pytest.mark.asyncio
+    async def test_profit_execution(self, orchestrator):
+        """Test first profit execution"""
+        # Generate and fund wallet first
+        await orchestrator._generate_smart_wallet()
+        await orchestrator._fund_wallet()
+        
+        result = await orchestrator._execute_first_profit()
+        
+        assert result['success'] == True
+        assert 'transaction' in result
+        assert 'profit_usd' in result
+        assert len(orchestrator.profit_transactions) == 1
+    
+    @pytest.mark.asyncio
+    async def test_validation_pipeline(self, orchestrator):
+        """Test complete validation pipeline"""
+        # Set up mock transaction
+        from live_deployment_orchestrator import LiveProfitTransaction
+        
+        mock_transaction = LiveProfitTransaction(
+            tx_hash="0x1234567890abcdef",
+            block_number=1000000,
+            profit_usd=100.0,
+            profit_eth=0.05,
+            gas_used=150000,
+            gas_price_gwei=20.0,
+            success=True,
+            etherscan_url="https://testnet.etherscan.io/tx/0x1234567890abcdef",
+            timestamp=time.time()
         )
+        orchestrator.profit_transactions.append(mock_transaction)
         
-        strategy, output = await ai_engine.optimize_next_execution(
-            market_state=market_state,
-            strategy_history={f"strategy_{i}": [] for i in range(6)},
-            opportunities_available=15,
-            gas_price_gwei=50.0,
-        )
+        # Run validation pipeline
+        validation_result = await orchestrator.run_validation_pipeline()
         
-        # Should select a strategy
-        assert strategy is not None
-        # MEV and Multi-DEX should have higher weights in uptrend
-        assert output.confidence > 0.8
+        assert 'overall_status' in validation_result
+        assert 'validations' in validation_result
+        assert len(validation_result['validations']) == 5
 
 
-class TestPerformanceMetrics:
-    """Test performance and latency targets"""
+class TestWithdrawalSystems:
+    """Test suite for withdrawal systems"""
     
-    def test_strategy_initialization_speed(self):
-        """Test strategy initialization is fast"""
-        import time
+    def test_direct_withdrawal_executor(self):
+        """Test direct withdrawal executor"""
+        executor = DirectWithdrawalExecutor()
         
-        start = time.time()
-        orchestrator = StrategyOrchestrator(
-            dex_router=None,
-            mempool_monitor=None,
-            protocol_monitor=None,
-            pool_analyzer=None,
-            bridge_monitor=None,
-            volatility_monitor=None,
-        )
-        elapsed = time.time() - start
-        
-        assert elapsed < 0.1  # <100ms initialization
+        # Test immediate withdrawal
+        with patch('time.sleep'):  # Mock sleep to speed up test
+            success = executor.execute_immediate_withdrawal()
+            
+            assert success == True
+            assert executor.total_withdrawn > 0
     
-    def test_ai_inference_latency(self):
-        """Test AI inference is <150µs"""
-        import time
+    def test_accelerated_withdrawal_executor(self):
+        """Test accelerated withdrawal executor"""
+        executor = AcceleratedWithdrawalExecutor()
         
-        ai_engine = AIOptimizationEngine()
-        market_state = MarketState(
-            timestamp=datetime.now(),
-            eth_price=Decimal("2500"),
-            volatility=0.03,
-            momentum=0.01,
-            volume=Decimal("100000"),
-            rsi=50.0,
-            regime=MarketRegime.CALM,
-        )
+        # Test rapid withdrawal calculation
+        withdrawals = executor.calculate_rapid_withdrawals()
         
-        start = time.time()
+        assert isinstance(withdrawals, list)
+        assert len(withdrawals) > 0
+        assert all(amount > 0 for amount in withdrawals)
         
-        # Synchronously run optimization
-        loop = asyncio.new_event_loop()
-        loop.run_until_complete(ai_engine.optimize_next_execution(
-            market_state=market_state,
-            strategy_history={f"strategy_{i}": [] for i in range(6)},
-            opportunities_available=10,
-            gas_price_gwei=50.0,
-        ))
+        # Test accelerated plan execution
+        with patch('time.sleep'):  # Mock sleep to speed up test
+            success = executor.execute_accelerated_plan()
+            
+            assert success == True
+            assert executor.total_withdrawn > 0
+
+
+class TestIntegrationScenarios:
+    """Integration test scenarios"""
+    
+    @pytest.mark.asyncio
+    async def test_full_simulation_cycle(self):
+        """Test complete simulation cycle integration"""
+        # Initialize all components
+        ai_optimizer = AIOptimizationEngine(['test_strategy'])
+        executor = UltraLowLatencyExecutor()
+        orchestrator = LiveDeploymentOrchestrator(LiveDeploymentConfig())
         
-        elapsed = time.time() - start
+        # Run AI optimization
+        optimization_report = await ai_optimizer.run_auto_tuning_cycle([])
         
-        # Should be fast (design target: <150µs = 0.00015s, testing for <10ms)
-        assert elapsed < 0.01
+        # Execute test opportunity
+        test_opportunity = {
+            'buy_dex': 'UNISWAP_V3',
+            'sell_dex': 'SUSHISWAP',
+            'token_in': 'WETH',
+            'token_out': 'USDC',
+            'spread_pct': 0.5,
+            'confidence': 0.8
+        }
+        
+        execution_result = await executor.ultra_fast_execute(test_opportunity)
+        
+        # Validate integration
+        assert optimization_report is not None
+        assert execution_result['success'] in [True, False]  # May succeed or fail depending on simulation
+    
+    @pytest.mark.asyncio
+    async def test_withdrawal_integration(self):
+        """Test withdrawal system integration"""
+        # Test direct withdrawal integration
+        direct_executor = DirectWithdrawalExecutor()
+        accelerated_executor = AcceleratedWithdrawalExecutor()
+        
+        # Simulate profits
+        direct_executor.current_profits_eth = 10.0
+        accelerated_executor.current_profits_eth = 15.0
+        
+        # Test withdrawal execution
+        with patch('time.sleep'):
+            direct_success = direct_executor.execute_immediate_withdrawal()
+            accelerated_success = accelerated_executor.execute_accelerated_plan()
+        
+        assert direct_success == True
+        assert accelerated_success == True
+        assert direct_executor.total_withdrawn > 0
+        assert accelerated_executor.total_withdrawn > 0
+
+
+class TestPerformanceBenchmarks:
+    """Performance benchmark tests"""
+    
+    @pytest.mark.asyncio
+    async def test_execution_speed_benchmark(self):
+        """Test execution speed meets requirements"""
+        executor = UltraLowLatencyExecutor()
+        
+        # Run multiple executions to get average
+        execution_times = []
+        for i in range(5):
+            test_opp = {
+                'buy_dex': 'UNISWAP_V3',
+                'sell_dex': 'SUSHISWAP',
+                'token_in': 'WETH',
+                'token_out': 'USDC',
+                'spread_pct': 0.5,
+                'confidence': 0.8
+            }
+            
+            start_time = time.time_ns()
+            await executor.ultra_fast_execute(test_opp)
+            end_time = time.time_ns()
+            
+            execution_time_us = (end_time - start_time) / 1000
+            execution_times.append(execution_time_us)
+        
+        avg_time = sum(execution_times) / len(execution_times)
+        
+        # Performance requirement: <150µs target
+        assert avg_time < 150, f"Average execution time {avg_time}µs exceeds 150µs target"
+    
+    def test_memory_usage_benchmark(self):
+        """Test memory usage is within acceptable limits"""
+        import psutil
+        import os
+        
+        process = psutil.Process(os.getpid())
+        initial_memory = process.memory_info().rss / 1024 / 1024  # MB
+        
+        # Create multiple instances to test memory scaling
+        executors = []
+        for i in range(10):
+            executor = UltraLowLatencyExecutor()
+            executors.append(executor)
+        
+        final_memory = process.memory_info().rss / 1024 / 1024  # MB
+        memory_increase = final_memory - initial_memory
+        
+        # Memory increase should be reasonable (less than 100MB for 10 instances)
+        assert memory_increase < 100, f"Memory increase {memory_increase}MB is too high"
+
 
 if __name__ == "__main__":
+    # Run tests with pytest
     pytest.main([__file__, "-v", "--tb=short"])

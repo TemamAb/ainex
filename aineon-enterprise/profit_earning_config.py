@@ -209,7 +209,7 @@ async def main():
         print(f"\n[NEXT STEPS]")
         print(f"   1. Start unified system: python core/unified_system.py")
         print(f"   2. Monitor dashboard: python dashboard/terminal_dashboard.py")
-        print(f"   3. View profit status: http://localhost:8082/profit")
+        print(f"   3. View profit status: http://0.0.0.0:8082/profit")
         
         return config
         

@@ -1,0 +1,16 @@
+{
+  "analysis_timestamp": "2025-12-21T15:56:36.227886",
+  "target_wallet": "0xA51E466e659Cf9DdD5a5CA9ECDd8392302102490",
+  "wallet_analysis": {
+    "total_transactions": 0,
+    "total_incoming_eth": 0.0,
+    "total_outgoing_eth": 0.0,
+    "net_position_eth": 0.0,
+    "successful_transactions": 0,
+    "success_rate": 0,
+    "has_profit_activity": false
+  },
+  "associated_contracts": [],
+  "flash_loan_analysis": [],
+  "contract_metrics": []
+}

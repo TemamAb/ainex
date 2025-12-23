@@ -32,7 +32,7 @@ class Colors:
     UNDERLINE = '\033[4m'
 
 class TerminalProfitMonitor:
-    def __init__(self, api_url: str = "http://localhost:8081"):
+    def __init__(self, api_url: str = "http://0.0.0.0:8081"):
         self.api_url = api_url
         self.session: Optional[aiohttp.ClientSession] = None
         
@@ -238,7 +238,7 @@ class TerminalProfitMonitor:
             print(f"{Colors.BOLD}{Colors.GREEN}║  ✓ THRESHOLD REACHED - WITHDRAWAL READY                            ║{Colors.ENDC}")
             print(f"{Colors.BOLD}{Colors.GREEN}║                                                                    ║{Colors.ENDC}")
             print(f"{Colors.BOLD}{Colors.GREEN}║  To withdraw manually, execute:                                     ║{Colors.ENDC}")
-            print(f"{Colors.BOLD}{Colors.GREEN}║  $ curl -X POST http://localhost:8081/withdraw                      ║{Colors.ENDC}")
+            print(f"{Colors.BOLD}{Colors.GREEN}║  $ curl -X POST http://0.0.0.0:8081/withdraw                      ║{Colors.ENDC}")
             print(f"{Colors.BOLD}{Colors.GREEN}║                                                                    ║{Colors.ENDC}")
             print(f"{Colors.BOLD}{Colors.GREEN}║  Amount: {self.format_eth(eth_accumulated)} ({self.format_usd(usd_accumulated)})                    ║{Colors.ENDC}")
         else:
@@ -285,7 +285,7 @@ class TerminalProfitMonitor:
 
 async def main():
     """Main entry point"""
-    api_url = os.getenv("API_URL", "http://localhost:8081")
+    api_url = os.getenv("API_URL", "http://0.0.0.0:8081")
     
     monitor = TerminalProfitMonitor(api_url)
     

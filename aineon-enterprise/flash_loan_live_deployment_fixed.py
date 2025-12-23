@@ -8,7 +8,7 @@ AINEON FLASH LOAN LIVE DEPLOYMENT ENGINE
 Chief Architect - Live Profit Generation Mode
 
 This script implements the live flash loan engine for profit generation
-with localhost port deployment and real-time monitoring.
+with 0.0.0.0 port deployment and real-time monitoring.
 """
 
 import asyncio

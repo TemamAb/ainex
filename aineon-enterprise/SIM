@@ -1,0 +1,91 @@
+# AINEON Simulation Mode - Clean Visual Demo
+
+**Simple, clean simulation mode with single visual differentiator**
+
+---
+
+## 🎯 SIMULATION MODE - SINGLE VISUAL DIFFERENTIATOR
+
+```
+📊 AINEON SIMULATION MODE
+============================
+✅ Live blockchain data
+📋 Paper trading
+💰 Virtual profits
+
+🟨 SIMULATION: Paper trading mode
+
+    ┌─────────────────────────────────────┐
+    │  ││││││││││││││││││││││││││││││││││  │
+    │  ││││││││││││││││││││││││││││││││  │
+    │  ││││││││││││││││││││││││││││││││  │
+    │  ││││││││││││││││││││││││││││││││  │
+    │  ││││││││││││││││││││││││││││││││  │
+    │  ││││││││││││││││││││││││││││││││  │
+    │  ││││││││││││││││││││││││││││││││  │
+    │  ││││││││││││││││││││││││││││││││  │
+    │  ││││││││││││││││││││││││││││││││  │
+    │  ││││││││││││││││││││││││││││││││  │
+    │  └─────────────────────────────────────┘
+
+🟨 Yellow wire mesh grid = Simulation Mode
+```
+
+---
+
+## 📊 Clean Interface Example
+
+```
+🟨 SIMULATION MODE
+============================
+Balance: $10,245.67 USD
+P&L: +$245.67 (+2.45%)
+Trades: 12
+Win Rate: 75.0%
+
+    ┌─────────────────────────────────────┐
+    │  │││││││││││││││││││││││││││││││││  │
+    │  ││││││││││││││││││││││││││││││││  │
+    │  ││││││││││││││││││││││││││││││││  │
+    │  ││││││││││││││││││││││││││││││││  │
+    │  ││││││││││││││││││││││││││││││││  │
+    │  ││││││││││││││││││││││││││││││││  │
+    │  ││││││││││││││││││││││││││││││││  │
+    │  ││││││││││││││││││││││││││││││││  │
+    │  ││││││││││││││││││││││││││││││││  │
+    │  ││││││││││││││││││││││││││││││││  │
+    │  └─────────────────────────────────────┘
+```
+
+---
+
+## 🎛️ Menu Selection
+
+```
+🎛️ AINEON SYSTEM
+Select mode:
+
+1. PRODUCTION - Real trading
+2. 📊 SIMULATION - Paper trading
+   🟨 Yellow wire mesh grid
+
+Select: 2
+
+📊 SIMULATION MODE ACTIVATED
+🟨 Yellow wire mesh grid covering background
+```
+
+---
+
+## ✅ Simple Visual Design
+
+**Only ONE visual differentiator:**
+- 🟨 **Thin yellow wire mesh grid** covering full background
+
+**Benefits:**
+- Clean, not shouting
+- Simple to understand  
+- Single clear indicator
+- Professional appearance
+
+**The yellow wire mesh grid is the only visual element that distinguishes simulation mode from production mode.**

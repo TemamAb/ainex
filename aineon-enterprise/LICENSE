@@ -1,0 +1,106 @@
+MIT License
+
+Copyright (c) 2024 AINEON Chief Architect Team
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+===============================================================================
+
+AINEON ENTERPRISE TRADING PLATFORM - ADDITIONAL TERMS
+
+This software is designed for algorithmic trading and financial applications.
+Users acknowledge the following additional terms:
+
+1. FINANCIAL RISK DISCLAIMER
+   - Trading cryptocurrencies involves substantial risk of loss
+   - Past performance does not guarantee future results
+   - Users are solely responsible for their trading decisions
+   - The authors are not liable for any financial losses
+
+2. REGULATORY COMPLIANCE
+   - Users must comply with applicable financial regulations
+   - Users are responsible for tax reporting and compliance
+   - Users must ensure proper licensing for trading activities
+
+3. SECURITY RESPONSIBILITY
+   - Users must secure their private keys and wallet credentials
+   - Users are responsible for proper system security
+   - Users must implement appropriate risk management measures
+
+4. PRODUCTION USE
+   - This software is provided for educational and research purposes
+   - Production use requires thorough testing and validation
+   - Users assume all risks associated with live trading
+   - Users must implement proper monitoring and controls
+
+5. CHIEF ARCHITECT MISSION
+   - This platform is designed to generate real ETH profits
+   - Users must have proper risk management in place
+   - The Chief Architect team provides no guarantees of profitability
+   - Continuous monitoring and adjustment is required for success
+
+For questions about licensing, contact: legal@aineon.io
+
+===============================================================================
+
+THIRD-PARTY LICENSES
+
+This software includes components subject to the following licenses:
+
+- Web3.py: MIT License
+- NumPy: BSD License  
+- Pandas: BSD License
+- TensorFlow: Apache 2.0 License
+- Docker: Apache 2.0 License
+- Redis: BSD License
+- PostgreSQL: PostgreSQL License
+- Grafana: AGPLv3 License
+- Prometheus: Apache 2.0 License
+
+Full license texts are available in the THIRD-PARTY-LICENSES file.
+
+===============================================================================
+
+DISCLAIMER OF WARRANTIES
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+This disclaimer applies to all aspects of the software, including but not
+limited to:
+- Algorithmic trading strategies
+- AI/ML model predictions
+- Risk management calculations
+- Profit optimization algorithms
+- Blockchain integration
+- Security implementations
+- Dashboard functionality
+- Performance metrics
+
+Users acknowledge that algorithmic trading involves significant financial risk
+and that the use of this software is at their own risk and discretion.
+
+===============================================================================
+
+END OF LICENSE TERMS

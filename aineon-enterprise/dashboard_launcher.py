@@ -49,9 +49,9 @@ class LauncherConfig:
     EMERGENCY_PORT = 8082
     
     # URLs
-    PRIMARY_URL = f"http://localhost:{PRIMARY_PORT}"
-    BACKUP_URL = f"http://localhost:{BACKUP_PORT}"
-    EMERGENCY_URL = f"http://localhost:{EMERGENCY_PORT}"
+    PRIMARY_URL = f"http://0.0.0.0:{PRIMARY_PORT}"
+    BACKUP_URL = f"http://0.0.0.0:{BACKUP_PORT}"
+    EMERGENCY_URL = f"http://0.0.0.0:{EMERGENCY_PORT}"
 
 class HealthMonitor:
     """Health monitoring for dashboard services"""
@@ -230,7 +230,7 @@ class DashboardLauncher:
             server_thread.start()
             
             self.logger.info(f"🌐 HTML Dashboard started on port {port}")
-            self.health_monitor.register_service('html_dashboard', f"http://localhost:{port}")
+            self.health_monitor.register_service('html_dashboard', f"http://0.0.0.0:{port}")
             
             return httpd
             
@@ -259,7 +259,7 @@ class DashboardLauncher:
             
             if process.poll() is None:
                 self.logger.info(f"🐍 Python Dashboard started on port {port}")
-                self.health_monitor.register_service('python_dashboard', f"http://localhost:{port}", process.pid)
+                self.health_monitor.register_service('python_dashboard', f"http://0.0.0.0:{port}", process.pid)
                 return process
             else:
                 stdout, stderr = process.communicate()
@@ -293,7 +293,7 @@ class DashboardLauncher:
             server_thread.start()
             
             self.logger.info(f"🚨 Emergency Dashboard started on port {port}")
-            self.health_monitor.register_service('emergency_dashboard', f"http://localhost:{port}")
+            self.health_monitor.register_service('emergency_dashboard', f"http://0.0.0.0:{port}")
             
             return httpd
             

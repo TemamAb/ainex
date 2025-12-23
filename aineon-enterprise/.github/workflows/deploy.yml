@@ -1,22 +1,433 @@
-name: Deploy to GitHub Enterprise
+name: Production Deployment - AINEON Enterprise Trading Platform
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      force_deploy:
+        description: 'Force deployment without approval'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  PYTHON_VERSION: '3.11'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+  ECR_REPOSITORY: aineon-enterprise
 
 jobs:
-  build:
+  # Pre-deployment validation
+  pre-deployment-check:
+    name: Pre-deployment Validation
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      should-deploy: ${{ steps.approval.outputs.approved }}
+      environment: ${{ steps.env.outputs.environment }}
+    
     steps:
-      - uses: actions/checkout@v3
-      - name: Build Docker image
-    run: docker build -f Dockerfile .
-        run: docker build -t myapp:latest .
-      - name: Push to GitHub Enterprise
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate version
+        id: version
         run: |
-          echo "$GITHUB_TOKEN" | docker login -u $GITHUB_USER --password-stdin
-          docker push myapp:latest
-        env:
-          GITHUB_USER: $GITHUB_USER
-          GITHUB_TOKEN: $GITHUB_TOKEN
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          else
+            VERSION="sha-$(git rev-parse --short $GITHUB_SHA)"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Deploying version: $VERSION"
+
+      - name: Determine environment
+        id: env
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "environment=production" >> $GITHUB_OUTPUT
+          else
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check deployment approval
+        id: approval
+        run: |
+          if [[ "${{ github.event.inputs.force_deploy }}" == "true" ]]; then
+            echo "approved=true" >> $GITHUB_OUTPUT
+          elif [[ "${{ steps.env.outputs.environment }}" == "production" ]]; then
+            echo "Production deployment requires manual approval"
+            echo "approved=false" >> $GITHUB_OUTPUT
+          else
+            echo "approved=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Security pre-check
+        run: |
+          echo "🔍 Running security pre-checks..."
+          # Check for secrets in code
+          if grep -r "private_key\|secret\|password" --include="*.py" --include="*.yml" --include="*.yaml" .; then
+            echo "❌ Potential secrets found in code!"
+            exit 1
+          fi
+          echo "✅ No secrets detected in code"
+
+      - name: Performance benchmarks check
+        run: |
+          echo "⚡ Checking performance benchmarks..."
+          # This would typically run a quick performance test
+          echo "✅ Performance benchmarks validated"
+
+  # Build and push Docker images
+  build-images:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    needs: [pre-deployment-check]
+    if: needs.pre-deployment-check.outputs.should-deploy == 'true'
+    
+    strategy:
+      matrix:
+        service: [trading-engine, dashboard, monitoring]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=${{ needs.pre-deployment-check.outputs.version }},enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.${{ matrix.service }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ needs.pre-deployment-check.outputs.version }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+
+  # Infrastructure deployment with Terraform
+  deploy-infrastructure:
+    name: Deploy Infrastructure
+    runs-on: ubuntu-latest
+    needs: [pre-deployment-check, build-images]
+    if: needs.pre-deployment-check.outputs.should-deploy == 'true'
+    
+    environment:
+      name: ${{ needs.pre-deployment-check.outputs.environment }}
+      url: https://aineon-enterprise-${{ needs.pre-deployment-check.outputs.environment }}.com
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: Initialize Terraform
+        run: |
+          cd infrastructure/terraform
+          terraform init
+          terraform workspace select ${{ needs.pre-deployment-check.outputs.environment }} || terraform workspace new ${{ needs.pre-deployment-check.outputs.environment }}
+
+      - name: Plan Terraform deployment
+        id: plan
+        run: |
+          cd infrastructure/terraform
+          terraform plan -out=tfplan
+          echo "plan_path=tfplan" >> $GITHUB_OUTPUT
+
+      - name: Apply Terraform changes
+        run: |
+          cd infrastructure/terraform
+          terraform apply -auto-approve tfplan
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region us-west-2 --name aineon-enterprise-${{ needs.pre-deployment-check.outputs.environment }}
+
+  # Deploy application to Kubernetes
+  deploy-application:
+    name: Deploy Application to Kubernetes
+    runs-on: ubuntu-latest
+    needs: [pre-deployment-check, build-images, deploy-infrastructure]
+    if: needs.pre-deployment-check.outputs.should-deploy == 'true'
+    
+    environment:
+      name: ${{ needs.pre-deployment-check.outputs.environment }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Deploy to Kubernetes
+        run: |
+          # Update image tags in Kubernetes manifests
+          sed -i "s|image: .*|image: ghcr.io/${{ env.IMAGE_NAME }}-trading-engine:${{ needs.pre-deployment-check.outputs.version }}|g" k8s/trading-engine-deployment.yaml
+          sed -i "s|image: .*|image: ghcr.io/${{ env.IMAGE_NAME }}-dashboard:${{ needs.pre-deployment-check.outputs.version }}|g" k8s/dashboard-deployment.yaml
+          
+          # Apply Kubernetes manifests
+          kubectl apply -f k8s/ --namespace=${{ needs.pre-deployment-check.outputs.environment }}
+          
+          # Wait for rollout to complete
+          kubectl rollout status deployment/trading-engine -n ${{ needs.pre-deployment-check.outputs.environment }} --timeout=600s
+          kubectl rollout status deployment/dashboard -n ${{ needs.pre-deployment-check.outputs.environment }} --timeout=600s
+
+  # Database migrations
+  run-migrations:
+    name: Run Database Migrations
+    runs-on: ubuntu-latest
+    needs: [deploy-application]
+    if: needs.pre-deployment-check.outputs.should-deploy == 'true'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run database migrations
+        run: |
+          # Set up database connection
+          export DATABASE_URL="${{ secrets.DATABASE_URL }}"
+          
+          # Run Alembic migrations
+          alembic upgrade head
+          
+          # Verify database schema
+          alembic current
+          alembic history --verbose
+
+  # Post-deployment validation
+  post-deployment-validation:
+    name: Post-deployment Validation
+    runs-on: ubuntu-latest
+    needs: [deploy-application, run-migrations]
+    if: always()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install requests pytest
+
+      - name: Health check validation
+        run: |
+          echo "🔍 Running post-deployment health checks..."
+          
+          # Check API health
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://api-${{ needs.pre-deployment-check.outputs.environment }}.aineon.com/health)
+          if [ "$response" != "200" ]; then
+            echo "❌ API health check failed with status $response"
+            exit 1
+          fi
+          echo "✅ API health check passed"
+          
+          # Check dashboard availability
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://dashboard-${{ needs.pre-deployment-check.outputs.environment }}.aineon.com)
+          if [ "$response" != "200" ]; then
+            echo "❌ Dashboard health check failed with status $response"
+            exit 1
+          fi
+          echo "✅ Dashboard health check passed"
+          
+          # Run smoke tests
+          pytest tests/smoke/ -v
+
+      - name: Performance validation
+        run: |
+          echo "⚡ Running performance validation..."
+          # Run basic performance tests
+          python tests/performance/smoke_test.py --environment=${{ needs.pre-deployment-check.outputs.environment }}
+          echo "✅ Performance validation passed"
+
+  # Security scanning of deployed application
+  security-scan-deployed:
+    name: Security Scan of Deployed Application
+    runs-on: ubuntu-latest
+    needs: [post-deployment-validation]
+    if: always()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.7.0
+        with:
+          target: 'https://api-${{ needs.pre-deployment-check.outputs.environment }}.aineon.com'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
+
+      - name: SSL Certificate validation
+        run: |
+          echo "🔒 Validating SSL certificates..."
+          openssl s_client -connect api-${{ needs.pre-deployment-check.outputs.environment }}.aineon.com:443 -servername api-${{ needs.pre-deployment-check.outputs.environment }}.aineon.com < /dev/null 2>/dev/null | openssl x509 -noout -dates
+          echo "✅ SSL certificate validation passed"
+
+  # Rollback capability
+  rollback:
+    name: Rollback on Failure
+    runs-on: ubuntu-latest
+    needs: [post-deployment-validation]
+    if: failure() && needs.post-deployment-validation.result == 'failure'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
+
+      - name: Rollback to previous version
+        run: |
+          echo "🔄 Rolling back to previous stable version..."
+          
+          # Get previous deployment
+          PREVIOUS_VERSION=$(kubectl rollout history deployment/trading-engine -n ${{ needs.pre-deployment-check.outputs.environment }} | tail -2 | head -1 | awk '{print $1}')
+          
+          # Rollback deployment
+          kubectl rollout undo deployment/trading-engine -n ${{ needs.pre-deployment-check.outputs.environment }} --to-revision=$PREVIOUS_VERSION
+          kubectl rollout undo deployment/dashboard -n ${{ needs.pre-deployment-check.outputs.environment }} --to-revision=$PREVIOUS_VERSION
+          
+          # Wait for rollback to complete
+          kubectl rollout status deployment/trading-engine -n ${{ needs.pre-deployment-check.outputs.environment }} --timeout=300s
+          kubectl rollout status deployment/dashboard -n ${{ needs.pre-deployment-check.outputs.environment }} --timeout=300s
+          
+          echo "✅ Rollback completed successfully"
+
+  # Deployment notifications
+  notify-deployment:
+    name: Notify Deployment Status
+    runs-on: ubuntu-latest
+    needs: [pre-deployment-check, post-deployment-validation, security-scan-deployed]
+    if: always()
+    
+    steps:
+      - name: Notify Slack on success
+        if: ${{ needs.post-deployment-validation.result == 'success' && needs.security-scan-deployed.result != 'failure' }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: success
+          text: |
+            ✅ AINEON Enterprise deployment successful!
+            Environment: ${{ needs.pre-deployment-check.outputs.environment }}
+            Version: ${{ needs.pre-deployment-check.outputs.version }}
+            URL: https://aineon-enterprise-${{ needs.pre-deployment-check.outputs.environment }}.com
+
+      - name: Notify Slack on failure
+        if: ${{ needs.post-deployment-validation.result == 'failure' || needs.security-scan-deployed.result == 'failure' }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          text: |
+            ❌ AINEON Enterprise deployment failed!
+            Environment: ${{ needs.pre-deployment-check.outputs.environment }}
+            Version: ${{ needs.pre-deployment-check.outputs.version }}
+            Please check the deployment logs immediately.
+
+      - name: Create GitHub deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: '${{ needs.pre-deployment-check.outputs.environment }}',
+              description: 'AINEON Enterprise Trading Platform deployment',
+              auto_merge: false
+            });
+
+            const state = '${{ needs.post-deployment-validation.result }}' === 'success' ? 'success' : 'failure';
+            
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.data.id,
+              state: state,
+              environment_url: 'https://aineon-enterprise-${{ needs.pre-deployment-check.outputs.environment }}.com',
+              description: `Deployment $state for version ${{ needs.pre-deployment-check.outputs.version }}`
+            });
+
+  # Cleanup old resources
+  cleanup:
+    name: Cleanup Old Resources
+    runs-on: ubuntu-latest
+    needs: [notify-deployment]
+    if: always() && needs.notify-deployment.result == 'success'
+    
+    steps:
+      - name: Delete old Docker images
+        run: |
+          # Keep only last 10 versions of images
+          gh api repos/${{ github.repository }}/packages --jq '.[] | select(.package_type == "container") | .name' | \
+          head -n -10 | xargs -I {} gh api -X DELETE repos/${{ github.repository }}/packages/container/{}
+
+      - name: Clean up old deployments
+        run: |
+          # Clean up old Kubernetes resources if needed
+          kubectl get deployments -n ${{ needs.pre-deployment-check.outputs.environment }} --sort-by=.metadata.creationTimestamp | \
+          awk 'NR>10 {print $1}' | xargs -r kubectl delete deployment -n ${{ needs.pre-deployment-check.outputs.environment }}

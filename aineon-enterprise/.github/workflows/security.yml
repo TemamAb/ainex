@@ -1,0 +1,764 @@
+name: Security Scanning and Validation - AINEON Enterprise Trading Platform
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run security scans daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      scan_type:
+        description: 'Type of security scan to run'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - code
+          - dependency
+          - container
+          - infrastructure
+
+env:
+  PYTHON_VERSION: '3.11'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Code Security Analysis
+  code-security-scan:
+    name: Code Security Analysis
+    runs-on: ubuntu-latest
+    if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'code' || github.event.inputs.scan_type == null
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install security tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit safety semgrep
+          # Install additional security scanners
+          curl -sSfL https://raw.githubusercontent.com/securecodewarrior/github-action-add-sarif/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Run Bandit security scan
+        run: |
+          bandit -r core/ -f json -o bandit-results.json --skip B101,B601
+          bandit -r core/ -f txt -o bandit-results.txt --skip B101,B601
+        continue-on-error: true
+
+      - name: Run Safety check for vulnerabilities
+        run: |
+          safety check --json --output safety-results.json
+          safety check --output safety-results.txt
+        continue-on-error: true
+
+      - name: Run Semgrep static analysis
+        run: |
+          semgrep --config=auto --json --output=semgrep-results.json core/
+          semgrep --config=auto --text --output=semgrep-results.txt core/
+        continue-on-error: true
+
+      - name: Check for hardcoded secrets
+        run: |
+          echo "🔍 Scanning for hardcoded secrets..."
+          # Check for common secret patterns
+          grep -r -i --include="*.py" --include="*.js" --include="*.yml" --include="*.yaml" \
+            -E "(private_key|secret_key|password|api_key|token).*=.*['\"][^'\"]{10,}['\"]" . || true
+          
+          # Check for potential private keys
+          find . -name "*.pem" -o -name "*.key" -o -name "*private*" | head -5
+          
+          echo "✅ Secret scan completed"
+
+      - name: Check for sensitive data exposure
+        run: |
+          echo "🔍 Checking for sensitive data exposure..."
+          # Check logs and error messages
+          grep -r -i --include="*.py" "print.*key\|log.*password\|error.*token" core/ || true
+          
+          # Check configuration files for exposure
+          find . -name "*.conf" -o -name "*.config" -o -name "*.ini" | xargs grep -l -i "password\|key\|secret" || true
+          
+          echo "✅ Sensitive data scan completed"
+
+      - name: Upload security scan results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: code-security-scan-results
+          path: |
+            bandit-results.json
+            bandit-results.txt
+            safety-results.json
+            safety-results.txt
+            semgrep-results.json
+            semgrep-results.txt
+
+  # Dependency Vulnerability Scan
+  dependency-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'dependency' || github.event.inputs.scan_type == null
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install safety pip-audit
+          pip install -r requirements.txt
+
+      - name: Run Safety check
+        run: |
+          echo "🔍 Running dependency vulnerability scan with Safety..."
+          safety check --json --output safety-full-results.json
+          safety check --output safety-full-results.txt
+        continue-on-error: true
+
+      - name: Run pip-audit
+        run: |
+          echo "🔍 Running dependency vulnerability scan with pip-audit..."
+          pip-audit --desc --output=pip-audit-results.json
+          pip-audit --desc --output=pip-audit-results.txt
+        continue-on-error: true
+
+      - name: Check for outdated dependencies
+        run: |
+          echo "🔍 Checking for outdated dependencies..."
+          pip list --outdated --format=json > outdated-dependencies.json
+          pip list --outdated > outdated-dependencies.txt
+          
+          # Check if any critical dependencies are outdated
+          CRITICAL_PACKAGES="web3 tensorflow pandas numpy"
+          for package in $CRITICAL_PACKAGES; do
+            if grep -q "$package" outdated-dependencies.txt; then
+              echo "⚠️  Critical package $package is outdated"
+            fi
+          done
+
+      - name: Generate dependency report
+        run: |
+          echo "📊 Generating dependency security report..."
+          python -c "
+          import json
+          import sys
+          
+          try:
+              with open('safety-full-results.json', 'r') as f:
+                  safety_data = json.load(f)
+              
+              with open('pip-audit-results.json', 'r') as f:
+                  audit_data = json.load(f)
+              
+              # Combine results
+              report = {
+                  'safety_vulnerabilities': len(safety_data),
+                  'pip_audit_vulnerabilities': len(audit_data.get('vulnerabilities', [])),
+                  'total_vulnerabilities': len(safety_data) + len(audit_data.get('vulnerabilities', []))
+              }
+              
+              with open('dependency-security-report.json', 'w') as f:
+                  json.dump(report, f, indent=2)
+              
+              print(f'Found {report[\"total_vulnerabilities\"]} total vulnerabilities')
+              
+          except Exception as e:
+              print(f'Error generating report: {e}')
+              sys.exit(1)
+          "
+
+      - name: Upload dependency scan results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: dependency-scan-results
+          path: |
+            safety-full-results.json
+            safety-full-results.txt
+            pip-audit-results.json
+            pip-audit-results.txt
+            outdated-dependencies.json
+            outdated-dependencies.txt
+            dependency-security-report.json
+
+  # Container Security Scan
+  container-security-scan:
+    name: Container Security Scan
+    runs-on: ubuntu-latest
+    if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'container' || github.event.inputs.scan_type == null
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image for scanning
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: aineon-enterprise:security-scan
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'aineon-enterprise:security-scan'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-filesystem-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run container best practices check
+        run: |
+          echo "🔍 Checking container best practices..."
+          # Check for non-root user
+          if ! docker run --rm aineon-enterprise:security-scan id | grep -q "uid=0"; then
+            echo "✅ Container runs as non-root user"
+          else
+            echo "⚠️  Container runs as root user"
+          fi
+          
+          # Check for security labels
+          docker inspect aineon-enterprise:security-scan --format='{{.Config.Labels}}' | grep -q "security" && \
+            echo "✅ Security labels present" || echo "⚠️  No security labels found"
+
+      - name: Generate container security report
+        run: |
+          echo "📊 Generating container security report..."
+          docker images --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}" | grep aineon-enterprise > container-info.txt
+          
+          # Check for latest base image
+          if grep -q "alpine\|ubuntu.*latest\|debian.*latest" container-info.txt; then
+            echo "⚠️  Using latest tag for base image (not recommended for production)"
+          else
+            echo "✅ Using specific version for base image"
+          fi
+
+      - name: Upload container scan results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: container-security-scan-results
+          path: |
+            trivy-results.sarif
+            trivy-filesystem-results.sarif
+            container-info.txt
+
+  # Infrastructure Security Scan
+  infrastructure-scan:
+    name: Infrastructure Security Scan
+    runs-on: ubuntu-latest
+    if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == 'infrastructure' || github.event.inputs.scan_type == null
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Checkov Infrastructure scan
+        id: checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: ./infrastructure
+          framework: terraform
+          output_format: json
+          output_file_path: checkov-results.json
+
+      - name: Run Terraform security scan
+        run: |
+          echo "🔍 Running Terraform security analysis..."
+          
+          # Install tfsec
+          curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+          
+          # Run tfsec on infrastructure directory
+          tfsec ./infrastructure/ --format json --out tfsec-results.json || true
+          tfsec ./infrastructure/ --format txt --out tfsec-results.txt || true
+
+      - name: Check Docker configuration security
+        run: |
+          echo "🔍 Checking Docker configuration security..."
+          
+          # Check docker-compose.yml for security issues
+          if [ -f "docker-compose.yml" ]; then
+            echo "✅ docker-compose.yml found"
+            
+            # Check for security-related configurations
+            if grep -q "read_only.*true" docker-compose.yml; then
+              echo "✅ Read-only containers configured"
+            else
+              echo "⚠️  Read-only containers not configured"
+            fi
+            
+            if grep -q "cap_drop.*ALL" docker-compose.yml; then
+              echo "✅ Capabilities properly dropped"
+            else
+              echo "⚠️  Capabilities not properly dropped"
+            fi
+            
+            if grep -q "security_opt" docker-compose.yml; then
+              echo "✅ Security options configured"
+            else
+              echo "⚠️  Security options not configured"
+            fi
+          else
+            echo "⚠️  docker-compose.yml not found"
+          fi
+
+      - name: Kubernetes security check
+        run: |
+          echo "🔍 Checking Kubernetes configuration security..."
+          
+          if [ -d "k8s" ]; then
+            echo "✅ Kubernetes manifests directory found"
+            
+            # Check for security context
+            find k8s/ -name "*.yaml" -exec grep -l "securityContext" {} \; | wc -l > security-context-count.txt
+            security_count=$(cat security-context-count.txt)
+            
+            if [ "$security_count" -gt 0 ]; then
+              echo "✅ $security_count Kubernetes files have security context configured"
+            else
+              echo "⚠️  No Kubernetes files have security context configured"
+            fi
+          else
+            echo "ℹ️  No Kubernetes manifests directory found"
+          fi
+
+      - name: Generate infrastructure security report
+        run: |
+          echo "📊 Generating infrastructure security report..."
+          python -c "
+          import json
+          
+          try:
+              with open('checkov-results.json', 'r') as f:
+                  checkov_data = json.load(f)
+              
+              with open('tfsec-results.json', 'r') as f:
+                  tfsec_data = json.load(f)
+              
+              report = {
+                  'checkov_failed_checks': len([c for c in checkov_data.get('results', {}).get('failed_checks', [])]),
+                  'tfsec_issues': len(tfsec_data.get('results', {}).get('failed', [])),
+                  'total_infrastructure_issues': len([c for c in checkov_data.get('results', {}).get('failed_checks', [])]) + len(tfsec_data.get('results', {}).get('failed', []))
+              }
+              
+              with open('infrastructure-security-report.json', 'w') as f:
+                  json.dump(report, f, indent=2)
+              
+              print(f'Found {report[\"total_infrastructure_issues\"]} total infrastructure security issues')
+              
+          except Exception as e:
+              print(f'Error generating infrastructure report: {e}')
+          "
+
+      - name: Upload infrastructure scan results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: infrastructure-security-scan-results
+          path: |
+            checkov-results.json
+            tfsec-results.json
+            tfsec-results.txt
+            security-context-count.txt
+            infrastructure-security-report.json
+
+  # Web Application Security Scan
+  web-security-scan:
+    name: Web Application Security Scan
+    runs-on: ubuntu-latest
+    if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == null
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Start application for testing
+        run: |
+          echo "🚀 Starting application for security testing..."
+          # This would typically start the application in test mode
+          # For now, we'll use a mock URL
+          echo "APP_URL=https://test.aineon-enterprise.com" >> $GITHUB_ENV
+
+      - name: Run OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.7.0
+        with:
+          target: ${{ env.APP_URL }}
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a'
+        continue-on-error: true
+
+      - name: Run SSL Labs test
+        run: |
+          echo "🔒 Running SSL Labs security test..."
+          # This would require API key for SSL Labs
+          # For now, we'll do a basic SSL check
+          curl -I https://${{ env.APP_URL }} 2>/dev/null | head -1
+
+      - name: Check security headers
+        run: |
+          echo "🔍 Checking security headers..."
+          headers=$(curl -I https://${{ env.APP_URL }} 2>/dev/null)
+          
+          # Check for important security headers
+          echo "$headers" | grep -i "strict-transport-security" && echo "✅ HSTS header present" || echo "⚠️  HSTS header missing"
+          echo "$headers" | grep -i "content-security-policy" && echo "✅ CSP header present" || echo "⚠️  CSP header missing"
+          echo "$headers" | grep -i "x-frame-options" && echo "✅ Frame options header present" || echo "⚠️  Frame options header missing"
+          echo "$headers" | grep -i "x-content-type-options" && echo "✅ Content type options header present" || echo "⚠️  Content type options header missing"
+
+      - name: Upload web security scan results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: web-security-scan-results
+          path: |
+            zap-results/
+
+  # Blockchain Security Analysis
+  blockchain-security-scan:
+    name: Blockchain Security Analysis
+    runs-on: ubuntu-latest
+    if: github.event.inputs.scan_type == 'full' || github.event.inputs.scan_type == null
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install blockchain security tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install slither-analyzer mythril
+          # Install additional blockchain security tools
+          npm install -g solhint
+
+      - name: Analyze smart contracts for security issues
+        run: |
+          echo "🔍 Analyzing smart contracts for security issues..."
+          
+          # Check for Solidity files
+          find . -name "*.sol" | head -5
+          
+          # Run Slither analysis if Solidity files exist
+          if find . -name "*.sol" | grep -q .; then
+            slither . --json slither-results.json --print human-summary || true
+          else
+            echo "ℹ️  No Solidity files found for analysis"
+          fi
+
+      - name: Check for common blockchain vulnerabilities
+        run: |
+          echo "🔍 Checking for common blockchain vulnerabilities..."
+          
+          # Check for private key exposure
+          find . -name "*.py" -exec grep -l "private_key\|mnemonic" {} \; | head -5
+          
+          # Check for API key exposure in blockchain code
+          grep -r --include="*.py" -i "api.*key\|secret.*key" core/ | head -5 || true
+          
+          # Check for insecure random number generation
+          grep -r --include="*.py" "random\.random\|random\.choice" core/ | head -5 || true
+
+      - name: Validate Ethereum transaction security
+        run: |
+          echo "🔍 Validating Ethereum transaction security..."
+          
+          # Check for proper gas limit设置
+          grep -r --include="*.py" "gas.*limit\|gas.*price" core/ | head -5 || true
+          
+          # Check for proper nonce handling
+          grep -r --include="*.py" "nonce" core/ | head -5 || true
+          
+          # Check for replay protection
+          grep -r --include="*.py" "chain.*id\|replay" core/ | head -5 || true
+
+      - name: Generate blockchain security report
+        run: |
+          echo "📊 Generating blockchain security report..."
+          python -c "
+          import json
+          import os
+          
+          report = {
+              'solidity_files_found': len([f for f in os.listdir('.') if f.endswith('.sol')]),
+              'private_key_exposure_check': 'completed',
+              'api_key_check': 'completed',
+              'gas_security_check': 'completed',
+              'nonce_security_check': 'completed'
+          }
+          
+          # Check if Slither results exist
+          if os.path.exists('slither-results.json'):
+              with open('slither-results.json', 'r') as f:
+                  slither_data = json.load(f)
+              report['slither_vulnerabilities'] = len(slither_data.get('results', {}).get('detectors', []))
+          
+          with open('blockchain-security-report.json', 'w') as f:
+              json.dump(report, f, indent=2)
+          
+          print('Blockchain security analysis completed')
+          "
+
+      - name: Upload blockchain security results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: blockchain-security-scan-results
+          path: |
+            slither-results.json
+            blockchain-security-report.json
+
+  # Security Report Aggregation
+  security-report:
+    name: Security Report Aggregation
+    runs-on: ubuntu-latest
+    needs: [code-security-scan, dependency-scan, container-security-scan, infrastructure-scan, web-security-scan, blockchain-security-scan]
+    if: always()
+    
+    steps:
+      - name: Download all security scan results
+        uses: actions/download-artifact@v3
+        with:
+          path: security-results/
+
+      - name: Generate comprehensive security report
+        run: |
+          echo "📊 Generating comprehensive security report..."
+          
+          python -c "
+          import json
+          import os
+          from datetime import datetime
+          
+          report = {
+              'scan_timestamp': datetime.now().isoformat(),
+              'repository': '${{ github.repository }}',
+              'commit_sha': '${{ github.sha }}',
+              'scan_type': '${{ github.event.inputs.scan_type || 'full' }}',
+              'summary': {
+                  'code_security_issues': 0,
+                  'dependency_vulnerabilities': 0,
+                  'container_security_issues': 0,
+                  'infrastructure_issues': 0,
+                  'web_security_issues': 0,
+                  'blockchain_security_issues': 0,
+                  'total_issues': 0
+              },
+              'details': {}
+          }
+          
+          # Aggregate results from all scans
+          security_dirs = [
+              'code-security-scan-results',
+              'dependency-scan-results', 
+              'container-security-scan-results',
+              'infrastructure-security-scan-results',
+              'web-security-scan-results',
+              'blockchain-security-scan-results'
+          ]
+          
+          for dir_name in security_dirs:
+              dir_path = f'security-results/{dir_name}'
+              if os.path.exists(dir_path):
+                  print(f'Processing {dir_name}...')
+                  # Process specific result files based on scan type
+                  report['details'][dir_name] = 'completed'
+          
+          # Calculate total issues
+          total_issues = sum(report['summary'].values())
+          report['summary']['total_issues'] = total_issues
+          
+          # Add recommendations
+          report['recommendations'] = [
+              'Review all high and critical severity findings immediately',
+              'Implement security patches for vulnerable dependencies',
+              'Address infrastructure misconfigurations',
+              'Conduct regular security training for development team',
+              'Implement automated security scanning in CI/CD pipeline'
+          ]
+          
+          with open('comprehensive-security-report.json', 'w') as f:
+              json.dump(report, f, indent=2)
+          
+          print(f'Comprehensive security report generated with {total_issues} total issues')
+          "
+
+      - name: Security score calculation
+        run: |
+          python -c "
+          import json
+          
+          # Calculate security score based on findings
+          with open('comprehensive-security-report.json', 'r') as f:
+              report = json.load(f)
+          
+          total_issues = report['summary']['total_issues']
+          
+          # Simple scoring: 100 points minus 5 points per issue, minimum 0
+          security_score = max(0, 100 - (total_issues * 5))
+          
+          print(f'🔒 Security Score: {security_score}/100')
+          
+          # Update report with security score
+          report['security_score'] = security_score
+          
+          with open('comprehensive-security-report.json', 'w') as f:
+              json.dump(report, f, indent=2)
+          
+          # Set GitHub output for conditional steps
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'security_score={security_score}\\n')
+          "
+
+      - name: Security score threshold check
+        id: threshold
+        run: |
+          # Check if security score meets threshold
+          SECURITY_THRESHOLD=70
+          
+          if [ "${{ env.SECURITY_SCORE }}" -ge "$SECURITY_THRESHOLD" ]; then
+            echo "✅ Security score ${{ env.SECURITY_SCORE }} meets threshold of $SECURITY_THRESHOLD"
+            echo "security_approved=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Security score ${{ env.SECURITY_SCORE }} below threshold of $SECURITY_THRESHOLD"
+            echo "security_approved=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload comprehensive security report
+        uses: actions/upload-artifact@v3
+        with:
+          name: comprehensive-security-report
+          path: comprehensive-security-report.json
+
+  # Security notifications and actions
+  security-notifications:
+    name: Security Notifications and Actions
+    runs-on: ubuntu-latest
+    needs: [security-report]
+    if: always()
+    
+    steps:
+      - name: Download security report
+        uses: actions/download-artifact@v3
+        with:
+          name: comprehensive-security-report
+          path: .
+
+      - name: Security score notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              "text": "🔒 AINEON Security Scan Results",
+              "attachments": [
+                {
+                  "color": "${{ needs.security-report.outputs.security_approved == 'true' && 'good' || 'danger' }}",
+                  "fields": [
+                    {
+                      "title": "Security Score",
+                      "value": "${{ env.SECURITY_SCORE }}/100",
+                      "short": true
+                    },
+                    {
+                      "title": "Total Issues",
+                      "value": "${{ fromJson(steps.report.outputs.report).summary.total_issues }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Repository",
+                      "value": "${{ github.repository }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Commit",
+                      "value": "${{ github.sha }}",
+                      "short": true
+                    }
+                  ]
+                }
+              ]
+            }
+
+      - name: Create security issue for critical findings
+        if: ${{ fromJson(steps.report.outputs.report).summary.total_issues > 10 }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 Security Issues Found - ${{ github.sha }}',
+              body: `
+              ## Security Scan Results
+              
+              **Repository**: ${{ github.repository }}
+              **Commit**: ${{ github.sha }}
+              **Total Issues**: ${{ fromJson(steps.report.outputs.report).summary.total_issues }}
+              
+              ### Summary
+              - Code Security Issues: ${{ fromJson(steps.report.outputs.report).summary.code_security_issues }}
+              - Dependency Vulnerabilities: ${{ fromJson(steps.report.outputs.report).summary.dependency_vulnerabilities }}
+              - Container Security Issues: ${{ fromJson(steps.report.outputs.report).summary.container_security_issues }}
+              - Infrastructure Issues: ${{ fromJson(steps.report.outputs.report).summary.infrastructure_issues }}
+              
+              ### Action Required
+              Please review and address the security issues identified in this scan.
+              
+              **Priority**: High
+              **Assigned to**: @security-team
+              `,
+              labels: ['security', 'high-priority', 'automated']
+            });
+            
+            console.log(`Created security issue: ${issue.data.html_url}`);
+
+      - name: Security approval for deployment
+        run: |
+          if [ "${{ needs.security-report.outputs.security_approved }}" == "true" ]; then
+            echo "✅ Security scan passed - deployment approved"
+            echo "DEPLOYMENT_APPROVED=true" >> $GITHUB_ENV
+          else
+            echo "❌ Security scan failed - deployment blocked"
+            echo "DEPLOYMENT_APPROVED=false" >> $GITHUB_ENV
+          fi

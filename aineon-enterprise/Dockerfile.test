@@ -1,0 +1,33 @@
+# AINEON Flash Loan Engine - Lightweight Test Dockerfile
+# Used for testing the FastAPI application before GitHub deployment
+
+FROM python:3.11.10-slim
+
+# Install minimal system dependencies
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Copy requirements first for better caching
+COPY requirements.txt .
+
+# Install only essential dependencies for FastAPI testing
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir fastapi uvicorn python-dotenv pydantic
+
+# Copy application code
+COPY main.py .
+
+# Create logs directory
+RUN mkdir -p logs
+
+# Expose port for FastAPI
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Run the FastAPI application
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AINEON Elite Analytics Sidebar Component</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        /* Cyberpunk Analytics Styling */
+        .analytics-scrollbar { 
+            scrollbar-width: thin; 
+            scrollbar-color: #222 #050505; 
+        }
+        .analytics-scrollbar::-webkit-scrollbar { 
+            width: 6px; 
+        }
+        .analytics-scrollbar::-webkit-scrollbar-track { 
+            background: #050505; 
+        }
+        .analytics-scrollbar::-webkit-scrollbar-thumb { 
+            background: #222; 
+            border-radius: 3px; 
+        }
+        .analytics-scrollbar::-webkit-scrollbar-thumb:hover { 
+            background: #00FF94; 
+        }
+        
+        /* Glow Effects */
+        .glow-green { 
+            box-shadow: 0 0 8px rgba(0, 255, 148, 0.3); 
+        }
+        .glow-green-strong { 
+            box-shadow: 0 0 16px rgba(0, 255, 148, 0.6); 
+        }
+        .glow-red { 
+            box-shadow: 0 0 8px rgba(255, 51, 51, 0.3); 
+        }
+        .glow-purple { 
+            box-shadow: 0 0 8px rgba(138, 43, 226, 0.4); 
+        }
+        .glow-yellow { 
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.4); 
+        }
+        
+        /* Pulse Animations */
+        .pulse-green { 
+            animation: pulseGreen 2s infinite; 
+        }
+        .pulse-purple { 
+            animation: pulsePurple 2s infinite; 
+        }
+        .pulse-red { 
+            animation: pulseRed 2s infinite; 
+        }
+        .pulse-yellow { 
+            animation: pulseYellow 2s infinite; 
+        }
+        
+        @keyframes pulseGreen {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        
+        @keyframes pulsePurple {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        
+        @keyframes pulseRed {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        
+        @keyframes pulseYellow {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.05); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        
+        /* Metric Cards */
+        .metric-card {
+            background: linear-gradient(135deg, #0A0A0A 0%, #1a0a1a 100%);
+            border: 1px solid #222;
+            transition: all 0.3s ease;
+        }
+        .metric-card:hover {
+            border-color: #00FF94;
+            box-shadow: 0 0 12px rgba(0, 255, 148, 0.2);
+        }
+        
+        /* Category Tabs */
+        .category-tab {
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+        .category-tab.active {
+            background: rgba(0, 255, 148, 0.1);
+            border-left-color: #00FF94;
+        }
+        .category-tab:hover {
+            background: rgba(0, 255, 148, 0.05);
+        }
+        
+        /* Trend Indicators */
+        .trend-up { color: #00FF94; }
+        .trend-down { color: #FF3333; }
+        .trend-stable { color: #FFD700; }
+        
+        /* AI Schedule Items */
+        .ai-schedule {
+            background: rgba(138, 43, 226, 0.1);
+            border: 1px solid rgba(138, 43, 226, 0.3);
+        }
+        
+        /* Three-Tier Bot Status */
+        .bot-tier {
+            background: linear-gradient(135deg, #111 0%, #0A0A0A 100%);
+            border: 1px solid #333;
+        }
+        
+        /* Critical Alerts */
+        .critical-alert {
+            background: rgba(255, 51, 51, 0.1);
+            border: 1px solid rgba(255, 51, 51, 0.4);
+            animation: pulseRed 2s infinite;
+        }
+    </style>
+</head>
+<body class="bg-[#050505] text-gray-300 font-mono">
+    <div class="h-screen flex">
+        
+        <!-- Analytics Sidebar -->
+        <div class="w-80 bg-[#050505] border-r border-[#222] flex flex-col">
+            
+            <!-- Header -->
+            <div class="p-4 border-b border-[#222] bg-[#0A0A0A]">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-lg font-bold text-[#00FF94] tracking-wider">📊 ANALYTICS</h2>
+                    <div class="w-2 h-2 rounded-full bg-[#00FF94] pulse-green"></div>
+                </div>
+                <div class="text-xs text-gray-400">Elite Dashboard v2.1.4</div>
+                <div class="text-xs text-[#00FF94]">Real-time Monitoring</div>
+            </div>
+            
+            <!-- Category Tabs -->
+            <div class="flex-1 overflow-y-auto analytics-scrollbar">
+                <div class="p-2 space-y-1">
+                    
+                    <!-- Profit Analytics -->
+                    <div class="category-tab active p-3 rounded cursor-pointer" data-category="profit">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="dollar-sign" class="w-4 h-4 text-[#00FF94]"></i>
+                                <span class="text-sm font-bold">Profit Analytics</span>
+                            </div>
+                            <span class="text-xs text-[#00FF94] font-mono">12.47 ETH</span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">7 metrics • +8.3% trend</div>
+                    </div>
+                    
+                    <!-- Trading Analytics -->
+                    <div class="category-tab p-3 rounded cursor-pointer" data-category="trading">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="trending-up" class="w-4 h-4 text-[#00FF94]"></i>
+                                <span class="text-sm font-bold">Trading Analytics</span>
+                            </div>
+                            <span class="text-xs text-[#00FF94] font-mono">96.8%</span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">8 metrics • Success rate</div>
+                    </div>
+                    
+                    <!-- AI Optimization -->
+                    <div class="category-tab p-3 rounded cursor-pointer" data-category="ai">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="bot" class="w-4 h-4 text-[#8A2BE2] pulse-purple"></i>
+                                <span class="text-sm font-bold">AI Optimization</span>
+                            </div>
+                            <span class="text-xs text-[#8A2BE2] font-mono">+12.78 ETH</span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">5 schedules • 24/7 active</div>
+                    </div>
+                    
+                    <!-- Performance Analytics -->
+                    <div class="category-tab p-3 rounded cursor-pointer" data-category="performance">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="activity" class="w-4 h-4 text-[#00FF94]"></i>
+                                <span class="text-sm font-bold">Performance</span>
+                            </div>
+                            <span class="text-xs text-[#00FF94] font-mono">8.3 ms</span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">8 metrics • Latency focus</div>
+                    </div>
+                    
+                    <!-- Security Analytics -->
+                    <div class="category-tab p-3 rounded cursor-pointer" data-category="security">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="shield" class="w-4 h-4 text-[#00FF94]"></i>
+                                <span class="text-sm font-bold">Security Analytics</span>
+                            </div>
+                            <span class="text-xs text-[#00FF94] font-mono">98.7%</span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">8 metrics • All secure</div>
+                    </div>
+                    
+                    <!-- Network Analytics -->
+                    <div class="category-tab p-3 rounded cursor-pointer" data-category="network">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="wifi" class="w-4 h-4 text-[#00FF94]"></i>
+                                <span class="text-sm font-bold">Network Analytics</span>
+                            </div>
+                            <span class="text-xs text-[#00FF94] font-mono">2.8K/min</span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">8 metrics • Blockchain events</div>
+                    </div>
+                    
+                    <!-- System Analytics -->
+                    <div class="category-tab p-3 rounded cursor-pointer" data-category="system">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="server" class="w-4 h-4 text-[#00FF94]"></i>
+                                <span class="text-sm font-bold">System Analytics</span>
+                            </div>
+                            <span class="text-xs text-[#00FF94] font-mono">97.3%</span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">8 metrics • Health score</div>
+                    </div>
+                    
+                    <!-- Deployment Analytics -->
+                    <div class="category-tab p-3 rounded cursor-pointer" data-category="deployment">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="rocket" class="w-4 h-4 text-[#00FF94]"></i>
+                                <span class="text-sm font-bold">Deployment Analytics</span>
+                            </div>
+                            <span class="text-xs text-[#00FF94] font-mono">v2.1.4</span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">8 metrics • CI/CD status</div>
+                    </div>
+                    
+                    <!-- Three-Tier Bot -->
+                    <div class="category-tab p-3 rounded cursor-pointer" data-category="bots">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="cpu" class="w-4 h-4 text-[#00FF94] pulse-green"></i>
+                                <span class="text-sm font-bold">Three-Tier Bot</span>
+                            </div>
+                            <span class="text-xs text-[#00FF94] font-mono">95.3%</span>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">Scanners • Executors • Orchestrators</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer Stats -->
+            <div class="p-4 border-t border-[#222] bg-[#0A0A0A]">
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div class="text-center">
+                        <div class="text-[#00FF94] font-bold">50+</div>
+                        <div class="text-gray-500">Total Metrics</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-[#00FF94] font-bold">97.8%</div>
+                        <div class="text-gray-500">Health Score</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Analytics Content Area -->
+        <div class="flex-1 p-6 overflow-y-auto analytics-scrollbar">
+            
+            <!-- Profit Analytics Content -->
+            <div id="profit-content" class="analytics-content">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-2xl font-bold text-[#00FF94]">💰 PROFIT ANALYTICS</h3>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-400">Last updated:</span>
+                        <span class="text-xs text-[#00FF94]">2s ago</span>
+                    </div>
+                </div>
+                
+                <!-- Profit Metrics Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                    <div class="metric-card p-4 rounded">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <div class="text-xs text-gray-400 tracking-wider">TOTAL PROFIT</div>
+                                <div class="text-2xl font-bold text-[#00FF94]">12.47 ETH</div>
+                            </div>
+                            <div class="trend-up text-sm">📈 +8.3%</div>
+                        </div>
+                        <div class="text-xs text-gray-500">Total profit across all strategies</div>
+                    </div>
+                    
+                    <div class="metric-card p-4 rounded">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <div class="text-xs text-gray-400 tracking-wider">PROFIT WITHDRAWAL</div>
+                                <div class="text-2xl font-bold text-[#00FF94]">8.92 ETH</div>
+                            </div>
+                            <div class="trend-up text-sm">📈 +15.2%</div>
+                        </div>
+                        <div class="text-xs text-gray-500">Amount withdrawn to wallets</div>
+                    </div>
+                    
+                    <div class="metric-card p-4 rounded">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <div class="text-xs text-gray-400 tracking-wider">FLASH LOAN PROFIT</div>
+                                <div class="text-2xl font-bold text-[#00FF94]">3.21 ETH</div>
+                            </div>
+                            <div class="trend-up text-sm">📈 +22.1%</div>
+                        </div>
+                        <div class="text-xs text-gray-500">Flash loan operations profit</div>
+                    </div>
+                    
+                    <div class="metric-card p-4 rounded">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <div class="text-xs text-gray-400 tracking-wider">GAS USAGE COST</div>
+                                <div class="text-2xl font-bold text-[#FF3333]">0.34 ETH</div>
+                            </div>
+                            <div class="trend-down text-sm">📉 -5.8%</div>
+                        </div>
+                        <div class="text-xs text-gray-500">Total gas costs</div>
+                    </div>
+                    
+                    <div class="metric-card p-4 rounded">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <div class="text-xs text-gray-400 tracking-wider">NET PROFIT MARGIN</div>
+                                <div class="text-2xl font-bold text-[#00FF94]">94.2%</div>
+                            </div>
+                            <div class="trend-up text-sm">📈 +2.1%</div>
+                        </div>
+                        <div class="text-xs text-gray-500">Profit margin after costs</div>
+                    </div>
+                    
+                    <div class="metric-card p-4 rounded">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <div class="text-xs text-gray-400 tracking-wider">DAILY PROFIT RATE</div>
+                                <div class="text-2xl font-bold text-[#00FF94]">1.24 ETH</div>
+                            </div>
+                            <div class="trend-up text-sm">📈 +18.7%</div>
+                        </div>
+                        <div class="text-xs text-gray-500">Average daily profit</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- AI Optimization Content -->
+            <div id="ai-content" class="analytics-content hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-2xl font-bold text-[#8A2BE2]">🤖 AI OPTIMIZATION (24/7)</h3>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-400">Next run:</span>
+                        <span class="text-xs text-[#8A2BE2] pulse-purple">1 min</span>
+                    </div>
+                </div>
+                
+                <!-- AI Summary -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="ai-schedule p-4 rounded">
+                        <div class="text-xs text-gray-400 tracking-wider">TOTAL DELTA GAINED</div>
+                        <div class="text-xl font-bold text-[#8A2BE2]">+12.78 ETH</div>
+                        <div class="text-xs text-gray-500">From AI optimizations</div>
+                    </div>
+                    <div class="ai-schedule p-4 rounded">
+                        <div class="text-xs text-gray-400 tracking-wider">TOTAL RUNS/DAY</div>
+                        <div class="text-xl font-bold text-[#8A2BE2]">1,770</div>
+                        <div class="text-xs text-gray-500">Optimization executions</div>
+                    </div>
+                    <div class="ai-schedule p-4 rounded">
+                        <div class="text-xs text-gray-400 tracking-wider">SUCCESS RATE</div>
+                        <div class="text-xl font-bold text-[#8A2BE2]">96.3%</div>
+                        <div class="text-xs text-gray-500">Average success rate</div>
+                    </div>
+                    <div class="ai-schedule p-4 rounded">
+                        <div class="text-xs text-gray-400 tracking-wider">ACTIVE SCHEDULES</div>
+                        <div class="text-xl font-bold text-[#8A2BE2]">5/5</div>
+                        <div class="text-xs text-gray-500">All schedules active</div>
+                    </div>
+                </div>
+                
+                <!-- AI Schedules -->
+                <div class="space-y-3">
+                    <div class="ai-schedule p-4 rounded">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-2 h-2 rounded-full bg-[#8A2BE2] pulse-purple"></div>
+                                <div>
+                                    <div class="text-sm font-bold text-[#8A2BE2]">Strategy Parameter Optimization</div>
+                                    <div class="text-xs text-gray-400">15 min frequency</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm text-[#8A2BE2]">+0.023 ETH</div>
+                                <div class="text-xs text-gray-400">Next: 3 min</div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-500">
+                            <span>Total Delta: 4.87 ETH</span>
+                            <span>Success Rate: 97.4%</span>
+                            <span>156 runs today</span>
+                        </div>
+                    </div>
+                    
+                    <div class="ai-schedule p-4 rounded">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-2 h-2 rounded-full bg-[#8A2BE2] pulse-purple"></div>
+                                <div>
+                                    <div class="text-sm font-bold text-[#8A2BE2]">Risk Assessment & Adjustment</div>
+                                    <div class="text-xs text-gray-400">5 min frequency</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm text-[#8A2BE2]">+0.012 ETH</div>
+                                <div class="text-xs text-gray-400">Next: 2 min</div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-500">
+                            <span>Total Delta: 2.34 ETH</span>
+                            <span>Success Rate: 99.1%</span>
+                            <span>432 runs today</span>
+                        </div>
+                    </div>
+                    
+                    <div class="ai-schedule p-4 rounded">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-2 h-2 rounded-full bg-[#8A2BE2] pulse-purple"></div>
+                                <div>
+                                    <div class="text-sm font-bold text-[#8A2BE2]">Gas Price Optimization</div>
+                                    <div class="text-xs text-gray-400">2 min frequency</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm text-[#8A2BE2]">+0.008 ETH</div>
+                                <div class="text-xs text-[#FF3333] pulse-red">Next: 1 min</div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-500">
+                            <span>Total Delta: 3.45 ETH</span>
+                            <span>Success Rate: 98.7%</span>
+                            <span>1,080 runs today</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Three-Tier Bot Content -->
+            <div id="bots-content" class="analytics-content hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-2xl font-bold text-[#00FF94]">🔧 THREE-TIER BOT SYSTEM</h3>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-gray-400">Success Rate:</span>
+                        <span class="text-xs text-[#00FF94] pulse-green">95.3%</span>
+                    </div>
+                </div>
+                
+                <!-- Three-Tier Summary -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="bot-tier p-4 rounded">
+                        <div class="text-xs text-gray-400 tracking-wider">TOTAL OPERATIONS</div>
+                        <div class="text-2xl font-bold text-[#00FF94]">8,472</div>
+                        <div class="text-xs text-gray-500">Across all tiers</div>
+                    </div>
+                    <div class="bot-tier p-4 rounded">
+                        <div class="text-xs text-gray-400 tracking-wider">SUCCESS RATE</div>
+                        <div class="text-2xl font-bold text-[#00FF94]">95.3%</div>
+                        <div class="text-xs text-gray-500">Overall performance</div>
+                    </div>
+                    <div class="bot-tier p-4 rounded">
+                        <div class="text-xs text-gray-400 tracking-wider">AVG LATENCY</div>
+                        <div class="text-2xl font-bold text-[#00FF94]">4.7 ms</div>
+                        <div class="text-xs text-gray-500">System latency</div>
+                    </div>
+                </div>
+                
+                <!-- Scanner Tier -->
+                <div class="mb-6">
+                    <h4 class="text-lg font-bold text-[#00FF94] mb-3">📡 SCANNERS TIER</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="bot-tier p-3 rounded">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm font-bold text-[#00FF94]">Mempool Scanner</span>
+                                <span class="w-2 h-2 rounded-full bg-[#00FF94] pulse-green"></span>
+                            </div>
+                            <div class="text-xs text-gray-400">Latency: 2.3 ms</div>
+                            <div class="text-xs text-gray-400">Processed: 1,847 tx</div>
+                        </div>
+                        <div class="bot-tier p-3 rounded">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm font-bold text-[#00FF94]">Liquidity Scanner</span>
+                                <span class="w-2 h-2 rounded-full bg-[#00FF94] pulse-green"></span>
+                            </div>
+                            <div class="text-xs text-gray-400">Latency: 5.7 ms</div>
+                            <div class="text-xs text-gray-400">Found: 23 opportunities</div>
+                        </div>
+                        <div class="bot-tier p-3 rounded">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm font-bold text-[#00FF94]">Arbitrage Scanner</span>
+                                <span class="w-2 h-2 rounded-full bg-[#00FF94] pulse-green"></span>
+                            </div>
+                            <div class="text-xs text-gray-400">Latency: 8.1 ms</div>
+                            <div class="text-xs text-gray-400">Monitored: 156 pairs</div>
+                        </div>
+                        <div class="bot-tier p-3 rounded">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm font-bold text-[#00FF94]">MEV Scanner</span>
+                                <span class="w-2 h-2 rounded-full bg-[#00FF94] pulse-green"></span>
+                            </div>
+                            <div class="text-xs text-gray-400">Latency: 1.9 ms</div>
+                            <div class="text-xs text-gray-400">MEV ops: 8 found</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Executor Tier -->
+                <div class="mb-6">
+                    <h4 class="text-lg font-bold text-[#00FF94] mb-3">⚡ EXECUTORS TIER</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div class="bot-tier p-3 rounded">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm font-bold text-[#00FF94]">Flash Loan Executor</span>
+                                <span class="text-xs text-[#00FF94]">READY</span>
+                            </div>
+                            <div class="text-xs text-gray-400">Success: 96.8%</div>
+                            <div class="text-xs text-gray-400">Executions: 234</div>
+                        </div>
+                        <div class="bot-tier p-3 rounded">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm font-bold text-[#00FF94]">Arbitrage Executor</span>
+                                <span class="text-xs text-[#00FF94]">ACTIVE</span>
+                            </div>
+                            <div class="text-xs text-gray-400">Success: 94.2%</div>
+                            <div class="text-xs text-gray-400">Executions: 187</div>
+                        </div>
+                        <div class="bot-tier p-3 rounded">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm font-bold text-[#FFD700]">Liquidity Executor</span>
+                                <span class="text-xs text-[#FFD700]">STANDBY</span>
+                            </div>
+                            <div class="text-xs text-gray-400">Success: 89.7%</div>
+                            <div class="text-xs text-gray-400">Executions: 45</div>
+                        </div>
+                        <div class="bot-tier p-3 rounded">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm font-bold text-[#00FF94]">MEV Executor</span>
+                                <span class="text-xs text-[#00FF94]">ACTIVE</span>
+                            </div>
+                            <div class="text-xs text-gray-400">Success: 97.3%</div>
+                            <div class="text-xs text-gray-400">Executions: 67</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Orchestrator Tier -->
+                <div>
+                    <h4 class="text-lg font-bold text-[#00FF94] mb-3">🎼 ORCHESTRATORS TIER</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="bot-tier p-3 rounded">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm font-bold text-[#00FF94]">Strategy Orchestrator</span>
+                                <span class="w-2 h-2 rounded-full bg-[#00FF94] pulse-green"></span>
+                            </div>
+                            <div class="text-xs text-gray-400">Strategies: 12 managed</div>
+                            <div class="text-xs text-gray-400">Success: 98.9%</div>
+                        </div>
+                        <div class="bot-tier p-3 rounded">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm font-bold text-[#00FF94]">Risk Orchestrator</span>
+                                <span class="w-2 h-2 rounded-full bg-[#00FF94] pulse-green"></span>
+                            </div>
+                            <div class="text-xs text-gray-400">Checks: 2,847</div>
+                            <div class="text-xs text-gray-400">Interventions: 3</div>
+                        </div>
+                        <div class="bot-tier p-3 rounded">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm font-bold text-[#00FF94]">Profit Orchestrator</span>
+                                <span class="w-2 h-2 rounded-full bg-[#00FF94] pulse-green"></span>
+                            </div>
+                            <div class="text-xs text-gray-400">Optimizations: 89</div>
+                            <div class="text-xs text-gray-400">Efficiency: 94.7%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Other content areas would be similar... -->
+            
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+        
+        // Category switching functionality
+        const categoryTabs = document.querySelectorAll('.category-tab');
+        const contentAreas = document.querySelectorAll('.analytics-content');
+        
+        categoryTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all tabs
+                categoryTabs.forEach(t => t.classList.remove('active'));
+                
+                // Add active class to clicked tab
+                tab.classList.add('active');
+                
+                // Hide all content areas
+                contentAreas.forEach(content => content.classList.add('hidden'));
+                
+                // Show corresponding content
+                const category = tab.dataset.category;
+                const contentId = category + '-content';
+                const contentElement = document.getElementById(contentId);
+                if (contentElement) {
+                    contentElement.classList.remove('hidden');
+                }
+            });
+        });
+        
+        // Simulate real-time updates
+        setInterval(() => {
+            // Update timestamps and some values
+            const timestamps = document.querySelectorAll('.text-xs.text-\[\#00FF94\]');
+            timestamps.forEach(timestamp => {
+                if (timestamp.textContent.includes('ago')) {
+                    const currentValue = parseInt(timestamp.textContent);
+                    timestamp.textContent = `${currentValue + 2}s ago`;
+                }
+            });
+            
+            // Pulse critical alerts
+            const criticalElements = document.querySelectorAll('.pulse-red');
+            criticalElements.forEach(element => {
+                element.style.animation = 'none';
+                setTimeout(() => {
+                    element.style.animation = 'pulseRed 2s infinite';
+                }, 10);
+            });
+        }, 2000);
+        
+        console.log('🚀 AINEON Analytics Sidebar Component Loaded');
+        console.log('📊 50+ metrics across 9 categories');
+        console.log('🤖 AI Optimization: 5 schedules, 24/7 active');
+        console.log('🔧 Three-Tier Bot: 8,472 operations, 95.3% success');
+    </script>
+</body>
+</html>

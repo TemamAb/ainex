@@ -1,24 +1,29 @@
 FROM python:3.11-slim-bullseye
 
-# Install system-level dependencies for high-performance math and networking
+# System dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy only the requirement files first to leverage Docker cache
-COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+# Enable Python to find modules in the root
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
 
-# Copy the rest of the elite engine (preserving all thousand-hour logic)
+# Copy requirements and install
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
 COPY . .
 
-# Render uses the PORT environment variable
-ENV PORT=10000
-EXPOSE 10000
+# Expose the API port (from core/main.py, it uses PORT env var)
+# Render uses 10000 by default, but the engine defaults to 8081 if PORT is not set.
+EXPOSE 8081 10000
 
-# Start the engine using Gunicorn for production stability
-CMD gunicorn main:app --bind 0.0.0.0:$PORT --workers 4 --worker-class uvicorn.workers.UvicornWorker
+# Start the engine
+# We use python -m core.main to ensure absolute imports work correctly
+CMD ["python", "-m", "core.main"]

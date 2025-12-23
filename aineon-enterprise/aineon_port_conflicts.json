@@ -1,0 +1,144 @@
+{
+  "port_priorities": {
+    "engine_1_api": {
+      "priority": "CRITICAL",
+      "fallback": [
+        8001,
+        9001,
+        10001
+      ]
+    },
+    "engine_2_api": {
+      "priority": "CRITICAL",
+      "fallback": [
+        8005,
+        9005,
+        10005
+      ]
+    },
+    "aave_connector": {
+      "priority": "CRITICAL",
+      "fallback": [
+        8101,
+        9101,
+        10101
+      ]
+    },
+    "dydx_connector": {
+      "priority": "CRITICAL",
+      "fallback": [
+        8102,
+        9102,
+        10102
+      ]
+    },
+    "balancer_connector": {
+      "priority": "CRITICAL",
+      "fallback": [
+        8103,
+        9103,
+        10103
+      ]
+    },
+    "profit_tracker": {
+      "priority": "HIGH",
+      "fallback": [
+        8301,
+        9301,
+        10301
+      ]
+    },
+    "main_dashboard": {
+      "priority": "HIGH",
+      "fallback": [
+        8401,
+        9401,
+        10401
+      ]
+    },
+    "price_aggregator": {
+      "priority": "HIGH",
+      "fallback": [
+        8201,
+        9201,
+        10201
+      ]
+    },
+    "websocket_gateway": {
+      "priority": "MEDIUM",
+      "fallback": [
+        8403,
+        9403,
+        10403
+      ]
+    },
+    "data_feed": {
+      "priority": "MEDIUM",
+      "fallback": [
+        8003,
+        9003,
+        10003
+      ]
+    },
+    "test_environment": {
+      "priority": "LOW",
+      "fallback": [
+        8901,
+        9901,
+        10901
+      ]
+    },
+    "debug_interface": {
+      "priority": "LOW",
+      "fallback": [
+        8905,
+        9905,
+        10905
+      ]
+    }
+  },
+  "active_allocations": {
+    "engine_1_api": {
+      "service_name": "engine_1_api",
+      "port": 8001,
+      "category": "engine_primary",
+      "allocated_at": "2025-12-20T16:42:23.425282",
+      "priority": "CRITICAL",
+      "reserved": false
+    },
+    "engine_2_api": {
+      "service_name": "engine_2_api",
+      "port": 8005,
+      "category": "engine_primary",
+      "allocated_at": "2025-12-20T16:42:23.929349",
+      "priority": "CRITICAL",
+      "reserved": false
+    },
+    "aave_connector": {
+      "service_name": "aave_connector",
+      "port": 8101,
+      "category": "flash_loan_system",
+      "allocated_at": "2025-12-20T16:42:24.436907",
+      "priority": "CRITICAL",
+      "reserved": false
+    },
+    "profit_tracker": {
+      "service_name": "profit_tracker",
+      "port": 8301,
+      "category": "monitoring_system",
+      "allocated_at": "2025-12-20T16:42:24.952745",
+      "priority": "HIGH",
+      "reserved": false
+    },
+    "main_dashboard": {
+      "service_name": "main_dashboard",
+      "port": 8401,
+      "category": "web_interface",
+      "allocated_at": "2025-12-20T16:42:25.457889",
+      "priority": "HIGH",
+      "reserved": false
+    }
+  },
+  "conflict_history": [],
+  "last_updated": "2025-12-20T16:42:25.457889"
+}

@@ -1,4 +1,0 @@
-AUTO-WITHDRAWAL DISABLED BY USER REQUEST
-Disabled at: 2025-12-21 15:52:38 UTC
-All auto-withdrawal systems have been disabled.
-Profits will accumulate in the trading wallets until manual withdrawal.
