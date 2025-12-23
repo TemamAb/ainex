@@ -1,18 +1,12 @@
-# AINEON Flash Loan Engine - Render Deployment Configuration
-# Enterprise-Grade Flash Loan Engine for Production Deployment
-# Target: github.com/TemamAb/myneon
-
 services:
   - type: web
-    name: flash-loan-engine
+    name: myneon-2
     runtime: python
-    plan: starter
-    region: ohio
+    plan: free
     buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
-    startCommand: "gunicorn main:app --bind 0.0.0.0:$PORT --workers 4 --worker-class uvicorn.workers.UvicornWorker"
+    startCommand: "gunicorn main:app --bind 0.0.0.0:$PORT"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.10
       - key: PORT
         value: 10000
-    autoDeploy: true
