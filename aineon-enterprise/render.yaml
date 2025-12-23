@@ -1,12 +1,9 @@
 services:
   - type: web
-    name: myneon-2
-    runtime: python
+    name: myneon-enterprise
+    runtime: docker
     plan: free
-    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
-    startCommand: "gunicorn main:app --bind 0.0.0.0:$PORT"
+    region: ohio
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.10
       - key: PORT
         value: 10000

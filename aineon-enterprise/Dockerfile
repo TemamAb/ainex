@@ -1,78 +1,24 @@
-# ELITE-GRADE AINEON DASHBOARD - DEVELOPMENT DOCKERFILE
-# Optimized for development and testing environments
-# Supports elite-grade features with development flexibility
+FROM python:3.11-slim-bullseye
 
-FROM python:3.11.8-slim
-
-# Metadata
-LABEL maintainer="Aineon Elite Team <elite@aineon.com>"
-LABEL version="elite-dev-v2.1"
-LABEL description="Elite-grade Aineon Dashboard - Development Environment"
-LABEL environment="development"
-
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONPATH="/app:${PYTHONPATH}"
-ENV DEBIAN_FRONTEND=noninteractive
-ENV DEBUG=true
-
-# Set working directory
-WORKDIR /app
-
-# Install system dependencies
+# Install system-level dependencies for high-performance math and networking
 RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
+    build-essential \
     curl \
-    wget \
-    git \
-    vim \
-    htop \
-    tree \
-    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Create development user
-RUN groupadd -r devuser && useradd -r -g devuser -d /app -s /bin/bash -c "Development User" devuser
+WORKDIR /app
 
-# Copy requirements files
-COPY requirements.txt ./
-COPY requirements_wallet.txt ./
+# Copy only the requirement files first to leverage Docker cache
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Install Python dependencies
-RUN pip install --upgrade pip setuptools wheel
-RUN pip install -r requirements.txt
-RUN pip install -r requirements_wallet.txt
-
-# Install development packages
-RUN pip install \
-    websockets aiohttp cryptography fastapi uvicorn gunicorn \
-    redis aioredis prometheus-client psutil \
-    asyncio-throttle pyotp qrcode[pil] bcrypt passlib[bcrypt] \
-    eth-account web3 boto3 schedule grafana-api \
-    pytest pytest-asyncio black flake8 mypy
-
-# Copy application code
+# Copy the rest of the elite engine (preserving all thousand-hour logic)
 COPY . .
 
-# Create directories and set permissions
-RUN mkdir -p logs data models backups cache && \
-    chown -R devuser:devuser /app
+# Render uses the PORT environment variable
+ENV PORT=10000
+EXPOSE 10000
 
-# Switch to development user
-USER devuser
-
-# Expose ports
-EXPOSE 8000 8765 8501 8502
-
-# Development health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
-
-# Default command for development
-CMD ["python", "elite_aineon_dashboard.py"]
-
-# Development labels
-LABEL environment="development"
-LABEL debug_enabled="true"
+# Start the engine using Gunicorn for production stability
+CMD gunicorn main:app --bind 0.0.0.0:$PORT --workers 4 --worker-class uvicorn.workers.UvicornWorker
