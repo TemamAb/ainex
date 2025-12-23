@@ -1,9 +1,7 @@
 """
-AINEON 1.0 MAIN APPLICATION
-Elite-grade blockchain arbitrage engine entry point
-
-TOP 0.001% performance system for real ETH profit generation
-Target: 495-805 ETH daily through live blockchain arbitrage
+AINEON Flash Loan Engine - Web Service Entry Point
+Enterprise-grade blockchain arbitrage engine with FastAPI web interface
+Target: github.com/TemamAb/myneon deployment to Render
 """
 
 import asyncio
@@ -14,16 +12,46 @@ from datetime import datetime
 from typing import Dict, Any
 import os
 import json
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+import uvicorn
 
 # Import AINEON core components
-from core.blockchain_connector import EthereumMainnetConnector
-from core.live_arbitrage_engine import get_arbitrage_engine
-from core.profit_tracker import get_profit_tracker
-from core.manual_withdrawal import get_manual_withdrawal_system
-from core.auto_withdrawal import get_auto_withdrawal_system
+try:
+    from core.blockchain_connector import EthereumMainnetConnector
+    from core.live_arbitrage_engine import get_arbitrage_engine
+    from core.profit_tracker import get_profit_tracker
+    from core.manual_withdrawal import get_manual_withdrawal_system
+    from core.auto_withdrawal import get_auto_withdrawal_system
+    CORE_COMPONENTS_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"Core components not available: {e}")
+    CORE_COMPONENTS_AVAILABLE = False
 
-class AINEONApp:
-    """AINEON 1.0 Main Application"""
+# Create FastAPI application
+app = FastAPI(
+    title="AINEON Flash Loan Engine",
+    description="Enterprise-Grade Flash Loan Engine for Blockchain Arbitrage",
+    version="1.0.0"
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Global application state
+_app_instance = None
+_engine_running = False
+_start_time = None
+
+class AINEONWebApp:
+    """AINEON Web Application wrapper"""
     
     def __init__(self, config: Dict[str, Any] = None):
         self.config = config or self.load_config()
@@ -43,7 +71,7 @@ class AINEONApp:
         # Setup logging
         self.setup_logging()
         
-        self.logger.info("🚀 AINEON 1.0 Application initialized")
+        self.logger.info("🚀 AINEON Web Application initialized")
         
     def load_config(self) -> Dict[str, Any]:
         """Load configuration from environment or defaults"""
@@ -101,293 +129,185 @@ class AINEONApp:
                 logging.StreamHandler(sys.stdout)
             ]
         )
-        
-    async def initialize_components(self):
-        """Initialize all AINEON components"""
-        self.logger.info("🔧 Initializing AINEON 1.0 Components...")
-        
-        try:
-            # Initialize blockchain connector
-            self.logger.info("   📡 Initializing blockchain connector...")
-            blockchain_config = {
-                'alchemy_api_key': self.config['alchemy_api_key'],
-                'infura_api_key': self.config['infura_api_key'],
-                'private_key': self.config['private_key']
-            }
-            self.blockchain_connector = EthereumMainnetConnector(blockchain_config)
-            
-            # Initialize profit tracker
-            self.logger.info("   💰 Initializing profit tracker...")
-            profit_config = {
-                'initial_eth_balance': self.config['initial_eth_balance'],
-                'tracking_interval': self.config['tracking_interval'],
-                'eth_price_usd': self.config['eth_price_usd'],
-                'gas_reserve_eth': self.config['gas_reserve_eth']
-            }
-            self.profit_tracker = get_profit_tracker(profit_config)
-            
-            # Initialize arbitrage engine
-            self.logger.info("   ⚡ Initializing arbitrage engine...")
-            arbitrage_config = {
-                'min_profit_threshold': self.config['min_profit_threshold'],
-                'max_gas_price': self.config['max_gas_price'],
-                'confidence_threshold': self.config['confidence_threshold'],
-                'max_position_size': self.config['max_position_size']
-            }
-            self.arbitrage_engine = get_arbitrage_engine(arbitrage_config)
-            
-            # Initialize manual withdrawal system
-            self.logger.info("   💸 Initializing manual withdrawal system...")
-            withdrawal_config = {
-                'min_withdrawal_eth': self.config['min_withdrawal_eth'],
-                'max_withdrawal_eth': self.config['max_withdrawal_eth'],
-                'gas_reserve_eth': self.config['gas_reserve_eth'],
-                'max_daily_withdrawals': self.config['max_daily_withdrawals'],
-                'max_daily_amount_eth': self.config['max_daily_amount_eth'],
-                'require_confirmation': self.config['require_confirmation']
-            }
-            self.manual_withdrawal = get_manual_withdrawal_system(withdrawal_config)
-            
-            # Initialize auto withdrawal system
-            self.logger.info("   🤖 Initializing auto withdrawal system...")
-            auto_config = {
-                'enabled': self.config['auto_withdrawal_enabled'],
-                'check_interval': self.config['auto_check_interval'],
-                'daily_withdrawal_limit': self.config['daily_withdrawal_limit'],
-                'default_rules': [
-                    {
-                        'name': 'Conservative',
-                        'threshold_eth': self.config['auto_withdrawal_threshold'],
-                        'percentage': self.config['auto_withdrawal_percentage'],
-                        'destination_address': self.config['withdrawal_address'],
-                        'enabled': True
-                    }
-                ]
-            }
-            self.auto_withdrawal = get_auto_withdrawal_system(auto_config)
-            
-            # Connect components
-            self.logger.info("   🔗 Connecting components...")
-            self.auto_withdrawal.set_dependencies(self.profit_tracker, self.manual_withdrawal)
-            
-            self.logger.info("✅ All components initialized successfully")
-            
-        except Exception as e:
-            self.logger.error(f"❌ Error initializing components: {e}")
-            raise
-            
-    async def start_profit_generation(self):
-        """Start the main profit generation system"""
-        self.logger.info("🚀 Starting AINEON 1.0 Profit Generation Mode")
-        self.logger.info("🎯 Target: 495-805 ETH daily through real blockchain arbitrage")
-        
-        self.running = True
-        self.start_time = datetime.now()
-        
-        try:
-            # Start all systems concurrently
-            tasks = []
-            
-            # Profit tracking (runs continuously)
-            tasks.append(asyncio.create_task(self.profit_tracker.start_tracking()))
-            
-            # Arbitrage engine (runs continuously)
-            tasks.append(asyncio.create_task(self.arbitrage_engine.start_profit_generation()))
-            
-            # Auto withdrawal system (runs continuously if enabled)
-            if self.config['auto_withdrawal_enabled']:
-                tasks.append(asyncio.create_task(self.auto_withdrawal.start_auto_withdrawals()))
-            
-            # Status reporting task (runs every 5 minutes)
-            tasks.append(asyncio.create_task(self._status_reporting_loop()))
-            
-            # Health monitoring task
-            tasks.append(asyncio.create_task(self._health_monitoring_loop()))
-            
-            # Wait for all tasks
-            await asyncio.gather(*tasks, return_exceptions=True)
-            
-        except KeyboardInterrupt:
-            self.logger.info("🛑 Received interrupt signal, shutting down...")
-        except Exception as e:
-            self.logger.error(f"❌ Critical error in profit generation: {e}")
-            raise
-        finally:
-            await self.shutdown()
-            
-    async def _status_reporting_loop(self):
-        """Report system status every 5 minutes"""
-        while self.running:
-            try:
-                await asyncio.sleep(300)  # 5 minutes
-                
-                if self.running:
-                    await self._report_status()
-                    
-            except Exception as e:
-                self.logger.error(f"Error in status reporting: {e}")
-                
-    async def _health_monitoring_loop(self):
-        """Monitor system health continuously"""
-        while self.running:
-            try:
-                await asyncio.sleep(60)  # Check every minute
-                
-                if self.running:
-                    await self._check_health()
-                    
-            except Exception as e:
-                self.logger.error(f"Error in health monitoring: {e}")
-                
-    async def _report_status(self):
-        """Report comprehensive system status"""
-        try:
-            # Get performance stats
-            arbitrage_stats = self.arbitrage_engine.get_performance_stats()
-            profit_summary = await self.profit_tracker.get_profit_summary()
-            withdrawal_status = await self.auto_withdrawal.get_auto_withdrawal_status() if self.auto_withdrawal else {}
-            
-            runtime = datetime.now() - self.start_time
-            
-            self.logger.info("=" * 60)
-            self.logger.info("📊 AINEON 1.0 STATUS REPORT")
-            self.logger.info("=" * 60)
-            self.logger.info(f"⏱️  Runtime: {runtime.days}d {runtime.seconds//3600}h {(runtime.seconds//60)%60}m")
-            self.logger.info(f"💰 Total Profit: {arbitrage_stats['total_profit_eth']:.4f} ETH (${arbitrage_stats['total_profit_eth'] * self.config['eth_price_usd']:.2f})")
-            self.logger.info(f"📈 Profit/Hour: {arbitrage_stats['profit_per_hour']:.4f} ETH")
-            self.logger.info(f"🎯 Success Rate: {arbitrage_stats['success_rate']}")
-            self.logger.info(f"✅ Successful Trades: {arbitrage_stats['successful_trades']}")
-            self.logger.info(f"❌ Failed Trades: {arbitrage_stats['failed_trades']}")
-            self.logger.info(f"💸 Available Balance: {profit_summary['balances']['available_for_withdrawal']:.4f} ETH")
-            
-            if self.auto_withdrawal:
-                self.logger.info(f"🤖 Auto Withdrawal: {'Enabled' if withdrawal_status['auto_enabled'] else 'Disabled'}")
-                self.logger.info(f"📋 Active Rules: {withdrawal_status['enabled_rules']}/{withdrawal_status['total_rules']}")
-                
-            self.logger.info("=" * 60)
-            
-        except Exception as e:
-            self.logger.error(f"Error reporting status: {e}")
-            
-    async def _check_health(self):
-        """Check system health and report issues"""
-        try:
-            health_issues = []
-            
-            # Check if systems are responding
-            try:
-                await self.arbitrage_engine.get_status()
-            except Exception as e:
-                health_issues.append(f"Arbitrage engine not responding: {e}")
-                
-            try:
-                await self.profit_tracker.get_profit_summary()
-            except Exception as e:
-                health_issues.append(f"Profit tracker not responding: {e}")
-                
-            # Check for critical errors in logs would go here
-            # For now, just log if there are issues
-            if health_issues:
-                self.logger.warning(f"⚠️ Health issues detected: {'; '.join(health_issues)}")
-            else:
-                self.logger.debug("✅ All systems healthy")
-                
-        except Exception as e:
-            self.logger.error(f"Error checking health: {e}")
-            
-    async def shutdown(self):
-        """Graceful shutdown of all systems"""
-        self.logger.info("🛑 Shutting down AINEON 1.0...")
-        self.running = False
-        
-        try:
-            # Stop auto withdrawal system
-            if self.auto_withdrawal:
-                await self.auto_withdrawal.stop_auto_withdrawals()
-                
-            # Save final data
-            if self.profit_tracker:
-                await self.profit_tracker.save_tracking_data()
-                
-            # Final status report
-            if self.start_time:
-                runtime = datetime.now() - self.start_time
-                final_stats = self.arbitrage_engine.get_performance_stats()
-                
-                self.logger.info("📊 FINAL SESSION REPORT")
-                self.logger.info(f"⏱️  Total Runtime: {runtime.days}d {runtime.seconds//3600}h {(runtime.seconds//60)%60}m")
-                self.logger.info(f"💰 Total Profit: {final_stats['total_profit_eth']:.4f} ETH")
-                self.logger.info(f"📈 Average Profit/Hour: {final_stats['profit_per_hour']:.4f} ETH")
-                self.logger.info(f"🎯 Success Rate: {final_stats['success_rate']}")
-                
-        except Exception as e:
-            self.logger.error(f"Error during shutdown: {e}")
-            
-        self.logger.info("👋 AINEON 1.0 shutdown complete")
-        
-    async def get_system_status(self) -> Dict[str, Any]:
-        """Get comprehensive system status"""
-        try:
-            arbitrage_status = await self.arbitrage_engine.get_status()
-            profit_summary = await self.profit_tracker.get_profit_summary()
-            withdrawal_status = await self.auto_withdrawal.get_auto_withdrawal_status() if self.auto_withdrawal else {}
-            
+
+# Create global app instance
+def get_web_app(config: Dict[str, Any] = None) -> AINEONWebApp:
+    """Get or create global web application instance"""
+    global _app_instance
+    if _app_instance is None:
+        _app_instance = AINEONWebApp(config)
+    return _app_instance
+
+# =============================================================================
+# FASTAPI ROUTES
+# =============================================================================
+
+@app.get("/", tags=["Root"])
+async def root():
+    """Root endpoint"""
+    return {
+        "message": "AINEON Flash Loan Engine - Enterprise Blockchain Arbitrage",
+        "version": "1.0.0",
+        "status": "running" if _engine_running else "stopped",
+        "start_time": _start_time.isoformat() if _start_time else None,
+        "environment": os.getenv('ENVIRONMENT', 'production')
+    }
+
+@app.get("/health", tags=["Health"])
+async def health_check():
+    """Health check endpoint for Render"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "engine_running": _engine_running,
+        "uptime_seconds": (datetime.now() - _start_time).total_seconds() if _start_time else 0
+    }
+
+@app.get("/status", tags=["Status"])
+async def get_status():
+    """Get comprehensive system status"""
+    try:
+        if not CORE_COMPONENTS_AVAILABLE:
             return {
-                'application_status': 'running' if self.running else 'stopped',
-                'start_time': self.start_time.isoformat() if self.start_time else None,
-                'arbitrage_engine': arbitrage_status,
-                'profit_tracking': profit_summary,
-                'manual_withdrawal': await self.manual_withdrawal.get_withdrawal_statistics() if self.manual_withdrawal else {},
-                'auto_withdrawal': withdrawal_status,
-                'configuration': {
-                    'environment': self.config['environment'],
-                    'auto_withdrawal_enabled': self.config['auto_withdrawal_enabled'],
-                    'min_profit_threshold': self.config['min_profit_threshold']
+                "status": "running",
+                "mode": "demo",
+                "message": "Core components not available, running in demo mode",
+                "components": {
+                    "blockchain_connector": "unavailable",
+                    "arbitrage_engine": "unavailable",
+                    "profit_tracker": "unavailable"
                 }
             }
-            
-        except Exception as e:
-            return {'error': str(e), 'status': 'error'}
-
-# Global application instance
-_app = None
-
-def get_app(config: Dict[str, Any] = None) -> AINEONApp:
-    """Get or create global application instance"""
-    global _app
-    if _app is None:
-        _app = AINEONApp(config)
-    return _app
-
-async def main():
-    """Main application entry point"""
-    try:
-        # Create and initialize application
-        app = get_app()
-        await app.initialize_components()
         
-        # Setup signal handlers for graceful shutdown
-        def signal_handler(signum, frame):
-            logging.info(f"Received signal {signum}")
-            app.running = False
-            
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
+        web_app = get_web_app()
+        status = await web_app.get_system_status()
+        return status
         
-        # Start profit generation
-        await app.start_profit_generation()
-        
-    except KeyboardInterrupt:
-        logging.info("👋 Interrupted by user")
     except Exception as e:
-        logging.error(f"💥 Fatal error: {e}")
-        sys.exit(1)
+        logging.error(f"Error getting status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/start", tags=["Control"])
+async def start_engine():
+    """Start the arbitrage engine"""
+    global _engine_running, _start_time
+    
+    if _engine_running:
+        return {"message": "Engine already running", "status": "already_running"}
+    
+    try:
+        if not CORE_COMPONENTS_AVAILABLE:
+            _engine_running = True
+            _start_time = datetime.now()
+            return {"message": "Engine started in demo mode", "status": "started"}
+        
+        web_app = get_web_app()
+        await web_app.initialize_components()
+        
+        # Start engine in background
+        asyncio.create_task(web_app.start_profit_generation())
+        
+        _engine_running = True
+        _start_time = datetime.now()
+        
+        return {"message": "Engine started successfully", "status": "started"}
+        
+    except Exception as e:
+        logging.error(f"Error starting engine: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/stop", tags=["Control"])
+async def stop_engine():
+    """Stop the arbitrage engine"""
+    global _engine_running
+    
+    if not _engine_running:
+        return {"message": "Engine already stopped", "status": "already_stopped"}
+    
+    try:
+        _engine_running = False
+        
+        if CORE_COMPONENTS_AVAILABLE:
+            web_app = get_web_app()
+            await web_app.shutdown()
+        
+        return {"message": "Engine stopped successfully", "status": "stopped"}
+        
+    except Exception as e:
+        logging.error(f"Error stopping engine: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/config", tags=["Configuration"])
+async def get_config():
+    """Get current configuration (non-sensitive)"""
+    web_app = get_web_app()
+    config = web_app.config.copy()
+    
+    # Remove sensitive information
+    sensitive_keys = ['alchemy_api_key', 'infura_api_key', 'private_key']
+    for key in sensitive_keys:
+        if key in config:
+            config[key] = "***REDACTED***"
+    
+    return {"configuration": config}
+
+@app.get("/metrics", tags=["Metrics"])
+async def get_metrics():
+    """Get performance metrics"""
+    try:
+        if not CORE_COMPONENTS_AVAILABLE:
+            return {
+                "status": "demo_mode",
+                "metrics": {
+                    "total_profit_eth": 0.0,
+                    "successful_trades": 0,
+                    "failed_trades": 0,
+                    "success_rate": "0%",
+                    "profit_per_hour": 0.0
+                }
+            }
+        
+        web_app = get_web_app()
+        if web_app.arbitrage_engine:
+            stats = web_app.arbitrage_engine.get_performance_stats()
+            return {"metrics": stats}
+        else:
+            return {"metrics": {}}
+            
+    except Exception as e:
+        logging.error(f"Error getting metrics: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# =============================================================================
+# MAIN EXECUTION
+# =============================================================================
+
+def setup_signal_handlers():
+    """Setup signal handlers for graceful shutdown"""
+    def signal_handler(signum, frame):
+        logging.info(f"Received signal {signum}, shutting down...")
+        sys.exit(0)
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
 
 if __name__ == "__main__":
-    print("AINEON 1.0 - Elite Blockchain Arbitrage Engine")
-    print("Target: 495-805 ETH daily through real blockchain arbitrage")
-    print("Tier: TOP 0.001% Performance")
+    print("AINEON Flash Loan Engine - Web Service")
+    print("Enterprise-Grade Blockchain Arbitrage Engine")
+    print("Target: github.com/TemamAb/myneon")
     print("=" * 60)
     
-    # Run the application
-    asyncio.run(main())
+    # Setup signal handlers
+    setup_signal_handlers()
+    
+    # Get port from environment
+    port = int(os.getenv("PORT", 10000))
+    
+    # Start the web service
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=port,
+        reload=False,
+        log_level="info"
+    )
