@@ -10,7 +10,12 @@ ENV PYTHONPATH=/app
 RUN apt-get update && apt-get install -y \
     curl \
     build-essential \
+    nodejs \
+    npm \
     && rm -rf /var/lib/apt/lists/*
+
+# Install vite globally for frontend builds (only when needed)
+RUN npm install -g vite
 
 # Create app directory
 WORKDIR /app
